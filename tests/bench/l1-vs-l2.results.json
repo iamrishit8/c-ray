@@ -1,0 +1,41 @@
+[
+  {
+    "fixture": "express-mongoose",
+    "files": 17,
+    "importPrecision": "100.0%",
+    "importRecall": "100.0%",
+    "callPrecision": "84.6%",
+    "callRecall": "100.0%",
+    "importEdges": 22,
+    "callEdges": 11
+  },
+  {
+    "fixture": "nestjs-prisma",
+    "files": 12,
+    "importPrecision": "100.0%",
+    "importRecall": "100.0%",
+    "callPrecision": "83.3%",
+    "callRecall": "100.0%",
+    "importEdges": 22,
+    "callEdges": 10
+  },
+  {
+    "fixture": "monorepo",
+    "files": 23,
+    "importPrecision": "95.3%",
+    "importRecall": "100.0%",
+    "callPrecision": "90.0%",
+    "callRecall": "69.2%",
+    "importEdges": 41,
+    "callEdges": 26
+  },
+  {
+    "fixture": "ALL",
+    "importPrecision": "97.7%",
+    "importRecall": "100.0%",
+    "callPrecision": "86.7%",
+    "callRecall": "83.0%",
+    "importEdges": 85,
+    "callEdges": 47
+  }
+]

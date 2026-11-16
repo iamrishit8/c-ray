@@ -2,14 +2,16 @@
 // them into the global symbol table, import edges and reference edges.
 import { isTsJs } from './l0/languages';
 import type { FileGraph, L2Input, L2Result } from './l2/tsgraph';
+import type { ResolverConfig, ResolverPackage } from './resolve-js';
 import type { Stage, StageContext } from './pipeline';
-import type { ImportEdge, RefEdge, SymbolDef } from './types';
+import type { ImportEdge, PR, RefEdge, SymbolDef } from './types';
+import { buildL1Graphs } from './l1/resolve';
 import { basename, dirname } from './util';
 
 export type RunL2 = (input: L2Input) => Promise<L2Result>;
 
-export function workspacePackages(ctx: StageContext): L2Input['packages'] {
-  const out: L2Input['packages'] = [];
+export function workspacePackages(ctx: StageContext): ResolverPackage[] {
+  const out: ResolverPackage[] = [];
   for (const m of ctx.a.l0.manifests) {
     if (m.type !== 'package.json' || !m.name) continue;
     let main: string | undefined;
@@ -24,7 +26,7 @@ export function workspacePackages(ctx: StageContext): L2Input['packages'] {
   return out;
 }
 
-export function tsConfigs(ctx: StageContext): L2Input['configs'] {
+export function tsConfigs(ctx: StageContext): ResolverConfig[] {
   return ctx.units.filter((u) => /^(tsconfig.*|jsconfig)\.json$/.test(basename(u.path))).map((u) => ({ path: u.path, text: u.text }));
 }
 
@@ -58,6 +60,50 @@ export function l2Stage(runL2: RunL2): Stage {
       if (res.partial.length) a.notices.push(`L2 hit its time budget: ${res.partial.length} TypeScript/JavaScript file(s) have exact imports but heuristic call edges.`);
     },
   };
+}
+
+export const l1Stage: Stage = {
+  name: 'Resolving imports and calls (L1)',
+  phase: 'graph',
+  run(ctx) {
+    buildL1Graphs(ctx);
+  },
+};
+
+/** Measures L1 (heuristic) edges against L2 (exact) on the files where both ran. */
+export const accuracyStage: Stage = {
+  name: 'Measuring L1 accuracy',
+  phase: 'graph',
+  run(ctx) {
+    const acc = measureL1(ctx);
+    if (acc) ctx.a.l1Accuracy = acc;
+  },
+};
+
+function pr(l1: Set<string>, l2: Set<string>): PR {
+  let tp = 0;
+  for (const k of l1) if (l2.has(k)) tp++;
+  const fp = l1.size - tp;
+  const fn = l2.size - tp;
+  return { tp, fp, fn, precision: l1.size ? tp / l1.size : 1, recall: l2.size ? tp / l2.size : 1 };
+}
+
+export function measureL1(ctx: StageContext): { imports: PR; calls: PR } | null {
+  const i1 = new Set<string>();
+  const i2 = new Set<string>();
+  const c1 = new Set<string>();
+  const c2 = new Set<string>();
+  let files = 0;
+  for (const [path, l1] of ctx.l1Graphs) {
+    const l2 = ctx.graphs.get(path);
+    if (!l1 || !l2 || l2.level !== 2) continue;
+    files++;
+    for (const e of l1.imports) if (e.to && e.to !== path) i1.add(`${path}>${e.to}`);
+    for (const e of l2.imports) if (e.to && e.to !== path) i2.add(`${path}>${e.to}`);
+    for (const r of l1.refs) if (r.kind === 'call' || r.kind === 'new') c1.add(`${path}:${r.line}>${r.toFile}#${r.toName}`);
+    for (const r of l2.refs) if (r.kind === 'call' || r.kind === 'new') c2.add(`${path}:${r.line}>${r.toFile}#${r.toName}`);
+  }
+  return files ? { imports: pr(i1, i2), calls: pr(c1, c2) } : null;
 }
 
 export const assembleStage: Stage = {

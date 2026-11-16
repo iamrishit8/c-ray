@@ -4,7 +4,7 @@
 
 - [x] M1  Scaffold, worker architecture, ingestion (file/folder/ZIP), filtering, L0, IndexedDB persistence, orientation page
 - [x] M2  L2 TypeScript graph, zoomable system map, search
-- [ ] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
+- [x] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
 - [ ] M4  Framework detectors + flow tracer
 - [ ] M5  Dependency intelligence + hotspots & health
 - [ ] M6  Impact analysis
@@ -29,6 +29,9 @@
 | 8 | **`.gitignore` is applied after reading** (not before). | ZIPs are streamed, so a `.gitignore` can arrive after the files it covers. One code path for folders and ZIPs. |
 | 9 | **Re-analyze** re-reads from disk when the browser still holds a folder handle (File System Access API), otherwise re-runs on the stored source text. | A static site cannot re-read a dropped folder later; stored sources make "Re-analyze" work everywhere. If sources were dropped (quota) the user is told to re-drop. |
 | 10 | **Offline** is provided by a small generated service worker that precaches the build output. | "Works offline after load" must include lazily loaded chunks (grammars, TS compiler, Mermaid). The worker never touches cross-origin requests. |
+| 12 | **Parse time limit is enforced by chunked input**, not `setTimeoutMicros`. | The WASM build of tree-sitter 0.22 ignores `setTimeoutMicros` (verified: a 1 ms limit still parsed for 1.7 s). The source is fed in 16 KB chunks and the input is cut off at the deadline; the file is then listed as timed-out. Extraction has its own deadline. |
+| 13 | **For TS/JS files, L2 definitions replace L1 definitions**; L1 results are kept only to measure accuracy. | Avoids mapping between two symbol tables. Files beyond the L2 cap (default 4000) or the L2 time budget keep their L1 graph. |
+| 14 | **Unqualified cross-file calls in PHP/C/Go create a dependency edge** even without an import. | Legacy PHP relies on globals from files included elsewhere; without this the import graph misses real coupling. These edges are `typeref`/heuristic. |
 | 11 | Theme preference lives in `localStorage`; everything else in IndexedDB. | Avoids a flash of the wrong theme before IndexedDB opens. |
 
 ## Known limitations
@@ -37,4 +40,24 @@
 
 ## Benchmarks
 
-(Recorded in M3 and M12.)
+### L1 (tree-sitter, heuristic) vs L2 (TypeScript compiler, exact)
+
+`npm run bench:l1l2` — L1 edges are scored against L2 edges on the TS/JS fixtures
+(results are written to `tests/bench/l1-vs-l2.results.json`). The same measurement
+runs on every analysed project that contains TS/JS and is shown on the Orientation page.
+
+| Fixture | Import precision | Import recall | Call precision | Call recall | Import edges | Call edges |
+|---|---|---|---|---|---|---|
+| express-mongoose (CommonJS) | 100.0% | 100.0% | 84.6% | 100.0% | 22 | 11 |
+| nestjs-prisma | 100.0% | 100.0% | 83.3% | 100.0% | 22 | 10 |
+| monorepo | 95.3% | 100.0% | 90.0% | 69.2% | 41 | 26 |
+| **All** | **97.7%** | **100.0%** | **86.7%** | **83.0%** | 85 | 47 |
+
+Reading: L1 import edges are near-exact (they share the module resolver). L1 call edges are
+right about 87% of the time and find about 83% of real calls; the misses are mostly calls
+through re-exports and JSX usage across packages. These fixtures are small — treat the numbers
+as indicative, and expect lower call recall on heavily dynamic code.
+
+### Scale
+
+(Recorded in M12.)

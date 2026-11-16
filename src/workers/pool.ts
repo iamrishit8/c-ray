@@ -24,7 +24,7 @@ export class ParsePool {
     }
   }
 
-  async run(units: FileUnit[], opts: AnalysisOptions, onFile: (path: string) => void): Promise<FileResult[]> {
+  async run(units: FileUnit[], opts: AnalysisOptions, onFile: (path: string) => void, assetBase: string): Promise<FileResult[]> {
     const results: FileResult[] = new Array(units.length);
     const batches: number[][] = [];
     let cur: number[] = [];
@@ -69,7 +69,7 @@ export class ParsePool {
               clearTimeout(timer);
               reject(new Error(e.message || 'parse worker crashed'));
             };
-            w!.postMessage({ id: next, units: batch.map((i) => units[i]), opts });
+            w!.postMessage({ id: next, units: batch.map((i) => units[i]), opts, assetBase });
           });
           batch.forEach((i, k) => {
             results[i] = res[k];

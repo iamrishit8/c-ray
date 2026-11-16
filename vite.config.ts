@@ -46,7 +46,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), offlinePlugin()],
   worker: { format: 'es' },
   build: { target: 'es2022', chunkSizeWarningLimit: 4000 },
-  optimizeDeps: { exclude: ['web-tree-sitter'] },
   test: {
     environment: 'node',
     include: ['tests/unit/**/*.test.ts', 'tests/bench/**/*.test.ts'],

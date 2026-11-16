@@ -5,6 +5,7 @@ import { IngestError, type InputSource } from '../core/ingest/ingest';
 import { projectIdFor, runPipeline, type PipelineEnv } from '../core/pipeline';
 import { defaultStages } from '../core/stages';
 import { SearchIndex } from '../core/search';
+import { configureL1 } from '../core/l1/treesitter';
 import type { L2Input, L2Result } from '../core/l2/tsgraph';
 import type { Analysis, AnalysisOptions, FileUnit } from '../core/types';
 import * as store from '../db/db';
@@ -66,7 +67,10 @@ async function analyze(source: InputSource, name: string, options: Partial<Analy
   const projectId = projectIdFor(name);
   const env: PipelineEnv = {
     stages: defaultStages({ runL2: (input) => runL2(input, assetBase) }),
-    processFiles: (units, opts, onFile) => pool.run(units, opts, onFile),
+    processFiles: (units, opts, onFile) => {
+      configureL1({ runtimeUrl: new URL('grammars/tree-sitter.wasm', assetBase).href, grammarUrl: (g) => new URL(`grammars/tree-sitter-${g}.wasm`, assetBase).href });
+      return pool.run(units, opts, onFile, assetBase);
+    },
     loadCache: () => store.loadCache(projectId),
     saveCache: (entries) => store.saveCache(projectId, entries),
   };

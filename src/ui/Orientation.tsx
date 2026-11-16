@@ -170,6 +170,20 @@ export function Orientation() {
           {fmtNum(a.coverage.analyzed)} of {fmtNum(a.coverage.discovered)} discovered files were analysed ({a.coverage.pctFiles}% of files, {a.coverage.pctBytes}% of bytes).
           {a.reused.files > 0 && <> Incremental run: {fmtNum(a.reused.files)} unchanged file(s) were reused from the previous analysis, {fmtNum(a.reused.total - a.reused.files)} re-parsed.</>}
         </p>
+        {a.l1Accuracy && (
+          <p className="mb-2 text-[13px] muted" data-testid="l1-accuracy">
+            Heuristic (L1) edges measured against compiler-exact (L2) edges on this project’s TypeScript/JavaScript files:
+            imports {Math.round(a.l1Accuracy.imports.precision * 100)}% precision / {Math.round(a.l1Accuracy.imports.recall * 100)}% recall,
+            calls {Math.round(a.l1Accuracy.calls.precision * 100)}% precision / {Math.round(a.l1Accuracy.calls.recall * 100)}% recall.
+            Expect similar reliability for heuristic edges in other languages.
+          </p>
+        )}
+        {a.files.some((f) => f.parseError) && (
+          <details className="mb-2 text-[13px]" data-testid="parse-errors">
+            <summary className="cursor-pointer text-[var(--warn)]">{a.files.filter((f) => f.parseError).length} file(s) could not be fully parsed (text-level results only)</summary>
+            <ul className="mt-1 list-disc pl-5 muted">{a.files.filter((f) => f.parseError).slice(0, 50).map((f) => <li key={f.path}><FileLink file={f.path} /> — {f.parseError}</li>)}</ul>
+          </details>
+        )}
         <SkippedList a={a} />
         {a.gitMessage && !a.git && <p className="mt-3 text-[13px] muted" data-testid="git-message">History features are off: {a.gitMessage}</p>}
       </Card>

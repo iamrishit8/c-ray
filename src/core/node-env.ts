@@ -3,7 +3,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { configureL1 } from './l1/treesitter';
 import type { PipelineEnv } from './pipeline';
+import { processUnit } from '../workers/process';
 import { defaultStages, type StageDeps } from './stages';
 
 let libs: Record<string, string> | null = null;
@@ -24,6 +26,18 @@ export function nodeDeps(): StageDeps {
   };
 }
 
-export function nodeEnv(): PipelineEnv {
-  return { stages: defaultStages(nodeDeps()) };
+export function nodeEnv(opts: { l2?: boolean } = {}): PipelineEnv {
+  const wasmDir = join(dirname(createRequire(import.meta.url).resolve('tree-sitter-wasms/package.json')), 'out');
+  configureL1({ grammarUrl: (g) => join(wasmDir, `tree-sitter-${g}.wasm`) });
+  return {
+    stages: defaultStages(opts.l2 === false ? {} : nodeDeps()),
+    async processFiles(units, opts, onFile) {
+      const out = [];
+      for (const u of units) {
+        out.push(await processUnit(u, opts));
+        onFile(u.path);
+      }
+      return out;
+    },
+  };
 }
