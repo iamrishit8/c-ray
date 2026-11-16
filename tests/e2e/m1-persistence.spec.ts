@@ -18,7 +18,8 @@ test('analyse → orientation appears → survives refresh → reopen', async ({
 
   // source preview comes from IndexedDB after a reload
   await page.getByTestId('read-first').locator('[data-ref]').nth(1).click();
-  await expect(page.getByTestId('source-panel')).toContainText('require');
+  await expect(page.getByTestId('source-panel').locator('[data-line]').first()).toBeVisible();
+  await expect(page.getByTestId('source-missing')).toHaveCount(0);
 });
 
 test('expired projects are purged on start; "clear all" empties storage', async ({ page }) => {

@@ -146,7 +146,7 @@ export const useStore = create<State>((set, get) => {
     async analyze(picked) {
       const { settings } = get();
       await run(picked.name, async (onEvent) => {
-        const res = await worker.call('analyze', { source: picked.source as InputSource, name: picked.name, options: optionsFrom(settings), retention: settings.retention, hasHandle: !!picked.handle }, onEvent);
+        const res = await worker.call('analyze', { source: picked.source as InputSource, name: picked.name, options: optionsFrom(settings), retention: settings.retention, hasHandle: !!picked.handle, assetBase: document.baseURI }, onEvent);
         if (picked.handle && res.meta) await db.saveHandle(res.meta.id, picked.handle);
         return res;
       });
@@ -167,7 +167,7 @@ export const useStore = create<State>((set, get) => {
           /* fall back to stored sources */
         }
       }
-      await run(meta?.name ?? 'project', (onEvent) => worker.call('reanalyze', { projectId: id, options: optionsFrom(settings), retention: settings.retention }, onEvent));
+      await run(meta?.name ?? 'project', (onEvent) => worker.call('reanalyze', { projectId: id, options: optionsFrom(settings), retention: settings.retention, assetBase: document.baseURI }, onEvent));
     },
 
     async openProject(id) {

@@ -12,6 +12,7 @@ import {
   type Analysis, type AnalysisOptions, type FileInfo, type FileParse, type FileScan, type FileUnit, type L0Result, type Progress,
 } from './types';
 import { dirname, hashString, pct } from './util';
+import type { FileGraph } from './l2/tsgraph';
 
 export interface FileResult {
   scan: FileScan;
@@ -39,6 +40,10 @@ export interface StageContext {
   results: FileResult[];
   gitFiles: Map<string, Uint8Array> | null;
   opts: AnalysisOptions;
+  /** Per-file graphs (L1 heuristic, replaced by L2 exact where available). */
+  graphs: Map<string, FileGraph>;
+  /** The L1 graph of files that L2 replaced (kept to measure L1 accuracy). */
+  l1Graphs: Map<string, FileGraph | undefined>;
   progress: (phase: string, detail?: string) => void;
 }
 
@@ -225,6 +230,7 @@ export async function runPipeline(
   // ---- 4/5. plugged-in stages ----
   const ctx: StageContext = {
     a, units, unitByPath: new Map(units.map((u) => [u.path, u])), results, gitFiles: ing.gitFiles, opts,
+    graphs: new Map(), l1Graphs: new Map(),
     progress: (phase, detail) => progress({ phase, detail }, true),
   };
   const stages = env.stages ?? [];

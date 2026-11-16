@@ -4,6 +4,8 @@
 import { IngestError, type InputSource } from '../core/ingest/ingest';
 import { projectIdFor, runPipeline, type PipelineEnv } from '../core/pipeline';
 import { defaultStages } from '../core/stages';
+import { SearchIndex } from '../core/search';
+import type { L2Input, L2Result } from '../core/l2/tsgraph';
 import type { Analysis, AnalysisOptions, FileUnit } from '../core/types';
 import * as store from '../db/db';
 import { ParsePool } from './pool';
@@ -14,16 +16,56 @@ const post = (m: RpcResponse) => (self as unknown as Worker).postMessage(m);
 interface Active {
   analysis: Analysis;
   sources: Map<string, string> | null;
+  index?: SearchIndex;
+}
+
+let l2Worker: Worker | null = null;
+/** Runs L2 in its own worker (the TypeScript compiler is a large lazy chunk); inline if nested workers are unavailable. */
+async function runL2(input: L2Input, assetBase: string): Promise<L2Result> {
+  let libs: Record<string, string> = {};
+  try {
+    libs = await (await fetch(new URL('tslibs/libs.json', assetBase))).json();
+  } catch {
+    /* without default libs L2 still resolves project symbols, just with weaker inference */
+  }
+  const full = { ...input, libs };
+  try {
+    l2Worker ??= new Worker(new URL('./l2.worker.ts', import.meta.url), { type: 'module' });
+  } catch {
+    l2Worker = null;
+  }
+  if (!l2Worker) return (await import('../core/l2/tsgraph')).runL2(full);
+  const w = l2Worker;
+  return new Promise<L2Result>((resolve, reject) => {
+    w.onmessage = (e: MessageEvent<{ ok: boolean; result?: L2Result; error?: string }>) => (e.data.ok ? resolve(e.data.result!) : reject(new Error(e.data.error)));
+    w.onerror = (e) => {
+      l2Worker = null;
+      reject(new Error(e.message || 'L2 worker crashed'));
+    };
+    w.postMessage(full);
+  });
+}
+
+async function ensureIndex(): Promise<SearchIndex | null> {
+  if (!active) return null;
+  if (!active.index) {
+    if (!active.sources) {
+      const all = await store.loadAllSources(active.analysis.projectId).catch(() => []);
+      active.sources = new Map(all.map((s) => [s.path, s.text]));
+    }
+    active.index = new SearchIndex(active.analysis, active.sources);
+  }
+  return active.index;
 }
 let active: Active | null = null;
 const pool = new ParsePool();
 
 class UserError extends Error {}
 
-async function analyze(source: InputSource, name: string, options: Partial<AnalysisOptions>, retention: store.Retention, hasHandle: boolean, emit: (e: WorkerEvent) => void, carrySkipped?: Analysis) {
+async function analyze(source: InputSource, name: string, options: Partial<AnalysisOptions>, retention: store.Retention, hasHandle: boolean, assetBase: string, emit: (e: WorkerEvent) => void, carrySkipped?: Analysis) {
   const projectId = projectIdFor(name);
   const env: PipelineEnv = {
-    stages: defaultStages(),
+    stages: defaultStages({ runL2: (input) => runL2(input, assetBase) }),
     processFiles: (units, opts, onFile) => pool.run(units, opts, onFile),
     loadCache: () => store.loadCache(projectId),
     saveCache: (entries) => store.saveCache(projectId, entries),
@@ -60,14 +102,14 @@ function mergeSkipped(a: Analysis, prev: Analysis) {
 
 const handlers: { [K in keyof Requests]: (req: Requests[K]['req'], emit: (e: WorkerEvent) => void) => Promise<Requests[K]['res']> } = {
   async analyze(req, emit) {
-    return analyze(req.source, req.name, req.options, req.retention, !!req.hasHandle, emit);
+    return analyze(req.source, req.name, req.options, req.retention, !!req.hasHandle, req.assetBase, emit);
   },
   async reanalyze(req, emit) {
     const prev = await store.loadAnalysis(req.projectId);
     if (!prev) throw new UserError('This project is no longer stored. Drop it again to analyse it.');
     const sources = await store.loadAllSources(req.projectId);
     if (sources.length === 0) throw new UserError('Source text for this project is not stored (storage was full or it expired). Drop the project again to re-analyse it.');
-    return analyze({ kind: 'memory', files: sources }, prev.name, req.options, req.retention, false, emit, prev);
+    return analyze({ kind: 'memory', files: sources }, prev.name, req.options, req.retention, false, req.assetBase, emit, prev);
   },
   async open(req) {
     const analysis = (await store.loadAnalysis(req.projectId)) ?? null;
@@ -79,6 +121,14 @@ const handlers: { [K in keyof Requests]: (req: Requests[K]['req'], emit: (e: Wor
     const mem = active.sources?.get(req.path);
     if (mem !== undefined) return { text: mem };
     return { text: (await store.getSource(active.analysis.projectId, req.path).catch(() => undefined)) ?? null };
+  },
+  async search(req) {
+    const idx = await ensureIndex();
+    return idx ? idx.search(req.query, req.kind, req.limit) : { symbols: [], files: [], unindexed: 0 };
+  },
+  async occurrences(req) {
+    const idx = await ensureIndex();
+    return { items: idx ? idx.occurrences(req.name) : [] };
   },
   async close() {
     active = null;

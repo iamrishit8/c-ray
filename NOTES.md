@@ -3,7 +3,7 @@
 ## Milestone checklist
 
 - [x] M1  Scaffold, worker architecture, ingestion (file/folder/ZIP), filtering, L0, IndexedDB persistence, orientation page
-- [ ] M2  L2 TypeScript graph, zoomable system map, search
+- [x] M2  L2 TypeScript graph, zoomable system map, search
 - [ ] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
 - [ ] M4  Framework detectors + flow tracer
 - [ ] M5  Dependency intelligence + hotspots & health

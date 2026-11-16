@@ -99,12 +99,13 @@ export class Model {
   }
 }
 
-const cache = new WeakMap<Analysis, Model>();
+const cache = new WeakMap<Analysis, { model: Model; stamp: string }>();
+/** Memoised per analysis object; rebuilt automatically when the pipeline adds graph data. */
 export function modelOf(a: Analysis): Model {
-  let m = cache.get(a);
-  if (!m) {
-    m = new Model(a);
-    cache.set(a, m);
-  }
-  return m;
+  const stamp = `${a.files.length}:${a.symbols.length}:${a.imports.length}:${a.refs.length}`;
+  const hit = cache.get(a);
+  if (hit && hit.stamp === stamp) return hit.model;
+  const model = new Model(a);
+  cache.set(a, { model, stamp });
+  return model;
 }

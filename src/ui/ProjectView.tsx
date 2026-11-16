@@ -4,6 +4,9 @@ import { useStore } from '../store/store';
 import { Orientation } from './Orientation';
 import { ProgressPanel } from './ProgressPanel';
 import { SourcePanel } from './SourcePanel';
+import { SystemMap } from './SystemMap';
+import { SearchView } from './SearchView';
+import { SymbolsView } from './SymbolsView';
 
 export interface TabDef {
   id: string;
@@ -16,6 +19,9 @@ export interface TabDef {
 
 export const TABS: TabDef[] = [
   { id: 'orientation', label: 'Orientation', view: Orientation },
+  { id: 'map', label: 'System map', view: SystemMap, projectOnly: true },
+  { id: 'symbols', label: 'Symbols', view: SymbolsView },
+  { id: 'search', label: 'Search', view: SearchView },
 ];
 
 export function ProjectView() {
@@ -36,7 +42,7 @@ export function ProjectView() {
               onClick={() => setTab(t.id)}
               className={`flex items-center justify-between rounded px-2.5 py-1.5 text-left text-[13px] ${t.id === current.id ? 'bg-[var(--accent)] font-semibold text-[var(--accent-fg)]' : 'hover:bg-[var(--bg3)]'}`}
             >
-              {t.label}
+              {t.id === 'symbols' && analysis.mode === 'file' ? 'File' : t.label}
               {b !== null && b !== undefined && b !== 0 && <span className={`text-[11px] ${t.id === current.id ? '' : 'faint'}`}>{b}</span>}
             </button>
           );
