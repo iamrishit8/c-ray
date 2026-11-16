@@ -1,0 +1,40 @@
+{
+  "name": "legacy-php",
+  "frameworks": [],
+  "languages": ["php", "sql"],
+  "routes": [
+    { "method": "ANY", "path": "/index.php", "file": "index.php" },
+    { "method": "ANY", "path": "/admin/export.php", "file": "admin/export.php" }
+  ],
+  "entities": [
+    { "name": "users", "fields": ["id", "name", "email", "created_at"] },
+    { "name": "orders", "fields": ["id", "user_id", "email", "total_cents", "created_at"] }
+  ],
+  "relations": [{ "from": "orders", "to": "users" }],
+  "imports": [
+    ["index.php", "includes/db.php"],
+    ["index.php", "includes/functions.php"],
+    ["index.php", "pages/users.php"],
+    ["index.php", "pages/orders.php"],
+    ["includes/functions.php", "lib/Report.php"],
+    ["lib/Report.php", "includes/functions.php"],
+    ["admin/export.php", "includes/db.php"],
+    ["admin/export.php", "includes/functions.php"],
+    ["admin/export.php", "lib/Mailer.php"]
+  ],
+  "cycle": ["includes/functions.php", "lib/Report.php"],
+  "layeringViolation": { "file": "pages/users.php", "contains": "mysqli_query" },
+  "secret": { "file": "includes/db.php", "contains": "db_password" },
+  "sqlConcat": { "file": "pages/users.php", "contains": "mysqli_query" },
+  "tlsDisabled": { "file": "lib/Mailer.php", "contains": "CURLOPT_SSL_VERIFYPEER" },
+  "duplicate": ["pages/users.php", "pages/orders.php"],
+  "externalCalls": [{ "file": "lib/Mailer.php", "contains": "curl_init" }],
+  "unresolved": [{ "file": "index.php", "contains": "include $file" }],
+  "entryFiles": ["index.php", "admin/export.php"],
+  "entityAccess": [
+    { "entity": "users", "file": "includes/functions.php", "op": "read" },
+    { "entity": "orders", "file": "lib/Report.php", "op": "read" },
+    { "entity": "users", "file": "pages/users.php", "op": "read" }
+  ],
+  "todos": [{ "file": "admin/export.php", "tag": "FIXME" }, { "file": "includes/db.php", "tag": "XXX" }]
+}

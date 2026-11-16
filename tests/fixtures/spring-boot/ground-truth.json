@@ -1,0 +1,69 @@
+{
+  "name": "spring-boot",
+  "frameworks": ["spring-boot"],
+  "languages": ["java"],
+  "routes": [
+    { "method": "GET", "path": "/api/products", "handler": "list", "handlerFile": "src/main/java/com/acme/shop/controller/ProductController.java" },
+    { "method": "GET", "path": "/api/products/{sku}", "handler": "get", "handlerFile": "src/main/java/com/acme/shop/controller/ProductController.java" },
+    { "method": "GET", "path": "/api/orders", "handler": "list", "handlerFile": "src/main/java/com/acme/shop/controller/OrderController.java" },
+    { "method": "POST", "path": "/api/orders", "handler": "place", "handlerFile": "src/main/java/com/acme/shop/controller/OrderController.java" }
+  ],
+  "entities": [
+    { "name": "Product", "fields": ["id", "sku", "name", "priceCents", "stock"] },
+    { "name": "Order", "fields": ["id", "customerEmail", "status"] },
+    { "name": "OrderItem", "fields": ["id", "quantity"] }
+  ],
+  "relations": [{ "from": "OrderItem", "to": "Order" }, { "from": "OrderItem", "to": "Product" }],
+  "importPrefix": "src/main/java/com/acme/shop/",
+  "imports": [
+    ["repository/ProductRepository.java", "model/Product.java"],
+    ["repository/OrderRepository.java", "model/Order.java"],
+    ["messaging/OrderEventPublisher.java", "model/Order.java"],
+    ["service/ProductService.java", "model/Product.java"],
+    ["service/ProductService.java", "repository/ProductRepository.java"],
+    ["service/ProductService.java", "service/OrderService.java"],
+    ["service/OrderService.java", "client/InventoryClient.java"],
+    ["service/OrderService.java", "messaging/OrderEventPublisher.java"],
+    ["service/OrderService.java", "model/Order.java"],
+    ["service/OrderService.java", "model/OrderItem.java"],
+    ["service/OrderService.java", "model/Product.java"],
+    ["service/OrderService.java", "repository/OrderRepository.java"],
+    ["service/OrderService.java", "service/ProductService.java"],
+    ["controller/ProductController.java", "model/Product.java"],
+    ["controller/ProductController.java", "service/ProductService.java"],
+    ["controller/OrderController.java", "model/Order.java"],
+    ["controller/OrderController.java", "repository/OrderRepository.java"],
+    ["controller/OrderController.java", "service/OrderService.java"],
+    ["model/Order.java", "model/OrderItem.java"],
+    ["model/OrderItem.java", "model/Order.java"],
+    ["model/OrderItem.java", "model/Product.java"]
+  ],
+  "cycle": ["src/main/java/com/acme/shop/service/ProductService.java", "src/main/java/com/acme/shop/service/OrderService.java"],
+  "layeringViolation": { "file": "src/main/java/com/acme/shop/controller/OrderController.java", "contains": "orderRepository.findAll" },
+  "secret": { "file": "src/main/resources/application.properties", "contains": "spring.datasource.password" },
+  "duplicate": ["src/main/java/com/acme/shop/service/ProductService.java", "src/main/java/com/acme/shop/service/OrderService.java"],
+  "externalCalls": [{ "file": "src/main/java/com/acme/shop/client/InventoryClient.java", "contains": "restTemplate.getForObject" }],
+  "queues": [
+    { "file": "src/main/java/com/acme/shop/messaging/OrderEventPublisher.java", "kind": "queue-pub", "target": "orders.placed" },
+    { "file": "src/main/java/com/acme/shop/messaging/OrderEventListener.java", "kind": "queue-sub", "target": "orders.cancelled" }
+  ],
+  "entryFiles": ["src/main/java/com/acme/shop/ShopApplication.java"],
+  "flows": [
+    {
+      "route": "POST /api/orders",
+      "visits": [
+        "src/main/java/com/acme/shop/controller/OrderController.java",
+        "src/main/java/com/acme/shop/service/OrderService.java",
+        "src/main/java/com/acme/shop/client/InventoryClient.java",
+        "src/main/java/com/acme/shop/service/ProductService.java",
+        "src/main/java/com/acme/shop/messaging/OrderEventPublisher.java"
+      ]
+    }
+  ],
+  "entityAccess": [
+    { "entity": "Product", "file": "src/main/java/com/acme/shop/service/ProductService.java", "op": "read" },
+    { "entity": "Order", "file": "src/main/java/com/acme/shop/service/OrderService.java", "op": "write" },
+    { "entity": "Order", "file": "src/main/java/com/acme/shop/controller/OrderController.java", "op": "read" }
+  ],
+  "todos": [{ "file": "src/main/java/com/acme/shop/controller/OrderController.java", "tag": "TODO" }]
+}

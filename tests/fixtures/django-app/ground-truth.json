@@ -1,0 +1,57 @@
+{
+  "name": "django-app",
+  "frameworks": ["django"],
+  "languages": ["python"],
+  "routes": [
+    { "method": "ANY", "path": "/catalog/products/", "handler": "product_list", "handlerFile": "catalog/views.py" },
+    { "method": "ANY", "path": "/catalog/products/<int:product_id>/", "handler": "product_detail", "handlerFile": "catalog/views.py" },
+    { "method": "ANY", "path": "/catalog/search/", "handler": "product_search", "handlerFile": "catalog/views.py" },
+    { "method": "ANY", "path": "/orders/", "handler": "OrderListView", "handlerFile": "orders/views.py" },
+    { "method": "ANY", "path": "/orders/<int:order_id>/", "handler": "order_detail", "handlerFile": "orders/views.py" }
+  ],
+  "entities": [
+    { "name": "Category", "fields": ["name", "slug"] },
+    { "name": "Product", "fields": ["category", "name", "price_cents", "stock", "active"] },
+    { "name": "Order", "fields": ["customer_email", "status", "created_at"] },
+    { "name": "OrderLine", "fields": ["order", "product", "quantity"] }
+  ],
+  "relations": [
+    { "from": "Product", "to": "Category" },
+    { "from": "OrderLine", "to": "Order" },
+    { "from": "OrderLine", "to": "Product" }
+  ],
+  "imports": [
+    ["catalog/services.py", "catalog/models.py"],
+    ["catalog/services.py", "orders/services.py"],
+    ["catalog/views.py", "catalog/services.py"],
+    ["catalog/urls.py", "catalog/views.py"],
+    ["orders/models.py", "catalog/models.py"],
+    ["orders/services.py", "catalog/services.py"],
+    ["orders/services.py", "orders/models.py"],
+    ["orders/tasks.py", "orders/models.py"],
+    ["orders/views.py", "orders/services.py"],
+    ["orders/views.py", "orders/models.py"],
+    ["orders/urls.py", "orders/views.py"]
+  ],
+  "cycle": ["catalog/services.py", "orders/services.py"],
+  "layeringViolation": { "file": "catalog/views.py", "contains": "cursor.execute" },
+  "secret": { "file": "shop/settings.py", "contains": "SECRET_KEY" },
+  "sqlConcat": { "file": "catalog/views.py", "contains": "cursor.execute" },
+  "duplicate": ["orders/services.py", "orders/tasks.py"],
+  "externalCalls": [{ "file": "orders/services.py", "contains": "requests.post" }],
+  "jobs": [{ "file": "orders/tasks.py" }],
+  "entryFiles": ["manage.py"],
+  "flows": [
+    {
+      "route": "ANY /catalog/products/<int:product_id>/",
+      "visits": ["catalog/views.py", "catalog/services.py", "orders/services.py"]
+    }
+  ],
+  "entityAccess": [
+    { "entity": "Product", "file": "catalog/services.py", "op": "read" },
+    { "entity": "Product", "file": "catalog/services.py", "op": "write" },
+    { "entity": "Order", "file": "orders/services.py", "op": "write" },
+    { "entity": "Order", "file": "orders/views.py", "op": "read" }
+  ],
+  "todos": [{ "file": "orders/views.py", "tag": "TODO" }]
+}

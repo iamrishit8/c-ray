@@ -1,0 +1,7 @@
+{
+  "name": "acme-billing",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": { "build": "tsc -b", "test": "vitest run" },
+  "devDependencies": { "typescript": "^5.4.0", "vitest": "^1.5.0" }
+}

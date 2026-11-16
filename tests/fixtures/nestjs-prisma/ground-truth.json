@@ -1,0 +1,68 @@
+{
+  "name": "nestjs-prisma",
+  "frameworks": ["nestjs"],
+  "languages": ["typescript"],
+  "routes": [
+    { "method": "GET", "path": "/users", "handler": "findAll", "handlerFile": "src/users/users.controller.ts" },
+    { "method": "GET", "path": "/users/:id", "handler": "findOne", "handlerFile": "src/users/users.controller.ts" },
+    { "method": "POST", "path": "/users", "handler": "create", "handlerFile": "src/users/users.controller.ts", "middleware": ["AuthGuard"] },
+    { "method": "GET", "path": "/posts", "handler": "findPublished", "handlerFile": "src/posts/posts.controller.ts" },
+    { "method": "GET", "path": "/posts/:id/comments", "handler": "comments", "handlerFile": "src/posts/posts.controller.ts" },
+    { "method": "POST", "path": "/posts", "handler": "create", "handlerFile": "src/posts/posts.controller.ts", "middleware": ["AuthGuard"] },
+    { "method": "DELETE", "path": "/posts/:id", "handler": "remove", "handlerFile": "src/posts/posts.controller.ts", "middleware": ["AuthGuard"] }
+  ],
+  "entities": [
+    { "name": "User", "fields": ["id", "email", "name", "createdAt"] },
+    { "name": "Post", "fields": ["id", "title", "body", "published", "authorId"] },
+    { "name": "Comment", "fields": ["id", "text", "postId"] }
+  ],
+  "relations": [{ "from": "Post", "to": "User" }, { "from": "Comment", "to": "Post" }],
+  "imports": [
+    ["src/main.ts", "src/app.module.ts"],
+    ["src/app.module.ts", "src/users/users.module.ts"],
+    ["src/app.module.ts", "src/posts/posts.module.ts"],
+    ["src/app.module.ts", "src/prisma/prisma.service.ts"],
+    ["src/auth/auth.guard.ts", "src/auth/constants.ts"],
+    ["src/users/users.module.ts", "src/users/users.controller.ts"],
+    ["src/users/users.module.ts", "src/users/users.service.ts"],
+    ["src/users/users.module.ts", "src/prisma/prisma.service.ts"],
+    ["src/users/users.controller.ts", "src/users/users.service.ts"],
+    ["src/users/users.controller.ts", "src/auth/auth.guard.ts"],
+    ["src/users/users.controller.ts", "src/common/pagination.ts"],
+    ["src/users/users.service.ts", "src/prisma/prisma.service.ts"],
+    ["src/users/users.service.ts", "src/posts/posts.service.ts"],
+    ["src/users/users.service.ts", "src/common/pagination.ts"],
+    ["src/posts/posts.module.ts", "src/posts/posts.controller.ts"],
+    ["src/posts/posts.module.ts", "src/posts/posts.service.ts"],
+    ["src/posts/posts.module.ts", "src/prisma/prisma.service.ts"],
+    ["src/posts/posts.controller.ts", "src/posts/posts.service.ts"],
+    ["src/posts/posts.controller.ts", "src/prisma/prisma.service.ts"],
+    ["src/posts/posts.controller.ts", "src/auth/auth.guard.ts"],
+    ["src/posts/posts.service.ts", "src/prisma/prisma.service.ts"],
+    ["src/posts/posts.service.ts", "src/users/users.service.ts"]
+  ],
+  "importsExact": true,
+  "cycle": ["src/users/users.service.ts", "src/posts/posts.service.ts"],
+  "layeringViolation": { "file": "src/posts/posts.controller.ts", "contains": "this.prisma.comment.findMany" },
+  "secret": { "file": "src/auth/constants.ts", "contains": "API_KEY" },
+  "duplicate": ["src/users/users.service.ts", "src/posts/posts.service.ts"],
+  "entryFiles": ["src/main.ts"],
+  "deadExports": [{ "file": "src/common/pagination.ts", "name": "unusedHelper" }],
+  "flows": [
+    {
+      "route": "GET /users/:id",
+      "visits": ["src/users/users.controller.ts", "src/users/users.service.ts", "src/posts/posts.service.ts"]
+    },
+    {
+      "route": "POST /posts",
+      "visits": ["src/auth/auth.guard.ts", "src/posts/posts.controller.ts", "src/posts/posts.service.ts", "src/users/users.service.ts"]
+    }
+  ],
+  "entityAccess": [
+    { "entity": "User", "file": "src/users/users.service.ts", "op": "read" },
+    { "entity": "User", "file": "src/users/users.service.ts", "op": "write" },
+    { "entity": "Post", "file": "src/posts/posts.service.ts", "op": "write" },
+    { "entity": "Comment", "file": "src/posts/posts.controller.ts", "op": "read" }
+  ],
+  "todos": [{ "file": "src/auth/constants.ts", "tag": "HACK" }]
+}

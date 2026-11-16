@@ -1,0 +1,66 @@
+{
+  "name": "express-mongoose",
+  "frameworks": ["express"],
+  "languages": ["javascript"],
+  "routes": [
+    { "method": "GET", "path": "/health", "file": "src/app.js" },
+    { "method": "GET", "path": "/api/users", "handler": "list", "handlerFile": "src/controllers/userController.js", "middleware": ["auth"] },
+    { "method": "GET", "path": "/api/users/:id", "handler": "get", "handlerFile": "src/controllers/userController.js", "middleware": ["auth"] },
+    { "method": "POST", "path": "/api/users", "handler": "create", "handlerFile": "src/controllers/userController.js" },
+    { "method": "GET", "path": "/api/orders", "handler": "list", "handlerFile": "src/controllers/orderController.js", "middleware": ["auth"] },
+    { "method": "POST", "path": "/api/orders", "handler": "create", "handlerFile": "src/controllers/orderController.js", "middleware": ["auth"] },
+    { "method": "DELETE", "path": "/api/orders/:id", "handler": "remove", "handlerFile": "src/controllers/orderController.js", "middleware": ["auth"] }
+  ],
+  "entities": [
+    { "name": "User", "fields": ["email", "name", "passwordHash", "role", "createdAt"] },
+    { "name": "Order", "fields": ["user", "items", "total", "status", "createdAt"] }
+  ],
+  "relations": [{ "from": "Order", "to": "User" }],
+  "imports": [
+    ["src/server.js", "src/app.js"],
+    ["src/server.js", "src/config.js"],
+    ["src/server.js", "src/jobs/cleanup.js"],
+    ["src/app.js", "src/middleware/logger.js"],
+    ["src/app.js", "src/routes/users.js"],
+    ["src/app.js", "src/routes/orders.js"],
+    ["src/middleware/auth.js", "src/config.js"],
+    ["src/routes/users.js", "src/middleware/auth.js"],
+    ["src/routes/users.js", "src/controllers/userController.js"],
+    ["src/routes/orders.js", "src/middleware/auth.js"],
+    ["src/routes/orders.js", "src/controllers/orderController.js"],
+    ["src/controllers/userController.js", "src/services/userService.js"],
+    ["src/controllers/orderController.js", "src/services/orderService.js"],
+    ["src/controllers/orderController.js", "src/models/Order.js"],
+    ["src/services/userService.js", "src/models/User.js"],
+    ["src/services/userService.js", "src/services/orderService.js"],
+    ["src/services/orderService.js", "src/models/Order.js"],
+    ["src/services/orderService.js", "src/services/userService.js"],
+    ["src/services/orderService.js", "src/services/paymentClient.js"],
+    ["src/services/paymentClient.js", "src/config.js"],
+    ["src/utils/report.js", "src/utils/format.js"],
+    ["src/jobs/cleanup.js", "src/models/Order.js"]
+  ],
+  "cycle": ["src/services/userService.js", "src/services/orderService.js"],
+  "layeringViolation": { "file": "src/controllers/orderController.js", "contains": "Order.find" },
+  "secret": { "file": "src/config.js", "contains": "jwtSecret" },
+  "duplicate": ["src/utils/format.js", "src/utils/report.js"],
+  "externalCalls": [{ "file": "src/services/paymentClient.js", "contains": "axios.post" }],
+  "jobs": [{ "file": "src/jobs/cleanup.js" }],
+  "entryFiles": ["src/server.js"],
+  "flows": [
+    {
+      "route": "GET /api/users/:id",
+      "visits": ["src/middleware/auth.js", "src/controllers/userController.js", "src/services/userService.js", "src/services/orderService.js"]
+    },
+    {
+      "route": "POST /api/orders",
+      "visits": ["src/controllers/orderController.js", "src/services/orderService.js", "src/services/paymentClient.js"]
+    }
+  ],
+  "entityAccess": [
+    { "entity": "User", "file": "src/services/userService.js", "op": "read" },
+    { "entity": "Order", "file": "src/services/orderService.js", "op": "write" },
+    { "entity": "Order", "file": "src/controllers/orderController.js", "op": "read" }
+  ],
+  "todos": [{ "file": "src/config.js", "tag": "FIXME" }, { "file": "src/utils/report.js", "tag": "TODO" }]
+}

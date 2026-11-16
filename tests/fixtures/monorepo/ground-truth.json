@@ -1,0 +1,97 @@
+{
+  "name": "monorepo",
+  "frameworks": ["fastify", "react"],
+  "languages": ["typescript"],
+  "routes": [
+    { "method": "GET", "path": "/api/invoices", "handler": "listHandler", "handlerFile": "packages/api/src/routes/invoices.ts" },
+    { "method": "POST", "path": "/api/invoices", "handler": "createHandler", "handlerFile": "packages/api/src/routes/invoices.ts", "middleware": ["requireAdmin"] },
+    { "method": "GET", "path": "/api/customers", "file": "packages/api/src/routes/customers.ts" },
+    { "method": "GET", "path": "/api/customers/:id", "file": "packages/api/src/routes/customers.ts" }
+  ],
+  "entities": [
+    { "name": "Customer", "fields": ["id", "name", "email"] },
+    { "name": "Invoice", "fields": ["id", "status", "totalCents", "lines"] }
+  ],
+  "relations": [{ "from": "Invoice", "to": "Customer" }],
+  "imports": [
+    ["packages/shared/src/index.ts", "packages/shared/src/types.ts"],
+    ["packages/shared/src/index.ts", "packages/shared/src/money.ts"],
+    ["packages/shared/src/index.ts", "packages/shared/src/validation.ts"],
+    ["packages/shared/src/money.ts", "packages/shared/src/types.ts"],
+    ["packages/shared/src/validation.ts", "packages/shared/src/types.ts"],
+    ["packages/api/src/db/data-source.ts", "packages/api/src/config.ts"],
+    ["packages/api/src/db/data-source.ts", "packages/api/src/entities/Customer.ts"],
+    ["packages/api/src/db/data-source.ts", "packages/api/src/entities/Invoice.ts"],
+    ["packages/api/src/entities/Customer.ts", "packages/api/src/entities/Invoice.ts"],
+    ["packages/api/src/entities/Invoice.ts", "packages/api/src/entities/Customer.ts"],
+    ["packages/api/src/events/publisher.ts", "packages/api/src/config.ts"],
+    ["packages/api/src/services/customerService.ts", "packages/api/src/db/data-source.ts"],
+    ["packages/api/src/services/customerService.ts", "packages/api/src/entities/Customer.ts"],
+    ["packages/api/src/services/customerService.ts", "packages/api/src/services/invoiceService.ts"],
+    ["packages/api/src/services/invoiceService.ts", "packages/shared/src/index.ts"],
+    ["packages/api/src/services/invoiceService.ts", "packages/api/src/db/data-source.ts"],
+    ["packages/api/src/services/invoiceService.ts", "packages/api/src/entities/Invoice.ts"],
+    ["packages/api/src/services/invoiceService.ts", "packages/api/src/events/publisher.ts"],
+    ["packages/api/src/services/invoiceService.ts", "packages/api/src/services/customerService.ts"],
+    ["packages/api/src/routes/auth.ts", "packages/api/src/config.ts"],
+    ["packages/api/src/routes/invoices.ts", "packages/api/src/services/invoiceService.ts"],
+    ["packages/api/src/routes/invoices.ts", "packages/api/src/routes/auth.ts"],
+    ["packages/api/src/routes/customers.ts", "packages/api/src/db/data-source.ts"],
+    ["packages/api/src/routes/customers.ts", "packages/api/src/entities/Customer.ts"],
+    ["packages/api/src/routes/customers.ts", "packages/api/src/services/customerService.ts"],
+    ["packages/api/src/index.ts", "packages/api/src/config.ts"],
+    ["packages/api/src/index.ts", "packages/api/src/db/data-source.ts"],
+    ["packages/api/src/index.ts", "packages/api/src/routes/customers.ts"],
+    ["packages/api/src/index.ts", "packages/api/src/routes/invoices.ts"],
+    ["packages/web/src/main.tsx", "packages/web/src/App.tsx"],
+    ["packages/web/src/App.tsx", "packages/web/src/pages/InvoicesPage.tsx"],
+    ["packages/web/src/api/client.ts", "packages/shared/src/index.ts"],
+    ["packages/web/src/components/CustomerBadge.tsx", "packages/shared/src/index.ts"],
+    ["packages/web/src/components/CustomerBadge.tsx", "packages/web/src/api/client.ts"],
+    ["packages/web/src/components/InvoiceTotal.tsx", "packages/shared/src/index.ts"],
+    ["packages/web/src/components/InvoiceList.tsx", "packages/shared/src/index.ts"],
+    ["packages/web/src/components/InvoiceList.tsx", "packages/web/src/components/CustomerBadge.tsx"],
+    ["packages/web/src/components/InvoiceList.tsx", "packages/web/src/components/InvoiceTotal.tsx"],
+    ["packages/web/src/pages/InvoicesPage.tsx", "packages/shared/src/index.ts"],
+    ["packages/web/src/pages/InvoicesPage.tsx", "packages/web/src/api/client.ts"],
+    ["packages/web/src/pages/InvoicesPage.tsx", "packages/web/src/components/InvoiceList.tsx"]
+  ],
+  "importsExact": true,
+  "cycle": ["packages/api/src/services/customerService.ts", "packages/api/src/services/invoiceService.ts"],
+  "layeringViolation": { "file": "packages/api/src/routes/customers.ts", "contains": "getRepository(Customer).find" },
+  "secret": { "file": "packages/api/src/config.ts", "contains": "adminToken" },
+  "duplicate": ["packages/api/src/services/invoiceService.ts", "packages/web/src/components/InvoiceTotal.tsx"],
+  "externalCalls": [{ "file": "packages/web/src/api/client.ts", "contains": "fetch(" }],
+  "queues": [{ "file": "packages/api/src/events/publisher.ts", "kind": "queue-pub", "target": "invoice.created" }],
+  "components": ["App", "InvoicesPage", "InvoiceList", "InvoiceTotal", "CustomerBadge"],
+  "entryFiles": ["packages/api/src/index.ts", "packages/web/src/main.tsx"],
+  "deadExports": [{ "file": "packages/shared/src/money.ts", "name": "legacyRound" }],
+  "flows": [
+    {
+      "route": "POST /api/invoices",
+      "visits": [
+        "packages/api/src/routes/auth.ts",
+        "packages/api/src/routes/invoices.ts",
+        "packages/api/src/services/invoiceService.ts",
+        "packages/api/src/services/customerService.ts",
+        "packages/api/src/events/publisher.ts"
+      ]
+    }
+  ],
+  "entityAccess": [
+    { "entity": "Customer", "file": "packages/api/src/services/customerService.ts", "op": "read" },
+    { "entity": "Invoice", "file": "packages/api/src/services/invoiceService.ts", "op": "write" },
+    { "entity": "Customer", "file": "packages/api/src/routes/customers.ts", "op": "read" }
+  ],
+  "impact": {
+    "symbol": "formatMoney",
+    "file": "packages/shared/src/money.ts",
+    "dependents": [
+      "packages/api/src/services/invoiceService.ts",
+      "packages/web/src/components/InvoiceTotal.tsx",
+      "packages/web/src/components/InvoiceList.tsx"
+    ]
+  },
+  "adr": "docs/adr/0001-use-a-monorepo.md",
+  "todos": [{ "file": "packages/web/src/components/InvoiceTotal.tsx", "tag": "TODO" }]
+}
