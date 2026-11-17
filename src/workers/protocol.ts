@@ -11,6 +11,7 @@ export interface Requests {
   source: { req: { path: string }; res: { text: string | null } };
   search: { req: { query: string; kind: 'all' | 'symbol' | 'text'; limit?: number }; res: SearchResult };
   occurrences: { req: { name: string }; res: { items: Occurrence[] } };
+  exportJson: { req: Record<string, never>; res: { blob: Blob | null } };
   close: { req: Record<string, never>; res: Record<string, never> };
 }
 

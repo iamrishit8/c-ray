@@ -134,6 +134,9 @@ const handlers: { [K in keyof Requests]: (req: Requests[K]['req'], emit: (e: Wor
     const idx = await ensureIndex();
     return { items: idx ? idx.occurrences(req.name) : [] };
   },
+  async exportJson() {
+    return { blob: active ? new Blob([JSON.stringify(active.analysis)], { type: 'application/json' }) : null };
+  },
   async close() {
     active = null;
     return {};

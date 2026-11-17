@@ -12,6 +12,7 @@ import { DepsView } from './DepsView';
 import { HealthView } from './HealthView';
 import { ImpactView } from './ImpactView';
 import { DataView } from './DataView';
+import { ExportView } from './ExportView';
 
 export interface TabDef {
   id: string;
@@ -32,6 +33,7 @@ export const TABS: TabDef[] = [
   { id: 'impact', label: 'Impact', view: ImpactView, projectOnly: true },
   { id: 'symbols', label: 'Symbols', view: SymbolsView },
   { id: 'search', label: 'Search', view: SearchView },
+  { id: 'export', label: 'Export', view: ExportView },
 ];
 
 export function ProjectView() {
