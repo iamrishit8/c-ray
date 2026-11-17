@@ -11,6 +11,7 @@ import { FlowView } from './FlowView';
 import { DepsView } from './DepsView';
 import { HealthView } from './HealthView';
 import { ImpactView } from './ImpactView';
+import { DataView } from './DataView';
 
 export interface TabDef {
   id: string;
@@ -25,6 +26,7 @@ export const TABS: TabDef[] = [
   { id: 'orientation', label: 'Orientation', view: Orientation },
   { id: 'map', label: 'System map', view: SystemMap, projectOnly: true },
   { id: 'flows', label: 'Flows', view: FlowView, projectOnly: true, badge: (a) => a.entries.length },
+  { id: 'data', label: 'Data', view: DataView, projectOnly: true, badge: (a) => a.schema.entities.length },
   { id: 'deps', label: 'Dependencies', view: DepsView, projectOnly: true, badge: (a) => a.deps.cycles.length + a.deps.violations.length },
   { id: 'health', label: 'Health', view: HealthView, badge: (a) => a.findings.filter((f) => f.sev === 'high' || f.sev === 'medium').length },
   { id: 'impact', label: 'Impact', view: ImpactView, projectOnly: true },

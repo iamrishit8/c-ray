@@ -8,7 +8,7 @@
 - [x] M4  Framework detectors + flow tracer
 - [x] M5  Dependency intelligence + hotspots & health
 - [x] M6  Impact analysis
-- [ ] M7  Database/schema reconstruction + data flow
+- [x] M7  Database/schema reconstruction + data flow
 - [ ] M8  Export (Markdown, Notion ZIP, PDF, JSON)
 - [ ] M9  Git layer: churn, co-change, time-travel
 - [ ] M10 Decisions view + onboarding guide + generated docs
