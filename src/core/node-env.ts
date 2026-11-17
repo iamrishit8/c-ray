@@ -29,15 +29,13 @@ export function nodeDeps(): StageDeps {
 export function nodeEnv(opts: { l2?: boolean } = {}): PipelineEnv {
   const wasmDir = join(dirname(createRequire(import.meta.url).resolve('tree-sitter-wasms/package.json')), 'out');
   configureL1({ grammarUrl: (g) => join(wasmDir, `tree-sitter-${g}.wasm`) });
-  return {
-    stages: defaultStages(opts.l2 === false ? {} : nodeDeps()),
-    async processFiles(units, opts, onFile) {
-      const out = [];
-      for (const u of units) {
-        out.push(await processUnit(u, opts));
-        onFile(u.path);
-      }
-      return out;
-    },
+  const processFiles: PipelineEnv['processFiles'] = async (units, o, onFile) => {
+    const out = [];
+    for (const u of units) {
+      out.push(await processUnit(u, o));
+      onFile(u.path);
+    }
+    return out;
   };
+  return { stages: defaultStages({ ...(opts.l2 === false ? {} : nodeDeps()), processFiles }), processFiles };
 }

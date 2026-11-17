@@ -65,12 +65,13 @@ class UserError extends Error {}
 
 async function analyze(source: InputSource, name: string, options: Partial<AnalysisOptions>, retention: store.Retention, hasHandle: boolean, assetBase: string, emit: (e: WorkerEvent) => void, carrySkipped?: Analysis) {
   const projectId = projectIdFor(name);
+  const processFiles: PipelineEnv['processFiles'] = (units, opts, onFile) => {
+    configureL1({ runtimeUrl: new URL('grammars/tree-sitter.wasm', assetBase).href, grammarUrl: (g) => new URL(`grammars/tree-sitter-${g}.wasm`, assetBase).href });
+    return pool.run(units, opts, onFile, assetBase);
+  };
   const env: PipelineEnv = {
-    stages: defaultStages({ runL2: (input) => runL2(input, assetBase) }),
-    processFiles: (units, opts, onFile) => {
-      configureL1({ runtimeUrl: new URL('grammars/tree-sitter.wasm', assetBase).href, grammarUrl: (g) => new URL(`grammars/tree-sitter-${g}.wasm`, assetBase).href });
-      return pool.run(units, opts, onFile, assetBase);
-    },
+    stages: defaultStages({ runL2: (input) => runL2(input, assetBase), processFiles }),
+    processFiles,
     loadCache: () => store.loadCache(projectId),
     saveCache: (entries) => store.saveCache(projectId, entries),
   };
