@@ -1,0 +1,44 @@
+{
+  "recall": 1,
+  "precision": 0.375,
+  "directRecall": 0.8888888888888888,
+  "directPrecision": 1,
+  "cases": [
+    {
+      "mutation": "formatMoney",
+      "realBreakages": 3,
+      "predictedTransitive": 8,
+      "predictedDirect": 3,
+      "recall": 1,
+      "directRecall": 1,
+      "missed": []
+    },
+    {
+      "mutation": "getCustomer",
+      "realBreakages": 1,
+      "predictedTransitive": 4,
+      "predictedDirect": 1,
+      "recall": 1,
+      "directRecall": 1,
+      "missed": []
+    },
+    {
+      "mutation": "Money",
+      "realBreakages": 4,
+      "predictedTransitive": 9,
+      "predictedDirect": 3,
+      "recall": 1,
+      "directRecall": 0.75,
+      "missed": []
+    },
+    {
+      "mutation": "fetchInvoices",
+      "realBreakages": 1,
+      "predictedTransitive": 3,
+      "predictedDirect": 1,
+      "recall": 1,
+      "directRecall": 1,
+      "missed": []
+    }
+  ]
+}

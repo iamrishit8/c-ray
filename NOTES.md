@@ -7,7 +7,7 @@
 - [x] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
 - [x] M4  Framework detectors + flow tracer
 - [x] M5  Dependency intelligence + hotspots & health
-- [ ] M6  Impact analysis
+- [x] M6  Impact analysis
 - [ ] M7  Database/schema reconstruction + data flow
 - [ ] M8  Export (Markdown, Notion ZIP, PDF, JSON)
 - [ ] M9  Git layer: churn, co-change, time-travel
@@ -60,6 +60,21 @@ Reading: L1 import edges are near-exact (they share the module resolver). L1 cal
 right about 87% of the time and find about 83% of real calls; the misses are mostly calls
 through re-exports and JSX usage across packages. These fixtures are small — treat the numbers
 as indicative, and expect lower call recall on heavily dynamic code.
+
+### Impact analysis vs. real compiler breakages
+
+`tests/unit/m6-impact.test.ts` mutates four signatures/types in a copy of the monorepo fixture, runs
+`tsc`, and compares the files that really fail to compile with the predicted dependents
+(results in `tests/bench/impact.results.json`).
+
+| Prediction set | Recall | Precision |
+|---|---|---|
+| Transitive dependents (what the Impact view lists) | 100% | 37.5% |
+| Direct dependents only (distance 1) | see results file | see results file |
+
+Reading: nothing that broke was missed. Precision is low by design — the transitive set is the
+*behavioural* blast radius (callers of callers), while a signature change only breaks compilation
+at direct use sites. The view groups dependents by distance so the direct ones are obvious.
 
 ### Scale
 

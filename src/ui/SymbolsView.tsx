@@ -36,6 +36,7 @@ export function SymbolsView() {
   const a = useStore((s) => s.analysis)!;
   const m = useMemo(() => modelOf(a), [a, a.symbols.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const [refSym, setRefSym] = useState<number | null>(null);
+  const setTab = useStore((s) => s.setTab);
   const fileMode = a.mode === 'file';
   const [sort, setSort] = useState<'complexity' | 'lines' | 'nesting'>('complexity');
   const fns = useMemo(() => a.symbols.map((s, i) => ({ s, i })).filter((x) => x.s.kind === 'function' || x.s.kind === 'method'), [a, a.symbols.length]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -83,7 +84,7 @@ export function SymbolsView() {
                 <td><FileLink file={m.path(s.file)} line={s.line} endLine={s.endLine} /></td>
                 <td>{s.complexity}</td><td>{s.nesting}</td><td>{s.endLine - s.line + 1}</td><td>{s.params}</td>
                 <td><ConfBadge c={a.files[s.file].level === 2 ? 'resolved' : 'heuristic'} /></td>
-                <td><button className="btn" onClick={() => setRefSym(i)}>References</button></td>
+                <td className="whitespace-nowrap"><button className="btn" onClick={() => setRefSym(i)}>References</button>{!fileMode && <> <button className="btn" onClick={() => setTab('impact', { symbol: i })}>Impact</button></>}</td>
               </tr>
             ))}
           </tbody>
