@@ -70,7 +70,7 @@ as indicative, and expect lower call recall on heavily dynamic code.
 | Prediction set | Recall | Precision |
 |---|---|---|
 | Transitive dependents (what the Impact view lists) | 100% | 37.5% |
-| Direct dependents only (distance 1) | see results file | see results file |
+| Direct dependents only (distance 1) | 88.9% | 100% |
 
 Reading: nothing that broke was missed. Precision is low by design — the transitive set is the
 *behavioural* blast radius (callers of callers), while a signature change only breaks compilation
