@@ -607,6 +607,16 @@ function currentNode(cursor: Parser.TreeCursor): Node {
   return typeof cn === 'function' ? (cn as () => Node).call(cursor) : cn;
 }
 
+/** First line of a definition, skipping leading annotations/attributes/decorators that the grammar nests inside it. */
+function defLine(span: Node): number {
+  const first = span.namedChild(0);
+  if (first && (first.type === 'modifiers' || first.type === 'attribute_list' || first.type === 'decorator' || first.type === 'attribute_item')) {
+    const name = span.childForFieldName('name');
+    if (name) return name.startPosition.row + 1;
+  }
+  return span.startPosition.row + 1;
+}
+
 const ELSE_PARENTS = new Set(['else_clause', 'else', 'if_statement', 'if_expression']);
 
 /** Walk a syntax tree and extract definitions, imports, call sites, complexity and nesting. */
@@ -643,7 +653,7 @@ export function extract(root: Node, grammar: string, deadline = Infinity): FileP
         const inScope = scopeStack.length ? scopeStack[scopeStack.length - 1] : undefined;
         const kind: SymbolKind = isFn && inScope && hit.kind === 'function' && (grammar === 'python' || grammar === 'rust' || grammar === 'kotlin') ? 'method' : hit.kind;
         out.defs.push({
-          name: hit.name, kind, line: span.startPosition.row + 1, endLine: span.endPosition.row + 1,
+          name: hit.name, kind, line: defLine(span), endLine: span.endPosition.row + 1,
           parent: hit.parent ?? (isFn ? inScope : undefined),
           complexity: isFn ? 1 : 0, nesting: 0, params: hit.params ?? 0, exported: hit.exported || undefined,
         });

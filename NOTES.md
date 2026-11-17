@@ -5,7 +5,7 @@
 - [x] M1  Scaffold, worker architecture, ingestion (file/folder/ZIP), filtering, L0, IndexedDB persistence, orientation page
 - [x] M2  L2 TypeScript graph, zoomable system map, search
 - [x] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
-- [ ] M4  Framework detectors + flow tracer
+- [x] M4  Framework detectors + flow tracer
 - [ ] M5  Dependency intelligence + hotspots & health
 - [ ] M6  Impact analysis
 - [ ] M7  Database/schema reconstruction + data flow
@@ -32,6 +32,9 @@
 | 12 | **Parse time limit is enforced by chunked input**, not `setTimeoutMicros`. | The WASM build of tree-sitter 0.22 ignores `setTimeoutMicros` (verified: a 1 ms limit still parsed for 1.7 s). The source is fed in 16 KB chunks and the input is cut off at the deadline; the file is then listed as timed-out. Extraction has its own deadline. |
 | 13 | **For TS/JS files, L2 definitions replace L1 definitions**; L1 results are kept only to measure accuracy. | Avoids mapping between two symbol tables. Files beyond the L2 cap (default 4000) or the L2 time budget keep their L1 graph. |
 | 14 | **Unqualified cross-file calls in PHP/C/Go create a dependency edge** even without an import. | Legacy PHP relies on globals from files included elsewhere; without this the import graph misses real coupling. These edges are `typeref`/heuristic. |
+| 15 | **Detectors are regex/line scanners over source text plus the symbol table**, not AST queries. | One uniform plugin interface across 13 frameworks and 8 languages; handlers are linked through L2 references when available (→ `resolved`) and by name through imports otherwise (→ `heuristic`). Non-literal route paths are recorded as `unresolved`, never guessed. |
+| 16 | **A definition's line is its name line, not its first decorator/annotation.** | Otherwise `@Get()` + `@UseGuards()` stacks and Java annotations shift every handler location. |
+| 17 | **Legacy PHP without a framework gets file-based routes** (`/index.php`, `/admin/export.php`): scripts with top-level request/output code that no other file includes. `switch ($_GET[...])` cases are listed as query-style sub-routes. | It is the actual routing model of such apps. Marked `heuristic`. |
 | 11 | Theme preference lives in `localStorage`; everything else in IndexedDB. | Avoids a flash of the wrong theme before IndexedDB opens. |
 
 ## Known limitations

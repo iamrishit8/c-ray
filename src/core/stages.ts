@@ -1,5 +1,6 @@
 // The ordered list of analysis stages that run after ingestion + L0.
 import { accuracyStage, assembleStage, l1Stage, l2Stage, type RunL2 } from './graph';
+import { detectStage } from './detect';
 import type { Stage } from './pipeline';
 
 export interface StageDeps {
@@ -9,6 +10,6 @@ export interface StageDeps {
 export function defaultStages(deps: StageDeps = {}): Stage[] {
   const stages: Stage[] = [l1Stage];
   if (deps.runL2) stages.push(l2Stage(deps.runL2), accuracyStage);
-  stages.push(assembleStage);
+  stages.push(assembleStage, detectStage);
   return stages;
 }

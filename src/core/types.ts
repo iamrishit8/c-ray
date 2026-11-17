@@ -164,6 +164,10 @@ export interface Route {
   handler?: string;
   /** Symbol index of the handler when resolved. */
   handlerSym?: number;
+  /** Location of the handler body: the resolved symbol, or an inline function's line range. */
+  hFile?: string;
+  hLine?: number;
+  hEnd?: number;
   middleware: { name: string; file?: string; line?: number; sym?: number }[];
   params: string[];
   framework: string;
@@ -179,6 +183,8 @@ export interface EntryPoint {
   file: string;
   line: number;
   sym?: number;
+  /** Line range of the entry body when it is not a named symbol. */
+  endLine?: number;
   routeId?: string;
   framework?: string;
   conf: Confidence;

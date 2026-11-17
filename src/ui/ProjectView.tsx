@@ -7,6 +7,7 @@ import { SourcePanel } from './SourcePanel';
 import { SystemMap } from './SystemMap';
 import { SearchView } from './SearchView';
 import { SymbolsView } from './SymbolsView';
+import { FlowView } from './FlowView';
 
 export interface TabDef {
   id: string;
@@ -20,6 +21,7 @@ export interface TabDef {
 export const TABS: TabDef[] = [
   { id: 'orientation', label: 'Orientation', view: Orientation },
   { id: 'map', label: 'System map', view: SystemMap, projectOnly: true },
+  { id: 'flows', label: 'Flows', view: FlowView, projectOnly: true, badge: (a) => a.entries.length },
   { id: 'symbols', label: 'Symbols', view: SymbolsView },
   { id: 'search', label: 'Search', view: SearchView },
 ];

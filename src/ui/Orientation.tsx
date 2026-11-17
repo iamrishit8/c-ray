@@ -91,6 +91,16 @@ export function Orientation() {
         </Card>
 
         <Card title="Stack (from manifests and config files)">
+          {a.frameworks.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]" data-testid="frameworks">
+              <span className="faint">Detected in code:</span>
+              {a.frameworks.map((f) => (
+                <span key={f.id} className="flex items-center gap-1" title={f.evidence.map((e) => `${e.note} (${e.file}:${e.line})`).join('\n')}>
+                  <b>{f.name}</b><ConfBadge c={f.conf} />
+                </span>
+              ))}
+            </div>
+          )}
           {a.l0.tech.length === 0 ? <div className="muted">No manifest-declared frameworks or libraries were recognised.</div> : (
             <div className="space-y-2" data-testid="stack">
               {[...byCat].map(([cat, items]) => (

@@ -99,7 +99,10 @@ function collectFile(sf: ts.SourceFile, path: string, resolver: ModuleResolver, 
 
   const addDef = (node: ts.Node, name: string, kind: SymbolKind, span: ts.Node, parent?: string, exported?: boolean, params = 0, extra: ts.Node[] = []): number => {
     const idx = defs.length;
-    defs.push({ name, kind, line: lineOf(span), endLine: endOf(span), parent, complexity: kind === 'function' || kind === 'method' ? 1 : 0, nesting: 0, params, exported: exported || undefined });
+    // the definition starts at its name, not at decorators/JSDoc above it
+    const nameNode = (node as { name?: ts.Node }).name;
+    const startLine = nameNode && ts.canHaveDecorators(node) && ts.getDecorators(node)?.length ? lineOf(nameNode) : lineOf(span);
+    defs.push({ name, kind, line: startLine, endLine: endOf(span), parent, complexity: kind === 'function' || kind === 'method' ? 1 : 0, nesting: 0, params, exported: exported || undefined });
     nodes.set(node, idx);
     for (const e of extra) nodes.set(e, idx);
     return idx;
