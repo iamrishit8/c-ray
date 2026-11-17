@@ -6,7 +6,7 @@
 - [x] M2  L2 TypeScript graph, zoomable system map, search
 - [x] M3  L1 tree-sitter for all languages, confidence labelling, L1-vs-L2 benchmark
 - [x] M4  Framework detectors + flow tracer
-- [ ] M5  Dependency intelligence + hotspots & health
+- [x] M5  Dependency intelligence + hotspots & health
 - [ ] M6  Impact analysis
 - [ ] M7  Database/schema reconstruction + data flow
 - [ ] M8  Export (Markdown, Notion ZIP, PDF, JSON)

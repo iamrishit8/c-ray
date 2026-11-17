@@ -8,6 +8,8 @@ import { SystemMap } from './SystemMap';
 import { SearchView } from './SearchView';
 import { SymbolsView } from './SymbolsView';
 import { FlowView } from './FlowView';
+import { DepsView } from './DepsView';
+import { HealthView } from './HealthView';
 
 export interface TabDef {
   id: string;
@@ -22,6 +24,8 @@ export const TABS: TabDef[] = [
   { id: 'orientation', label: 'Orientation', view: Orientation },
   { id: 'map', label: 'System map', view: SystemMap, projectOnly: true },
   { id: 'flows', label: 'Flows', view: FlowView, projectOnly: true, badge: (a) => a.entries.length },
+  { id: 'deps', label: 'Dependencies', view: DepsView, projectOnly: true, badge: (a) => a.deps.cycles.length + a.deps.violations.length },
+  { id: 'health', label: 'Health', view: HealthView, badge: (a) => a.findings.filter((f) => f.sev === 'high' || f.sev === 'medium').length },
   { id: 'symbols', label: 'Symbols', view: SymbolsView },
   { id: 'search', label: 'Search', view: SearchView },
 ];
