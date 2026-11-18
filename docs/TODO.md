@@ -131,12 +131,14 @@ Build in slices, each with a phase review.
 - [ ] Skeleton loaders instead of "Loading…"; empty states with a short explanation
 
 **Slice 3: Diagrams**
-- [ ] `Graph.tsx`: read all colours from CSS tokens at runtime (no hex), restyle on theme change
-- [ ] Nodes: role dot, name + subtitle (role · size), soft folder boxes with mono labels top-left, dimmed unresolved nodes
-- [ ] Focus mode: selecting a node highlights its neighbourhood in accent, fades the rest; edge-count pills
-- [ ] Right-angle edges for ELK layouts; solid / dashed / dotted = resolved / heuristic / unresolved
-- [ ] Overlays: zoom + fit controls, legend, minimap; dot-grid canvas background; label level-of-detail by zoom
-- [ ] Mermaid: `base` theme with `themeVariables` from tokens and Geist Mono (export/print still SVG)
+- [x] `Graph.tsx`: all colours from CSS tokens at runtime (`cssVar`), restyled in place on theme change
+- [x] Nodes: role dot (SVG background), name + subtitle (role · size), soft folder boxes with mono uppercase labels
+      (centred above the box: Cytoscape can't left-align compound labels inside), dashed + dimmed unresolved nodes
+- [x] Focus mode: tapping a node highlights its neighbourhood in accent, fades the rest; edge-count pills
+- [x] Right-angle (taxi) edges for ELK layouts; solid / dashed / dotted = resolved / heuristic / unresolved
+- [x] Overlays: zoom + fit controls, legend (role colours present + edge styles), minimap (click/drag to pan);
+      dot-grid canvas; label level-of-detail (`min-zoomed-font-size`); canvas waits for Geist Mono to load
+- [x] Mermaid: `base` theme with `themeVariables` from tokens and Geist Mono (export/print still SVG)
 
 **Slice 4: Views**
 - [ ] Home: hero, drop zone, sample project button using a bundled fixture

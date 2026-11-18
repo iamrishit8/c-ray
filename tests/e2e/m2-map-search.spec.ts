@@ -18,7 +18,9 @@ test('system map renders clusters, filters by confidence, shows details', async 
   await expect(page.getByTestId('map-preview')).toContainText('@Injectable()');
 
   // all edges are L2-resolved in this fixture, so hiding "resolved" removes every edge
-  await page.getByTestId('conf-resolved').uncheck();
+  await expect(page.getByTestId('conf-resolved')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('conf-resolved').click();
+  await expect(page.getByTestId('conf-resolved')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByTestId('map-counts')).toContainText(' 0 edges');
 });
 

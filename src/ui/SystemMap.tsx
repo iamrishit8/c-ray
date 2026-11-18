@@ -8,9 +8,11 @@ import { dirname, fmtNum, uniq } from '../core/util';
 import { useStore } from '../store/store';
 import { worker } from '../workers/client';
 import { Graph } from './Graph';
-import { Badge, ConfBadge, FileLink } from './kit';
+import { Badge, Chip, ConfBadge, FileLink, PageHeader, RoleBadge, Skeleton } from './kit';
 
 const MAX_NODES = 500;
+/** Short role names for node subtitles ("service · 412 lines"). */
+const ROLE_SHORT: Record<string, string> = { entry: 'entry', route: 'route', controller: 'controller', middleware: 'middleware', service: 'service', repository: 'repository', model: 'model', view: 'view', component: 'component', page: 'page', config: 'config', util: 'util', test: 'test', migration: 'migration', job: 'job', cli: 'cli', client: 'client', messaging: 'messaging', schema: 'schema', doc: 'doc', build: 'build', unknown: 'file' };
 const CONFS: Confidence[] = ['resolved', 'heuristic', 'unresolved'];
 
 function Preview({ path }: { path: string }) {
@@ -21,9 +23,9 @@ function Preview({ path }: { path: string }) {
     worker.call('source', { path }).then((r) => live && setText(r.text ?? '')).catch(() => live && setText(''));
     return () => { live = false; };
   }, [path]);
-  if (text === null) return <div className="faint text-xs">Loading preview…</div>;
+  if (text === null) return <Skeleton rows={5} />;
   if (!text) return <div className="faint text-xs">Source preview not available.</div>;
-  return <pre className="max-h-56 overflow-auto rounded border border-[var(--line)] bg-[var(--bg2)] p-2 text-[11.5px] leading-[16px]" data-testid="map-preview">{text.split('\n').slice(0, 40).join('\n')}</pre>;
+  return <pre className="max-h-56 overflow-auto rounded-[var(--r-sm)] border border-[var(--line)] bg-[var(--bg)] p-2.5 text-[11.5px] leading-[16px]" data-testid="map-preview">{text.split('\n').slice(0, 40).join('\n')}</pre>;
 }
 
 function Details({ a, id, onExpand, expanded }: { a: Analysis; id: string; onExpand: (dir: string) => void; expanded: Set<string> }) {
@@ -42,7 +44,7 @@ function Details({ a, id, onExpand, expanded }: { a: Analysis; id: string; onExp
   const unresolved = f ? a.unresolved.filter((u) => u.file === f.path) : [];
   const list = (title: string, items: Map<number, Confidence>, testId: string) => (
     <div>
-      <div className="mb-1 text-xs font-semibold">{title} <span className="faint">({items.size})</span></div>
+      <div className="label mb-1.5">{title} <span className="tnum">({items.size})</span></div>
       {items.size === 0 ? <div className="faint text-xs">none</div> : (
         <ul className="max-h-40 space-y-0.5 overflow-auto text-xs" data-testid={testId}>
           {[...items].slice(0, 60).map(([i, conf]) => (
@@ -53,12 +55,12 @@ function Details({ a, id, onExpand, expanded }: { a: Analysis; id: string; onExp
     </div>
   );
   return (
-    <div className="space-y-3 p-3" data-testid="map-details">
+    <div className="space-y-4 p-4" data-testid="map-details">
       <div>
-        <div className="mono break-all text-[13px] font-semibold">{isDir ? id.slice(DIR_PREFIX.length) + '/' : f?.path}</div>
+        <div className="mono break-all text-[13px] font-medium">{isDir ? id.slice(DIR_PREFIX.length) + '/' : f?.path}</div>
         {f ? (
           <div className="mt-1 flex flex-wrap gap-1.5">
-            <Badge>{f.lang}</Badge><Badge title={`role source: ${f.roleSource}`}>{ROLE_LABEL[f.role]}</Badge><ConfBadge c={f.roleConf} />
+            <RoleBadge role={f.role} title={`role source: ${f.roleSource}`}>{ROLE_LABEL[f.role]}</RoleBadge><ConfBadge c={f.roleConf} /><Badge>{f.lang}</Badge>
             <Badge>{fmtNum(f.loc)} lines</Badge><Badge title="Deepest analysis layer applied">L{f.level}</Badge>
             {f.maxComplexity > 0 && <Badge>max complexity {f.maxComplexity}</Badge>}
           </div>
@@ -76,7 +78,7 @@ function Details({ a, id, onExpand, expanded }: { a: Analysis; id: string; onExp
       {list('Depended on by', inn, 'map-dependents')}
       {unresolved.length > 0 && (
         <div>
-          <div className="mb-1 text-xs font-semibold">Unresolved references <span className="faint">({unresolved.length})</span></div>
+          <div className="label mb-1.5">Unresolved references <span className="faint">({unresolved.length})</span></div>
           <ul className="space-y-0.5 text-xs">{unresolved.slice(0, 12).map((u, i) => <li key={i}><FileLink file={u.file} line={u.line} label={`:${u.line}`} /> <span className="muted">{u.detail}</span></li>)}</ul>
         </div>
       )}
@@ -95,7 +97,10 @@ export function SystemMap() {
 
   const view = useMemo(() => buildMapView(a, expanded, filter, MAX_NODES), [a, stamp, expanded, filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const elements = useMemo<ElementDefinition[]>(() => [
-    ...view.nodes.map((n) => ({ data: { id: n.id, label: n.kind === 'dir' && !n.container ? `${n.label}  (${n.files})` : n.label, kind: n.kind, parent: n.parent } })),
+    ...view.nodes.map((n) => ({ data: {
+      id: n.id, label: n.label, kind: n.kind, parent: n.parent, role: n.role,
+      sub: n.container ? undefined : n.kind === 'dir' ? `${fmtNum(n.files)} files · ${fmtNum(n.loc)} lines` : `${ROLE_SHORT[n.role ?? 'unknown']} · ${fmtNum(n.loc)} lines`,
+    } })),
     ...view.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, count: e.count, conf: e.conf, label: e.count > 1 ? String(e.count) : '' } })),
   ], [view]);
 
@@ -134,42 +139,49 @@ export function SystemMap() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--line)] bg-[var(--bg2)] px-4 py-2 text-[13px]">
-        <span className="font-semibold">System map</span>
-        <span className="muted" data-testid="map-counts">{view.nodes.length} nodes · {view.edges.length} edges shown (max {MAX_NODES})</span>
-        <div className="flex items-center gap-1">
-          <span className="faint">Confidence</span>
-          {CONFS.map((c) => (
-            <label key={c} className="flex items-center gap-1"><input type="checkbox" data-testid={`conf-${c}`} checked={filter.confs?.has(c) ?? true} onChange={() => toggleConf(c)} />{c}</label>
-          ))}
+      <div className="border-b border-[var(--line)] px-5 pb-3.5 pt-5 md:px-8">
+        <PageHeader
+          title="System map"
+          intro="How the code is wired: folders, files and the imports between them. Click a node to focus its neighbourhood; double-click a folder to open it."
+          actions={
+            <>
+              <select className="input" value={layout} onChange={(e) => setLayout(e.target.value as 'fcose' | 'elk')} title="Layout algorithm" aria-label="Layout algorithm">
+                <option value="fcose">Force layout</option>
+                <option value="elk">Layered layout (ELK)</option>
+              </select>
+              <button className="btn" onClick={() => setExpanded(new Set(['', ...a.files.flatMap((f) => { const out: string[] = []; let d = dirname(f.path); while (d) { out.push(d); d = dirname(d); } return out; })]))} title="Expand as far as the node budget allows">Expand all</button>
+              <button className="btn" onClick={() => setExpanded(defaultExpanded(a, {}, 0))}>Collapse all</button>
+            </>
+          }
+        />
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Edge confidence">
+            <span className="label mr-1">Edges</span>
+            {CONFS.map((c) => (
+              <Chip key={c} on={filter.confs?.has(c) ?? true} onClick={() => toggleConf(c)} testId={`conf-${c}`}>{c}</Chip>
+            ))}
+          </div>
+          <label className="flex items-center gap-1.5">
+            <span className="label">Role</span>
+            <select className="input max-w-44" data-testid="role-filter" value="" onChange={(e) => e.target.value && toggleIn('roles', e.target.value)}>
+              <option value="">{filter.roles?.size ? `${filter.roles.size} selected` : 'all'}</option>
+              {roles.map((r) => <option key={r} value={r}>{filter.roles?.has(r) ? '✓ ' : ''}{ROLE_LABEL[r]}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5">
+            <span className="label">Language</span>
+            <select className="input max-w-36" data-testid="lang-filter" value="" onChange={(e) => e.target.value && toggleIn('langs', e.target.value)}>
+              <option value="">{filter.langs?.size ? `${filter.langs.size} selected` : 'all'}</option>
+              {langs.map((l) => <option key={l} value={l}>{filter.langs?.has(l) ? '✓ ' : ''}{l}</option>)}
+            </select>
+          </label>
+          <Chip on={!!filter.hideTests} onClick={() => setFilter({ ...filter, hideTests: !filter.hideTests })} testId="hide-tests">hide tests</Chip>
+          {(filter.roles?.size || filter.langs?.size) ? <button className="link" onClick={() => setFilter({ ...filter, roles: undefined, langs: undefined })}>clear filters</button> : null}
+          <span className="tnum ml-auto text-[12.5px] faint" data-testid="map-counts">{view.nodes.length} nodes · {view.edges.length} edges shown (max {MAX_NODES})</span>
         </div>
-        <label className="flex items-center gap-1">
-          <span className="faint">Role</span>
-          <select className="input" data-testid="role-filter" value="" onChange={(e) => e.target.value && toggleIn('roles', e.target.value)}>
-            <option value="">{filter.roles?.size ? `${filter.roles.size} selected` : 'all'}</option>
-            {roles.map((r) => <option key={r} value={r}>{filter.roles?.has(r) ? '✓ ' : ''}{ROLE_LABEL[r]}</option>)}
-          </select>
-        </label>
-        <label className="flex items-center gap-1">
-          <span className="faint">Language</span>
-          <select className="input" data-testid="lang-filter" value="" onChange={(e) => e.target.value && toggleIn('langs', e.target.value)}>
-            <option value="">{filter.langs?.size ? `${filter.langs.size} selected` : 'all'}</option>
-            {langs.map((l) => <option key={l} value={l}>{filter.langs?.has(l) ? '✓ ' : ''}{l}</option>)}
-          </select>
-        </label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={!!filter.hideTests} onChange={(e) => setFilter({ ...filter, hideTests: e.target.checked })} />hide tests</label>
-        {(filter.roles?.size || filter.langs?.size) ? <button className="link" onClick={() => setFilter({ ...filter, roles: undefined, langs: undefined })}>clear filters</button> : null}
-        <span className="ml-auto flex items-center gap-2">
-          <select className="input" value={layout} onChange={(e) => setLayout(e.target.value as 'fcose' | 'elk')} title="Layout algorithm">
-            <option value="fcose">Force layout</option>
-            <option value="elk">Layered layout (ELK)</option>
-          </select>
-          <button className="btn" onClick={() => setExpanded(new Set(['', ...a.files.flatMap((f) => { const out: string[] = []; let d = dirname(f.path); while (d) { out.push(d); d = dirname(d); } return out; })]))} title="Expand as far as the node budget allows">Expand all</button>
-          <button className="btn" onClick={() => setExpanded(defaultExpanded(a, {}, 0))}>Collapse all</button>
-        </span>
       </div>
       {view.collapsed.length > 0 && (
-        <div className="border-b border-[var(--line)] px-4 py-1 text-xs text-[var(--warn)]" data-testid="map-budget">
+        <div className="border-b border-[var(--line)] px-5 py-1.5 text-xs text-[var(--warn)] md:px-8" data-testid="map-budget">
           {view.collapsed.length} director{view.collapsed.length === 1 ? 'y was' : 'ies were'} kept collapsed to stay under {MAX_NODES} nodes. Zoom in or double-click a cluster to expand it.
         </div>
       )}
@@ -179,12 +191,12 @@ export function SystemMap() {
             <Graph elements={elements} layout={layout} testId="map-canvas" onSelect={setSelected} onOpen={(id) => id.startsWith(DIR_PREFIX) && toggle(id.slice(DIR_PREFIX.length))} onZoom={onZoom} />
           )}
         </div>
-        <div className="w-80 shrink-0 overflow-auto border-l border-[var(--line)]">
+        <div className="w-80 shrink-0 overflow-auto border-l border-[var(--line)] bg-[var(--bg2)] max-[1100px]:w-64 max-[760px]:hidden">
           {selected && !selected.includes('→') ? <Details a={a} id={selected} onExpand={toggle} expanded={expanded} /> : (
             <div className="space-y-2 p-3 text-[13px] muted">
-              <p>Directories are clusters. <b>Double-click</b> a cluster (or zoom into it) to expand it; click any node for details.</p>
-              <p>Solid edges are <b>resolved</b> (compiler-exact). Dashed grey edges are <b>heuristic</b>; dotted are <b>unresolved</b>.</p>
-              <p>Edge labels show how many imports the edge aggregates.</p>
+              <div className="label">How to read it</div>
+              <p>Directories are clusters. <b className="text-[var(--fg)]">Double-click</b> a cluster (or zoom into it) to expand it. Click a node to focus it: its neighbours and edges light up, the rest fades.</p>
+              <p>Solid edges are <b className="text-[var(--fg)]">resolved</b> (compiler-exact), dashed are <b className="text-[var(--fg)]">heuristic</b>, dotted are <b className="text-[var(--fg)]">unresolved</b>. The number on an edge is how many imports it aggregates.</p>
               {a.unresolved.length > 0 && <p>{a.unresolved.length} statically unresolvable reference(s) were recorded (dynamic imports, reflection, DI lookups…). Select a file to see its own.</p>}
             </div>
           )}
