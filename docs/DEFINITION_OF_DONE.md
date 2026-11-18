@@ -46,4 +46,12 @@ apply, that's fine; if it applies and is unmet, the task stays open in [TODO.md]
 ---
 
 **Milestone done** = all its TODO items done + an e2e test that walks the milestone's main user story on a fixture
-+ its limitations written in QUALITY.md.
++ its limitations written in QUALITY.md + **the owner has reviewed it in the running app and approved it**.
+
+## Phase review (before starting the next milestone)
+
+1. Make sure the dev server is running at http://localhost:5173 (`npm run dev`; reuse it if it's already up) and
+   smoke-test it: upload a fixture, no console errors.
+2. Give the owner a short "what to try" walkthrough: what's new, where it is in the UI, which project to upload to
+   see it, and what is still limited.
+3. Wait for approval. Feedback becomes TODO items; the next milestone starts only after a go-ahead.

@@ -11,6 +11,8 @@ React 19 + TypeScript + Vite + Tailwind v4, analysis in Web Workers, IndexedDB f
 3. Read the part of [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (and [docs/FLOWS.md](docs/FLOWS.md)) that covers the code you will touch.
 4. For UI work, read [docs/CONVENTIONS.md](docs/CONVENTIONS.md) § UI.
 5. Before calling anything finished, go through [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md).
+6. At the end of every phase: keep the app running at http://localhost:5173, walk the owner through what changed,
+   and **wait for their approval before starting the next milestone** (DoD § Phase review).
 
 ## Docs are part of the change
 
