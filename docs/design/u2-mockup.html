@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>imex UI mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #faf9f5; --bg2: #ffffff; --bg3: #f0eee6; --bg4: #e8e6dc;
+    --fg: #141413; --fg2: #5e5d59; --fg3: #87867f;
+    --line: #e8e6dc; --line2: #dedcd1;
+    --accent: #d97757; --accent-hover: #c6613f; --accent-fg: #ffffff;
+    --ok: #2e7d43; --warn: #b7791f; --bad: #bf3a30;
+    --r-route: #7663b8; --r-service: #256abf; --r-model: #a8336b; --r-test: #2e7d43; --r-int: #13857f; --r-config: #87867f;
+    --shadow: 0 1px 2px rgb(20 20 19 / .04);
+    --soft: 10%;
+    --serif: 'Geist Mono', ui-monospace, monospace;
+    --sans: 'Geist Mono', ui-monospace, monospace;
+    --mono: 'Geist Mono', ui-monospace, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #1a1918; --bg2: #232220; --bg3: #2c2b29; --bg4: #3d3d3a;
+    --fg: #faf9f5; --fg2: #b0aea5; --fg3: #87867f;
+    --line: #30302e; --line2: #3d3d3a;
+    --accent: #d97757; --accent-hover: #e08a6d; --accent-fg: #141413;
+    --ok: #6fb784; --warn: #e0a84a; --bad: #e0705f;
+    --r-route: #a39be0; --r-service: #6a9bcc; --r-model: #d4729e; --r-test: #6fb784; --r-int: #5fb3a8; --r-config: #9c9a92;
+    --shadow: none;
+    --soft: 16%;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font: 13.5px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+  .serif { font-family: var(--serif); }
+  .muted { color: var(--fg2); } .faint { color: var(--fg3); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .label { font-family: var(--mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--fg3); }
+
+  /* shell */
+  .top { position: sticky; top: 0; z-index: 5; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 20px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 18px; font-weight: 600; letter-spacing: -.03em; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--accent); }
+  .crumb { color: var(--fg3); } .proj { font-weight: 500; }
+  .pill { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 12.5px;
+    background: var(--bg3); color: var(--fg2); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .iconbtn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 999px; border: 1px solid var(--line2); background: transparent; color: var(--fg2); cursor: pointer; }
+  .iconbtn:hover { color: var(--fg); background: var(--bg3); }
+
+  .layout { display: grid; grid-template-columns: 236px 1fr; min-height: calc(100% - 56px); }
+  aside { border-right: 1px solid var(--line); padding: 18px 12px; }
+  .group { margin: 22px 12px 6px; }
+  .group:first-child { margin-top: 4px; }
+  .nav { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; color: var(--fg2); font-size: 14px; cursor: pointer; }
+  .nav:hover { background: var(--bg3); color: var(--fg); }
+  .nav svg { flex: none; }
+  .nav.sel { color: var(--fg); background: var(--bg2); box-shadow: 0 0 0 1px var(--line2), var(--shadow); font-weight: 500; }
+  .nav.sel svg { color: var(--accent); }
+  .count { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--fg3); }
+
+  main { padding: 36px 40px 56px; max-width: 1180px; width: 100%; }
+  h1 { font-family: var(--serif); font-size: 34px; font-weight: 500; letter-spacing: -.04em; line-height: 1.1; margin-top: 8px; }
+  .intro { color: var(--fg2); max-width: 680px; margin-top: 10px; font-size: 13.5px; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; font: 500 13.5px var(--sans);
+    border: 1px solid var(--line2); background: var(--bg2); color: var(--fg); cursor: pointer; }
+  .btn:hover { background: var(--bg3); }
+  .btn-primary { background: var(--fg); color: var(--bg); border-color: transparent; }
+  .btn-primary:hover { background: var(--fg); opacity: .88; }
+  .btn-accent { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+  .btn-accent:hover { background: var(--accent-hover); }
+
+  .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+  .card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .card-h h2 { font-family: var(--serif); font-size: 17px; font-weight: 500; letter-spacing: -.02em; }
+  .stack > * + * { margin-top: 22px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .stat { padding: 16px 18px 14px; position: relative; overflow: hidden; }
+  .stat .val { font-family: var(--serif); font-size: 30px; font-weight: 500; letter-spacing: -.04em; line-height: 1.15; margin-top: 6px; }
+  .stat .sub { font-size: 12.5px; color: var(--fg2); }
+  .stat svg.spark { position: absolute; right: 16px; top: 16px; }
+  .up { color: var(--ok); } .down { color: var(--bad); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 3px 11px; border-radius: 999px; font-size: 12.5px; border: 1px solid var(--line2); color: var(--fg2); background: transparent; cursor: pointer; }
+  .chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* graph */
+  .graph { position: relative; height: 480px; overflow: hidden; border-radius: 0 0 16px 16px; background: var(--bg);
+    background-image: radial-gradient(var(--line2) 1px, transparent 1px); background-size: 20px 20px; }
+  .graph > svg { width: 100%; height: 100%; display: block; }
+  .gbox { fill: color-mix(in srgb, var(--bg3) 70%, transparent); stroke: var(--line2); }
+  .glbl { fill: var(--fg3); font: 500 10.5px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+  .node rect.body { fill: var(--bg2); stroke: var(--line2); }
+  .node text.t { fill: var(--fg); font: 500 12px var(--mono); }
+  .node text.s { fill: var(--fg3); font: 400 10.5px var(--sans); }
+  .node.dim { opacity: .35; }
+  .node.sel rect.body { stroke: var(--accent); stroke-width: 1.6; fill: color-mix(in srgb, var(--accent) 8%, var(--bg2)); }
+  .node.nb rect.body { stroke: color-mix(in srgb, var(--accent) 45%, var(--line2)); }
+  .e { fill: none; stroke: var(--fg3); stroke-width: 1.2; opacity: .35; }
+  .e.hot { stroke: var(--accent); stroke-width: 1.7; opacity: 1; }
+  .e.heur { stroke-dasharray: 5 4; }
+  .e.unres { stroke-dasharray: 1.5 4; stroke-linecap: round; }
+  .elbl rect { fill: var(--bg2); stroke: var(--accent); }
+  .elbl text { fill: var(--accent); font: 500 10px var(--mono); }
+  .flow { stroke-dasharray: 3 11; animation: flow 1.6s linear infinite; stroke: var(--accent-hover); stroke-width: 2.4; stroke-linecap: round; fill: none; }
+  @keyframes flow { to { stroke-dashoffset: -28; } }
+  @media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+
+  .overlay { position: absolute; background: var(--bg2); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 4px 16px rgb(20 20 19 / .06); }
+  .zoom { top: 14px; right: 14px; display: flex; flex-direction: column; padding: 3px; gap: 2px; }
+  .zoom button { width: 30px; height: 30px; border: 0; background: none; color: var(--fg2); border-radius: 8px; cursor: pointer; display: grid; place-items: center; }
+  .zoom button:hover { background: var(--bg3); color: var(--fg); }
+  .legend { left: 14px; bottom: 14px; padding: 11px 14px; font-size: 12px; color: var(--fg2); display: grid; grid-template-columns: auto auto; gap: 5px 18px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
+  .legend .ln { display: inline-block; width: 18px; border-top: 1.6px solid var(--fg2); margin-right: 7px; vertical-align: 3px; }
+  .mini { right: 14px; bottom: 14px; width: 150px; height: 96px; padding: 6px; }
+  .mini .vp { position: absolute; left: 30px; top: 18px; width: 70px; height: 48px; border: 1.5px solid var(--accent); border-radius: 5px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+  /* badges */
+  .role { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500;
+    color: var(--c); background: color-mix(in srgb, var(--c) var(--soft), transparent); }
+  .role::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+  .conf { display: inline-flex; font-family: var(--mono); font-size: 11px; padding: 1px 8px; border-radius: 6px; border: 1px solid; }
+  .conf.resolved { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+  .conf.heuristic { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); border-style: dashed; }
+  .conf.unresolved { color: var(--fg3); border-color: var(--line2); border-style: dotted; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font: 500 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--fg3); padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 20px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: var(--bg); }
+  .file { color: var(--fg); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 3px; }
+  .file:hover { text-decoration-color: var(--accent); }
+  .file .dir { color: var(--fg3); }
+  .bar { width: 110px; height: 5px; border-radius: 99px; background: var(--bg4); overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 99px; }
+
+  /* palette */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; padding: 12px 20px 18px; }
+  .sw { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg2); }
+  .sw div { height: 48px; background: var(--c); border-bottom: 1px solid var(--line); }
+  .sw p { padding: 8px 10px; font-size: 12px; line-height: 1.35; }
+  .sw p span { display: block; color: var(--fg3); font-family: var(--mono); font-size: 10.5px; }
+  .swh { padding: 18px 20px 0; }
+  .type { padding: 20px; display: grid; gap: 10px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; } aside { display: none; }
+    main { padding: 24px 16px 40px; } h1 { font-size: 32px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mini { display: none; } .pill span.t { display: none; }
+    .tablewrap { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">
+    <span class="logo-mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg></span>
+    imex
+  </div>
+  <span class="crumb">/</span><span class="proj">acme-shop</span>
+  <span class="pill"><span class="dot"></span><span class="t">100% local · nothing leaves this browser</span></span>
+  <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="group label">Understand</div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Orientation</div>
+    <div class="nav sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7 7.5l3.5 8.5M17 7.5 13.5 16M7.5 6h9"/></svg>System map<span class="count">1,284</span></div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/></svg>Request flows<span class="count">48</span></div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Data model<span class="count">23</span></div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Symbols</div>
+    <div class="group label">Assess</div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Health<span class="count" style="color:var(--warn)">7</span></div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v4M16 3v4M4 9h16M5 5h14v15H5z"/></svg>Dependencies</div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.5"/><circle cx="12" cy="12" r="6.5" opacity=".6"/><circle cx="12" cy="12" r="10" opacity=".3"/></svg>Impact</div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>History</div>
+    <div class="group label">Share</div>
+    <div class="nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Export</div>
+  </aside>
+
+  <main class="stack">
+    <div class="head">
+      <div>
+        <div class="label">Understand</div>
+        <h1>System map</h1>
+        <p class="intro">How the code is wired: folders, files and the imports between them. Solid lines are resolved by the compiler, dashed ones are inferred from naming, dotted ones could not be determined.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filters</button>
+        <button class="btn btn-accent">Run impact</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="card stat"><div class="label">Files</div><div class="val tnum">1,284</div><div class="sub">across 14 languages</div>
+        <svg class="spark" width="64" height="24" viewBox="0 0 70 26"><path d="M0 20 L10 18 L20 19 L30 14 L40 15 L50 9 L60 10 L70 5" fill="none" stroke="var(--fg3)" stroke-width="1.6"/></svg></div>
+      <div class="card stat"><div class="label">Imports</div><div class="val tnum">6,912</div><div class="sub"><span class="up">94%</span> resolved</div>
+        <svg class="spark" width="64" height="24" viewBox="0 0 70 26"><path d="M0 16 L10 15 L20 12 L30 13 L40 9 L50 10 L60 7 L70 6" fill="none" stroke="var(--ok)" stroke-width="1.6"/></svg></div>
+      <div class="card stat"><div class="label">Entry points</div><div class="val tnum">48</div><div class="sub">routes · jobs · CLIs</div>
+        <svg class="spark" width="64" height="24" viewBox="0 0 70 26"><path d="M0 18 L10 18 L20 15 L30 15 L40 12 L50 12 L60 11 L70 11" fill="none" stroke="var(--r-route)" stroke-width="1.6"/></svg></div>
+      <div class="card stat"><div class="label">Cycles</div><div class="val tnum">3</div><div class="sub"><span class="down">+1</span> since last snapshot</div>
+        <svg class="spark" width="64" height="24" viewBox="0 0 70 26"><path d="M0 22 L10 22 L20 20 L30 20 L40 16 L50 16 L60 12 L70 10" fill="none" stroke="var(--bad)" stroke-width="1.6"/></svg></div>
+    </div>
+
+    <section class="card">
+      <div class="card-h">
+        <h2>Module graph <span class="faint" style="font-family:var(--sans);font-size:14px">focused on <span class="mono" style="color:var(--accent)">orders.service.ts</span></span></h2>
+        <div class="chips"><span class="chip on">All</span><span class="chip">Routes</span><span class="chip">Services</span><span class="chip">Data</span><span class="chip">Tests</span></div>
+      </div>
+      <div class="graph">
+        <svg viewBox="0 0 840 440" preserveAspectRatio="xMidYMid meet" aria-label="Module graph">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="var(--fg3)"/></marker>
+            <marker id="arrHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="var(--accent)"/></marker>
+          </defs>
+          <g transform="translate(0,10)">
+          <rect class="gbox" x="26" y="52" width="198" height="250" rx="14"/><text class="glbl" x="40" y="72">src / routes</text>
+          <rect class="gbox" x="296" y="86" width="198" height="248" rx="14"/><text class="glbl" x="310" y="106">src / services</text>
+          <rect class="gbox" x="576" y="52" width="198" height="268" rx="14"/><text class="glbl" x="590" y="72">src / db</text>
+
+          <path class="e" d="M210 172 H255 V212 H310" marker-end="url(#arr)"/>
+          <path class="e heur" d="M210 242 H255 V212 H310" marker-end="url(#arr)"/>
+          <path class="e" d="M480 212 H530 V192 H590" marker-end="url(#arr)"/>
+          <path class="e" d="M480 222 H545 V282 H590" marker-end="url(#arr)"/>
+          <path class="e unres" d="M395 314 V356 H590" marker-end="url(#arr)"/>
+          <path class="e hot" d="M210 102 H260 V122 H310" marker-end="url(#arrHot)"/>
+          <path class="flow" d="M210 102 H260 V122 H306"/>
+          <path class="e hot" d="M480 116 H535 V102 H590" marker-end="url(#arrHot)"/>
+          <path class="e hot" d="M480 130 H555 V272 H590" marker-end="url(#arrHot)"/>
+          <path class="e hot heur" d="M395 144 V270" marker-end="url(#arrHot)"/>
+          <path class="e hot" d="M395 54 V100" marker-end="url(#arrHot)"/>
+          <g class="elbl"><rect x="250" y="102" width="22" height="16" rx="8"/><text x="261" y="114" text-anchor="middle">4</text></g>
+          <g class="elbl"><rect x="524" y="92" width="22" height="16" rx="8"/><text x="535" y="104" text-anchor="middle">2</text></g>
+
+          <g class="node nb" transform="translate(40,80)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-route)"/><text class="t" x="26" y="20">orders.ts</text><text class="s" x="26" y="35">route · POST /orders</text></g>
+          <g class="node dim" transform="translate(40,150)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-route)"/><text class="t" x="26" y="20">users.ts</text><text class="s" x="26" y="35">route · 5 handlers</text></g>
+          <g class="node dim" transform="translate(40,220)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-route)"/><text class="t" x="26" y="20">auth.ts</text><text class="s" x="26" y="35">route · middleware</text></g>
+
+          <g class="node nb" transform="translate(310,10)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-test)"/><text class="t" x="26" y="20">orders.test.ts</text><text class="s" x="26" y="35">test · 12 cases</text></g>
+          <g class="node sel" transform="translate(310,100)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-service)"/><text class="t" x="26" y="20">orders.service.ts</text><text class="s" x="26" y="35">service · 412 lines</text></g>
+          <g class="node dim" transform="translate(310,190)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-service)"/><text class="t" x="26" y="20">users.service.ts</text><text class="s" x="26" y="35">service · 230 lines</text></g>
+          <g class="node nb" transform="translate(310,270)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-int)"/><text class="t" x="26" y="20">mailer.ts</text><text class="s" x="26" y="35">integration · SMTP</text></g>
+
+          <g class="node nb" transform="translate(590,80)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-model)"/><text class="t" x="26" y="20">Order.ts</text><text class="s" x="26" y="35">model · 9 fields</text></g>
+          <g class="node dim" transform="translate(590,170)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-model)"/><text class="t" x="26" y="20">User.ts</text><text class="s" x="26" y="35">model · 7 fields</text></g>
+          <g class="node nb" transform="translate(590,260)"><rect class="body" width="170" height="44" rx="10"/><circle cx="16" cy="16" r="3.5" fill="var(--r-config)"/><text class="t" x="26" y="20">client.ts</text><text class="s" x="26" y="35">config · Postgres</text></g>
+          <g class="node dim" transform="translate(590,340)"><rect class="body" width="170" height="44" rx="10" stroke-dasharray="3 3"/><text class="t" x="14" y="20" style="fill:var(--fg3)">plugins/*</text><text class="s" x="14" y="35">unresolved · dynamic import</text></g>
+          </g>
+        </svg>
+
+        <div class="overlay zoom">
+          <button title="Zoom in"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button title="Zoom out"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
+          <button title="Fit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        </div>
+        <div class="overlay legend">
+          <span><i style="background:var(--r-route)"></i>Route</span><span><span class="ln"></span>Resolved</span>
+          <span><i style="background:var(--r-service)"></i>Service</span><span><span class="ln" style="border-top-style:dashed"></span>Heuristic</span>
+          <span><i style="background:var(--r-model)"></i>Model</span><span><span class="ln" style="border-top-style:dotted"></span>Unresolved</span>
+          <span><i style="background:var(--r-test)"></i>Test</span><span><span class="ln" style="border-color:var(--accent)"></span>In focus</span>
+        </div>
+        <div class="overlay mini">
+          <svg width="138" height="84" viewBox="0 0 138 84">
+            <g fill="var(--fg3)" opacity=".45"><rect x="6" y="10" width="22" height="6" rx="2"/><rect x="6" y="22" width="22" height="6" rx="2"/><rect x="6" y="34" width="22" height="6" rx="2"/><rect x="50" y="30" width="22" height="6" rx="2"/><rect x="50" y="44" width="22" height="6" rx="2"/><rect x="96" y="10" width="22" height="6" rx="2"/><rect x="96" y="24" width="22" height="6" rx="2"/><rect x="96" y="38" width="22" height="6" rx="2"/><rect x="20" y="62" width="22" height="6" rx="2"/><rect x="70" y="66" width="22" height="6" rx="2"/><rect x="110" y="60" width="22" height="6" rx="2"/></g>
+            <rect x="50" y="18" width="22" height="6" rx="2" fill="var(--accent)"/>
+          </svg>
+          <div class="vp"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Hotspots</h2><span class="faint" style="font-size:13px">Churn × complexity, highest risk first</span></div>
+      <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Role</th><th>Risk</th><th>Dependents</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td class="mono"><span class="file"><span class="dir">src/services/</span>orders.service.ts<span class="dir">:88</span></span></td><td><span class="role" style="--c:var(--r-service)">service</span></td>
+            <td><div style="display:flex;align-items:center;gap:10px"><div class="bar"><span style="width:86%;background:var(--bad)"></span></div><span class="tnum mono" style="color:var(--bad)">86</span></div></td><td class="tnum">41</td><td><span class="conf resolved">resolved</span></td></tr>
+          <tr><td class="mono"><span class="file"><span class="dir">src/routes/</span>orders.ts<span class="dir">:12</span></span></td><td><span class="role" style="--c:var(--r-route)">route</span></td>
+            <td><div style="display:flex;align-items:center;gap:10px"><div class="bar"><span style="width:64%;background:var(--warn)"></span></div><span class="tnum mono" style="color:var(--warn)">64</span></div></td><td class="tnum">7</td><td><span class="conf resolved">resolved</span></td></tr>
+          <tr><td class="mono"><span class="file"><span class="dir">src/db/models/</span>Order.ts<span class="dir">:1</span></span></td><td><span class="role" style="--c:var(--r-model)">model</span></td>
+            <td><div style="display:flex;align-items:center;gap:10px"><div class="bar"><span style="width:52%;background:var(--warn)"></span></div><span class="tnum mono" style="color:var(--warn)">52</span></div></td><td class="tnum">23</td><td><span class="conf heuristic">heuristic</span></td></tr>
+          <tr><td class="mono"><span class="file"><span class="dir">src/lib/</span>mailer.ts<span class="dir">:30</span></span></td><td><span class="role" style="--c:var(--r-int)">integration</span></td>
+            <td><div style="display:flex;align-items:center;gap:10px"><div class="bar"><span style="width:28%;background:var(--ok)"></span></div><span class="tnum mono" style="color:var(--ok)">28</span></div></td><td class="tnum">3</td><td><span class="conf unresolved">unresolved</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Palette</h2><span class="faint" style="font-size:13px">Use the moon icon in the top bar to see dark mode</span></div>
+      <div class="swh label">Surfaces &amp; text</div>
+      <div class="swatches">
+        <div class="sw"><div style="--c:var(--bg)"></div><p>bg<span>page, cream</span></p></div>
+        <div class="sw"><div style="--c:var(--bg2)"></div><p>bg2<span>cards</span></p></div>
+        <div class="sw"><div style="--c:var(--bg3)"></div><p>bg3<span>hover, chips</span></p></div>
+        <div class="sw"><div style="--c:var(--line2)"></div><p>line<span>borders</span></p></div>
+        <div class="sw"><div style="--c:var(--fg)"></div><p>fg<span>primary text</span></p></div>
+        <div class="sw"><div style="--c:var(--fg2)"></div><p>fg2<span>secondary</span></p></div>
+        <div class="sw"><div style="--c:var(--fg3)"></div><p>fg3<span>tertiary</span></p></div>
+      </div>
+      <div class="swh label">Accent &amp; status</div>
+      <div class="swatches">
+        <div class="sw"><div style="--c:var(--accent)"></div><p>accent<span>terracotta</span></p></div>
+        <div class="sw"><div style="--c:var(--ok)"></div><p>ok<span>resolved, healthy</span></p></div>
+        <div class="sw"><div style="--c:var(--warn)"></div><p>warn<span>heuristic, risk</span></p></div>
+        <div class="sw"><div style="--c:var(--bad)"></div><p>bad<span>cycles, high risk</span></p></div>
+      </div>
+      <div class="swh label">File roles (badges, graph nodes, charts)</div>
+      <div class="swatches">
+        <div class="sw"><div style="--c:var(--r-route)"></div><p>route</p></div>
+        <div class="sw"><div style="--c:var(--r-service)"></div><p>service</p></div>
+        <div class="sw"><div style="--c:var(--r-model)"></div><p>model</p></div>
+        <div class="sw"><div style="--c:var(--r-test)"></div><p>test</p></div>
+        <div class="sw"><div style="--c:var(--r-int)"></div><p>integration</p></div>
+        <div class="sw"><div style="--c:var(--r-config)"></div><p>config</p></div>
+      </div>
+      <div class="type">
+        <div class="serif" style="font-size:34px;font-weight:500;letter-spacing:-.04em;line-height:1.1">Geist Mono 34 / 500: page titles</div>
+        <div style="font-size:13.5px">Geist Mono 13.5: body text that explains what each view shows and how sure it is.</div>
+        <div class="mono">Geist Mono 12.5 · code &amp; labels: src/services/orders.service.ts:88</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('imex-mock-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById('theme').onclick = () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('imex-mock-theme', root.dataset.theme); } catch (e) {}
+  };
+</script>
+</body>
+</html>

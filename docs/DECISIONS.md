@@ -172,6 +172,21 @@ D18–D24 record choices that were already in the code but never written down.
 - **Why:** Hierarchy and scanability, with no new dependencies and no test-ID churn. Solid accent is now reserved for primary actions.
 - **Alternatives rejected:** A full redesign or a component library, which costs too much mid-roadmap. Revisit in U2.
 
+## D27: U2 visual direction: warm palette, all-mono type; app renamed to imex
+- **Date / phase:** 2026-11-18 · U2 (planning)
+- **Status:** Accepted (supersedes the "revisit in U2" note in D25)
+- **Context:** The U1 UI is clean but generic: system fonts, stock Tailwind blue, a graph palette hard-coded apart
+  from the app tokens, Mermaid's stock themes, identical graph nodes. Two mockups were compared: a dark "X-ray" look
+  (navy + cyan) and a warm, editorial light look modelled on claude.com/features/artifacts.
+- **Decision:** The warm look, with Geist Mono as the only typeface. Cream/warm-grey surfaces,
+  `#141413` text, terracotta `#d97757` accent for focus and calls to action, muted role colours shared by badges,
+  graph nodes and charts. Graph and Mermaid colours come from the same tokens. Reference: `docs/design/u2-mockup.html`.
+  The app is renamed from C-Ray to **imex** (import/export).
+- **Why:** Calm and readable for long reading sessions, distinct from typical dev-tool dark UIs; a mono face fits a
+  code tool and keeps paths and prose in one voice. Fonts are bundled, so the privacy rule holds.
+- **Alternatives rejected:** "X-ray" dark-first (memorable but heavier, glow effects fight with dense tables);
+  a serif + sans pairing (tried in the mockup; owner preferred all-mono).
+
 ## Process
 
 ## D26: Living docs + Definition of Done, enforced by a Stop hook

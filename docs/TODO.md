@@ -28,7 +28,7 @@ the UI, tests and docs. After that comes M10.
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
-| U2 | UI polish pass 2 (responsive, keyboard, graph tokens) | ⬜ (alongside M12) |
+| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ⬜ direction approved 2026-11-18, starts after M9 |
 
 ---
 
@@ -94,10 +94,49 @@ Needs an explicit privacy design first. This is the only feature that may send d
 - [ ] Performance: profile UI-thread helpers (D22). Move to the worker if a frame is >100 ms on the 50k repo;
       virtualize long tables
 - [ ] Browser matrix check: Chrome, Firefox, Safari (folder picking, nested workers, File System Access fallback)
-- [ ] Final polish (see U2), README screenshots, deploy guide
+- [ ] Final polish, README screenshots (after U2), deploy guide
 
-## U2: UI polish pass 2
+## U2: Visual redesign + rename to imex
 
+Approved direction (D27): warm palette, everything in Geist Mono, terracotta accent, role colours.
+Reference mockup: [docs/design/u2-mockup.html](design/u2-mockup.html) (open it in a browser; ☾ toggles dark mode).
+Build in slices, each with a phase review.
+
+**Slice 1: Tokens, type, icons**
+- [ ] Replace the tokens in `src/index.css` with the mockup palette (light: cream `#faf9f5` page, white cards,
+      warm greys, `#141413` text, `#d97757` accent; dark: warm `#1a1918` page). Keep the token names where roles match
+- [ ] Add role tokens `--r-route/service/model/test/int/config` + a radius scale (8 / 12 / 16) + label style (mono uppercase)
+- [ ] Bundle Geist Mono via `@fontsource` (no Google Fonts request; privacy rule). It is the only typeface
+- [ ] Icon set (`lucide-react`, bundled) replacing the one-off inline SVGs
+- [ ] CONVENTIONS § UI: new tokens, type scale, role colours, label style
+
+**Slice 2: App shell + kit**
+- [ ] Top bar (logo mark, privacy pill, round theme button), sidebar (mono group labels, raised selected item, counts)
+- [ ] `kit.tsx`: `Page` (eyebrow label, large title), `Card` (16 px radius, header row), `Stat` (big number + sparkline),
+      `Badge`/role pill, `ConfBadge` (mono, solid/dashed/dotted border), filter chips, buttons (dark primary, accent CTA)
+- [ ] Tables: mono uppercase headers, file paths with dimmed directory, risk bars
+- [ ] Skeleton loaders instead of "Loading…"; empty states with a short explanation
+
+**Slice 3: Diagrams**
+- [ ] `Graph.tsx`: read all colours from CSS tokens at runtime (no hex), restyle on theme change
+- [ ] Nodes: role dot, name + subtitle (role · size), soft folder boxes with mono labels top-left, dimmed unresolved nodes
+- [ ] Focus mode: selecting a node highlights its neighbourhood in accent, fades the rest; edge-count pills
+- [ ] Right-angle edges for ELK layouts; solid / dashed / dotted = resolved / heuristic / unresolved
+- [ ] Overlays: zoom + fit controls, legend, minimap; dot-grid canvas background; label level-of-detail by zoom
+- [ ] Mermaid: `base` theme with `themeVariables` from tokens and Geist Mono (export/print still SVG)
+
+**Slice 4: Views**
+- [ ] Home: hero, drop zone, sample project button using a bundled fixture
+- [ ] Restyle every view (Orientation, System map, Flows, Data, Symbols, Health, Deps, Impact, History, Export, Search)
+- [ ] Consistent page headers for full-bleed views (System map, Flows) with `Page`-style title + intro
+
+**Rename C-Ray → imex** (imex = import/export)
+- [ ] UI strings, `<title>`, `index.html`, `package.json` name, `vite.config.ts` (PWA manifest), README, CLAUDE.md, docs
+- [ ] Export headers/filenames in `src/core/report.ts` and `ExportView.tsx`
+- [ ] IndexedDB name in `src/db/db.ts` and storage keys in `store.ts`: migrate or keep the old DB name so saved
+      projects don't disappear (decide in DECISIONS); update `m1-persistence.spec.ts`
+
+**Carried over from the old U2 list**
 - [ ] Responsive: collapse side nav to icons/drawer below ~900 px; source panel as overlay on narrow screens
 - [ ] `Graph.tsx`: replace hard-coded hex colours (`#d97706`, `#dc2626`, …) with values read from CSS tokens
 - [ ] Keyboard navigation for list+detail views (↑/↓ in Flows/Data lists, `/` to focus search)
