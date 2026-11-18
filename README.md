@@ -25,4 +25,15 @@ npm test             # unit + integration (Vitest)
 npm run test:e2e     # end-to-end (Playwright, needs: npx playwright install chromium)
 ```
 
-See NOTES.md for design decisions, limitations and benchmark numbers.
+## Documentation
+
+| Doc | What's in it |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Working rules for this repo; read first |
+| [docs/TODO.md](docs/TODO.md) | Roadmap, current milestone, remaining tasks |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Every design decision and why |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modules, layers, analysis model, worker protocol |
+| [docs/FLOWS.md](docs/FLOWS.md) | Runtime flows (analyse, re-analyse, export, history, offline) |
+| [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | Code style, UI system, code review checklist |
+| [docs/DEFINITION_OF_DONE.md](docs/DEFINITION_OF_DONE.md) | What "complete" means for a task or milestone |
+| [docs/QUALITY.md](docs/QUALITY.md) | Benchmarks and known limitations |
