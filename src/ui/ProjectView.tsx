@@ -1,6 +1,8 @@
-import type { ComponentType } from 'react';
+import { useEffect, useRef, type ComponentType } from 'react';
 import type { Analysis } from '../core/types';
 import { useStore } from '../store/store';
+import { TAB_ICON } from './icons';
+import { PageGroup } from './kit';
 import { Orientation } from './Orientation';
 import { ProgressPanel } from './ProgressPanel';
 import { SourcePanel } from './SourcePanel';
@@ -44,34 +46,54 @@ const GROUPS: TabDef['group'][] = ['Understand', 'Assess', 'Explore', 'Share'];
 
 export function ProjectView() {
   const { analysis, tab, setTab, status } = useStore();
+  const contentRef = useRef<HTMLDivElement>(null);
+  // "/" focuses the current view's search/filter field, or opens Search when the view has none.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      const field = contentRef.current?.querySelector<HTMLInputElement>('[data-search-focus]');
+      if (field) field.focus();
+      else setTab('search');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setTab]);
   if (!analysis) return null;
   const tabs = TABS.filter((t) => !(t.projectOnly && analysis.mode === 'file'));
   const current = tabs.find((t) => t.id === tab) ?? tabs[0];
   const View = current.view;
   return (
-    <div className="flex h-full">
-      <nav className="no-print flex w-48 shrink-0 flex-col overflow-auto border-r border-[var(--line)] bg-[var(--bg2)] px-2 py-3" aria-label="Views">
-        {GROUPS.map((g) => {
+    <div className="relative flex h-full">
+      <nav className="no-print flex w-[236px] shrink-0 flex-col overflow-auto border-r border-[var(--line)] px-3 py-4 max-[900px]:w-[60px] max-[900px]:px-2" aria-label="Views">
+        {GROUPS.map((g, gi) => {
           const items = tabs.filter((t) => t.group === g);
           if (items.length === 0) return null;
           return (
-            <div key={g} className="mb-3">
-              <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-wider faint">{g}</div>
+            <div key={g} className={gi === 0 ? '' : 'mt-5'}>
+              <div className="label px-3 pb-1.5 max-[900px]:hidden">{g}</div>
               <div className="flex flex-col gap-0.5">
                 {items.map((t) => {
                   const b = t.badge?.(analysis);
                   const sel = t.id === current.id;
+                  const Icon = TAB_ICON[t.id];
+                  const label = t.id === 'symbols' && analysis.mode === 'file' ? 'File' : t.label;
                   return (
                     <button
                       key={t.id}
                       data-testid={`tab-${t.id}`}
                       aria-current={sel ? 'page' : undefined}
+                      aria-label={label}
+                      title={label}
                       onClick={() => setTab(t.id)}
-                      className={`nav-item flex items-center justify-between rounded-md px-2.5 py-1.5 text-left text-[13px] ${sel ? 'is-selected' : 'hover:bg-[var(--bg3)]'}`}
+                      className={`nav-item flex items-center gap-2.5 rounded-[var(--r-sm)] px-3 py-[7px] text-left text-[13.5px] max-[900px]:justify-center max-[900px]:px-0 ${sel ? 'is-selected' : ''}`}
                     >
-                      {t.id === 'symbols' && analysis.mode === 'file' ? 'File' : t.label}
+                      {Icon && <Icon aria-hidden="true" size={16} strokeWidth={1.8} className="shrink-0" />}
+                      <span className="min-w-0 flex-1 truncate max-[900px]:hidden">{label}</span>
                       {b !== null && b !== undefined && b !== 0 && (
-                        <span title={`${b} ${t.badgeTitle ?? ''}`.trim()} className="tnum rounded-full bg-[var(--bg3)] px-1.5 text-[11px] font-medium leading-[17px] text-[var(--fg2)]">{b}</span>
+                        <span title={`${b} ${t.badgeTitle ?? ''}`.trim()} className={`tnum font-mono text-[11px] max-[900px]:hidden ${t.id === 'health' || t.id === 'deps' ? 'text-[var(--warn)]' : 'faint'}`}>{b}</span>
                       )}
                     </button>
                   );
@@ -81,14 +103,16 @@ export function ProjectView() {
           );
         })}
         {analysis.mode === 'file' && (
-          <p className="mt-3 px-2 text-xs muted" data-testid="file-mode-note">File Mode: architecture views (map, flows, data, dependencies…) need more than one file.</p>
+          <p className="mt-4 px-3 text-xs muted max-[900px]:hidden" data-testid="file-mode-note">File Mode: architecture views (map, flows, data, dependencies…) need more than one file.</p>
         )}
       </nav>
-      <div className="print-root min-w-0 flex-1 overflow-auto">
+      <div ref={contentRef} className="print-root min-w-0 flex-1 overflow-auto">
         {status === 'analyzing' && (
-          <div className="no-print flex justify-center border-b border-[var(--line)] bg-[var(--bg2)] p-3"><ProgressPanel /></div>
+          <div className="no-print flex justify-center border-b border-[var(--line)] p-3"><ProgressPanel /></div>
         )}
-        <View />
+        <PageGroup.Provider value={current.group}>
+          <View />
+        </PageGroup.Provider>
       </div>
       <SourcePanel />
     </div>

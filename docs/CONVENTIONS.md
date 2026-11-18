@@ -62,46 +62,60 @@ core ──► core            (never ui, store, workers, db, DOM)
 
 ### Design tokens (`src/index.css`)
 
-Use tokens through Tailwind arbitrary values (`text-[var(--fg2)]`) or the utility classes below. **Never hard-code
-colours**, because dark mode works by swapping these variables under `.dark`.
+Look and feel: D27 (warm palette, Geist Mono only, terracotta accent). Reference: `docs/design/u2-mockup.html`.
+Use tokens through Tailwind arbitrary values (`text-[var(--fg2)]`) or the classes below. **Never hard-code colours**:
+dark mode swaps these variables under `.dark`, and `Graph.tsx` / `Mermaid.tsx` read them at runtime.
 
 | Token | Role |
 |---|---|
-| `--bg` / `--bg2` / `--bg3` | page & cards / chrome & table headers / hover, chips, tracks |
-| `--fg` / `--fg2` / `--fg3` | primary text / secondary (`.muted`) / tertiary (`.faint`) |
-| `--line` | borders and dividers |
-| `--accent`, `--accent-fg` | primary actions, links, progress; text on an accent fill |
-| `--accent-soft` | selected state background (`.is-selected`) |
+| `--bg` | page background (cream / warm black) |
+| `--bg2` | raised surfaces: cards, inputs, menus, source panel, table headers |
+| `--bg3` / `--bg4` | hover, chips, code background / bar tracks, skeletons |
+| `--fg` / `--fg2` / `--fg3` | primary text / secondary (`.muted`) / tertiary (`.faint`, labels) |
+| `--line` / `--line2` | dividers inside cards / control borders, chip outlines, graph boxes |
+| `--accent`, `--accent-hover`, `--accent-fg` | terracotta fills: CTA buttons, progress, focus ring, graph focus; text on an accent fill |
+| `--accent-text` | accent used **as text** (links, selected rows): darker/lighter variant that meets AA |
+| `--accent-soft` | selected list row background (`.is-selected`) |
 | `--ok` `--warn` `--bad` (+ `-soft`) | status: resolved/success · heuristic/warning · high severity/error |
-| `--hl` | search-match highlight |
-| `--radius`, `--shadow-sm` | card radius and elevation |
+| `--r-route` `--r-service` `--r-model` `--r-test` `--r-int` `--r-config` | role colours (badges, graph nodes, charts); see `ROLE_FAMILY` in `kit.tsx` |
+| `--hl` | highlighted source lines |
+| `--r-sm` / `--r-md` / `--r-lg` | radius 8 (buttons, inputs) / 12 (overlays) / 16 (cards) |
+| `--shadow-sm`, `--shadow-md` | card elevation / floating overlays |
 
-Typography: system UI font (`--font-sans`), `--font-mono` for code and paths. Page title 22 px semibold; card title
-13 px semibold; body 13–14 px; meta 11–12 px. Use `.tnum` for numbers that line up or change.
+**Type.** Geist Mono everywhere (bundled via `@fontsource`, no network). Page title 30 px / 500 / −0.04em; card title
+15.5 px / 500; body 13.5 px; meta 12–12.5 px; `.label` = 11 px mono uppercase, +0.05em, `--fg3` (eyebrows, table
+headers, stat labels, nav groups). Big numbers in `Stat` 28 px. Use `.tnum` for numbers that line up or change.
+
+**Icons.** `lucide-react` only (bundled). Nav icons live in `src/ui/icons.ts`. Icon-only buttons need `aria-label`.
 
 ### Components (`src/ui/kit.tsx`), so use these before writing new markup
 
 | Component / class | Use for |
 |---|---|
-| `Page` | Every top-level view: title, intro, actions |
-| `Card` | A titled block of related content (`right` slot for meta/actions) |
-| `Stat` | KPI tile (label, value, sub-line) |
-| `ConfBadge` | Confidence of an inferred fact. Always next to inferred items |
-| `Badge tone=` | Categorical labels. `bad` = high severity, `warn` = medium/heuristic risk, `ok` = good, `accent` = key (PK), `plain` = neutral |
-| `FileLink` | Every file / file:line reference (opens the source panel) |
-| `Empty` | Empty states, saying what would make content appear |
-| `Pending` | Data not computed yet |
-| `.btn`, `.btn-primary`, `.btn-danger`, `.btn-icon` | Buttons. One primary action per area at most |
-| `.is-selected` | **The** selected state for nav items, list rows, filter chips (with `.btn` it also tints the border) |
-| `.input`, `table.tbl`, `.card`, `.link`, `.muted`, `.faint`, `.mono` | Form fields, data tables, surfaces, text styles |
-| `th.num` / `td.num` (in `table.tbl`) | Numeric columns: right-aligned header and cells, tabular figures. Use for counts, scores, percentages |
+| `Page` / `PageHeader` | Every top-level view: eyebrow (nav group, from `PageGroup` context), title, intro, actions. Full-bleed views (System map, Flows) render `PageHeader` themselves |
+| `Card` | A titled block (`right` slot for meta/actions, `flush` for edge-to-edge tables/graphs) |
+| `Stat` | KPI tile: label, big value, sub-line, optional `spark` values |
+| `ConfBadge` | Confidence of an inferred fact. Always next to inferred items (mono; solid/dashed/dotted border) |
+| `Badge tone=` | Categorical labels. `bad` high severity, `warn` medium/heuristic risk, `ok` good, `accent` key (PK), `plain` neutral |
+| `RoleBadge` | A file's role, tinted with its role colour |
+| `FileLink` / `PathText` | Every file / file:line reference (opens the source panel); directory part dimmed |
+| `Chip` | Filter toggles (fill dark when on, `aria-pressed`) |
+| `RiskBar` | A 0..1 share or score with a coloured bar |
+| `Empty`, `Pending`, `Skeleton` | Empty states (say what would make content appear) / not computed yet / loading placeholders |
+| `.btn`, `.btn-primary` (dark), `.btn-accent` (terracotta CTA), `.btn-danger`, `.btn-icon`, `.btn-round` | Buttons. At most one primary or accent action per area |
+| `.is-selected` | Selected state: soft accent for list rows; raised white for `.nav-item`; dark fill for `.chip` |
+| `.input`, `table.tbl`, `.card`, `.link`, `.file`, `.muted`, `.faint`, `.label`, `.mono`, `.bar`, `.skel`, `.canvas`, `.overlay` | Form fields, data tables, surfaces, text styles, bars, skeletons, graph canvas + floating panels |
+| `th.num` / `td.num` (in `table.tbl`) | Numeric columns: right-aligned header and cells, tabular figures |
 
 If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document it here.
 
 ### Layout
-- App shell: 48 px header → side nav (192 px, grouped: Understand / Assess / Explore / Share) → content → optional source panel.
+- App shell: 56 px translucent top bar → side nav (236 px, grouped: Understand / Assess / Explore / Share; an icon
+  rail below 900 px) → content → optional source panel (an overlay below 1100 px).
 - New tabs: add to `TABS` in `ProjectView.tsx` with a `group`, `badgeTitle` if it has a count, and `projectOnly` if it needs >1 file.
-- Content pages: `max-w-6xl`, 24 px padding, 16 px vertical rhythm (`space-y-4`). Two-column grids collapse at `lg`.
+- Content pages: max 1180 px, 40 px side padding (20 px on small screens), 20 px vertical rhythm (`space-y-5`). Two-column grids collapse at `lg`.
+- Keyboard: `/` focuses the element marked `data-search-focus` in the current view (or opens Search); list + detail
+  views move the selection with ↑/↓ when the list has focus.
 - List + detail views (Flows, Data): left list with sticky filter input, detail on the right.
 
 ### States (every view must handle these)
@@ -120,7 +134,7 @@ If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document 
 ### Graphs and diagrams
 - Interactive graphs: `Graph.tsx` (Cytoscape). Diagrams that also go into exports: `Mermaid.tsx`.
 - Edge style encodes confidence: solid = resolved, dashed = heuristic, dotted = unresolved. Keep that consistent everywhere.
-- Read colours from the CSS tokens (see TODO backlog: `Graph.tsx` still has hard-coded hex values).
+- Colours come from the CSS tokens at runtime (`cssVar()` in `Graph.tsx`); the graph restyles on theme change.
 
 ### Copy
 - Plain, specific, sentence case. Say what a number means ("2 high/medium findings", not "2").

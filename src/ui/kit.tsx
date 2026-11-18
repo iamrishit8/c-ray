@@ -1,25 +1,71 @@
-// Small shared UI building blocks. Plain and readable on purpose.
-import type { ReactNode } from 'react';
-import type { Confidence } from '../core/types';
+// Shared UI building blocks (D27 look). Plain and readable on purpose; colours only via CSS tokens.
+import { createContext, useContext, type ReactNode } from 'react';
+import type { Confidence, Role } from '../core/types';
 import { useStore } from '../store/store';
 
+const CONF_TITLE: Record<Confidence, string> = {
+  resolved: 'Resolved: derived exactly (compiler API, manifest or explicit declaration).',
+  heuristic: 'Heuristic: inferred from syntax, names or conventions. Likely, not certain.',
+  unresolved: 'Unresolved: could not be determined statically.',
+};
+const CONF_STYLE: Record<Confidence, string> = {
+  resolved: 'text-[var(--ok)] border-[color-mix(in_srgb,var(--ok)_45%,transparent)]',
+  heuristic: 'text-[var(--warn)] border-[color-mix(in_srgb,var(--warn)_55%,transparent)] border-dashed',
+  unresolved: 'text-[var(--fg3)] border-[var(--line2)] border-dotted',
+};
+
+/** Confidence of an inferred fact. Colour, border style and text all differ, so colour is never the only signal. */
 export function ConfBadge({ c }: { c: Confidence }) {
-  const style: Record<Confidence, string> = {
-    resolved: 'border-[var(--ok)] text-[var(--ok)]',
-    heuristic: 'border-[var(--warn)] text-[var(--warn)] border-dashed',
-    unresolved: 'border-[var(--fg3)] text-[var(--fg3)] border-dotted',
-  };
-  const title: Record<Confidence, string> = {
-    resolved: 'Resolved: derived exactly (compiler API, manifest or explicit declaration).',
-    heuristic: 'Heuristic: inferred from syntax, names or conventions. Likely, not certain.',
-    unresolved: 'Unresolved: could not be determined statically.',
-  };
-  return <span title={title[c]} data-conf={c} className={`inline-block rounded border px-1.5 text-[11px] leading-[18px] ${style[c]}`}>{c}</span>;
+  return <span title={CONF_TITLE[c]} data-conf={c} className={`inline-block whitespace-nowrap rounded-md border px-2 font-mono text-[11px] leading-[18px] ${CONF_STYLE[c]}`}>{c}</span>;
 }
 
-export function Badge({ children, tone = 'plain', title }: { children: ReactNode; tone?: 'plain' | 'accent' | 'ok' | 'warn' | 'bad'; title?: string }) {
-  const tones = { plain: 'bg-[var(--bg3)] text-[var(--fg2)]', accent: 'bg-[var(--accent-soft)] text-[var(--accent)]', ok: 'text-[var(--ok)] bg-[var(--ok-soft)]', warn: 'text-[var(--warn)] bg-[var(--warn-soft)]', bad: 'text-[var(--bad)] bg-[var(--bad-soft)]' };
-  return <span title={title} className={`inline-block rounded px-1.5 text-[11px] font-medium leading-[18px] whitespace-nowrap ${tones[tone]}`}>{children}</span>;
+export type Tone = 'plain' | 'accent' | 'ok' | 'warn' | 'bad';
+const TONES: Record<Tone, string> = {
+  plain: 'bg-[var(--bg3)] text-[var(--fg2)]',
+  accent: 'bg-[var(--accent-soft)] text-[var(--accent-text)]',
+  ok: 'text-[var(--ok)] bg-[var(--ok-soft)]',
+  warn: 'text-[var(--warn)] bg-[var(--warn-soft)]',
+  bad: 'text-[var(--bad)] bg-[var(--bad-soft)]',
+};
+
+export function Badge({ children, tone = 'plain', title }: { children: ReactNode; tone?: Tone; title?: string }) {
+  return <span title={title} className={`inline-block whitespace-nowrap rounded-full px-2 text-[11.5px] font-medium leading-[19px] ${TONES[tone]}`}>{children}</span>;
+}
+
+/** The six role colour families (route, service, model, test, integration, config) shared by badges, graph and charts. */
+export type RoleFamily = 'route' | 'service' | 'model' | 'test' | 'int' | 'config';
+export const ROLE_FAMILY: Record<Role, RoleFamily> = {
+  entry: 'route', route: 'route', controller: 'route', middleware: 'route', page: 'route', view: 'route', component: 'route', cli: 'route',
+  service: 'service', util: 'service', job: 'service',
+  model: 'model', repository: 'model', schema: 'model', migration: 'model',
+  test: 'test',
+  client: 'int', messaging: 'int',
+  config: 'config', build: 'config', doc: 'config', unknown: 'config',
+};
+export const FAMILY_LABEL: Record<RoleFamily, string> = { route: 'Route / entry / UI', service: 'Service / logic', model: 'Model / data', test: 'Test', int: 'Integration', config: 'Config / other' };
+export const roleVar = (role: Role) => `var(--r-${ROLE_FAMILY[role]})`;
+
+/** Role pill: coloured dot + label tinted with the role colour. */
+export function RoleBadge({ role, children, title }: { role: Role; children: ReactNode; title?: string }) {
+  const c = roleVar(role);
+  return (
+    <span title={title} data-role={role} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full py-px pl-2 pr-2.5 text-[11.5px] font-medium leading-[18px]" style={{ color: c, background: `color-mix(in srgb, ${c} var(--soft), transparent)` }}>
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+      {children}
+    </span>
+  );
+}
+
+/** A path with its directory dimmed: `src/services/` + `orders.ts` + `:88`. */
+export function PathText({ path, line }: { path: string; line?: number }) {
+  const cut = path.lastIndexOf('/') + 1;
+  return (
+    <>
+      {cut > 0 && <span className="dir">{path.slice(0, cut)}</span>}
+      {path.slice(cut)}
+      {line ? <span className="dir">:{line}</span> : null}
+    </>
+  );
 }
 
 /** Clickable file:line reference that opens the source preview. */
@@ -27,57 +73,117 @@ export function FileLink({ file, line, endLine, label, className = '' }: { file:
   const openSource = useStore((s) => s.openSource);
   if (!file) return <span className="faint">{label ?? '—'}</span>;
   return (
-    <button className={`link mono break-all ${className}`} data-ref={`${file}:${line ?? 1}`} onClick={() => openSource(file, line ?? 1, endLine)} title={`Open ${file}${line ? `:${line}` : ''}`}>
-      {label ?? (line ? `${file}:${line}` : file)}
+    <button className={`file mono break-all text-left ${className}`} data-ref={`${file}:${line ?? 1}`} onClick={() => openSource(file, line ?? 1, endLine)} title={`Open ${file}${line ? `:${line}` : ''}`}>
+      {label ?? <PathText path={file} line={line} />}
     </button>
   );
 }
 
-export function Card({ title, children, right, className = '' }: { title?: ReactNode; children: ReactNode; right?: ReactNode; className?: string }) {
+export function Card({ title, children, right, className = '', flush = false, testId }: { title?: ReactNode; children: ReactNode; right?: ReactNode; className?: string; flush?: boolean; testId?: string }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${className}`} data-testid={testId}>
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-2.5">
-          <h2 className="text-[13px] font-semibold">{title}</h2>
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-[var(--line)] px-5 py-3.5">
+          <h2 className="text-[15.5px] font-medium tracking-[-0.02em]">{title}</h2>
           {right}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className={flush ? '' : 'p-5'}>{children}</div>
     </section>
   );
 }
 
-export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+/** Tiny line chart for a Stat tile. Values are scaled to the box; nothing is drawn for fewer than 2 points. */
+export function Sparkline({ values, color = 'var(--fg3)', width = 64, height = 24 }: { values: number[]; color?: string; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const span = Math.max(...values) - min || 1;
+  const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * width).toFixed(1)} ${(height - 2 - ((v - min) / span) * (height - 4)).toFixed(1)}`).join(' ');
+  return <svg aria-hidden="true" width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0"><path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" /></svg>;
+}
+
+export function Stat({ label, value, sub, spark, sparkColor }: { label: string; value: ReactNode; sub?: ReactNode; spark?: number[]; sparkColor?: string }) {
   return (
-    <div className="card px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-wide faint">{label}</div>
-      <div className="tnum mt-0.5 text-2xl font-semibold tracking-tight">{value}</div>
-      {sub && <div className="text-xs muted">{sub}</div>}
+    <div className="card relative overflow-hidden px-[18px] pb-3.5 pt-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="label">{label}</div>
+        {spark && <Sparkline values={spark} color={sparkColor} />}
+      </div>
+      <div className="tnum mt-1.5 text-[28px] font-medium leading-[1.15] tracking-[-0.04em]">{value}</div>
+      {sub && <div className="mt-0.5 text-[12.5px] muted">{sub}</div>}
     </div>
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-[var(--radius)] border border-dashed border-[var(--line)] bg-[var(--bg2)] p-8 text-center muted">{children}</div>;
+export function Empty({ children, title }: { children: ReactNode; title?: ReactNode }) {
+  return (
+    <div className="rounded-[var(--r-lg)] border border-dashed border-[var(--line2)] bg-[var(--bg2)] px-8 py-10 text-center muted">
+      {title && <p className="mb-1 font-medium text-[var(--fg)]">{title}</p>}
+      {children}
+    </div>
+  );
+}
+
+/** The nav group of the current view ("Understand", "Assess", …), shown as the page's eyebrow label. */
+export const PageGroup = createContext<string | null>(null);
+
+/** Page header (eyebrow, large title, intro, actions) without the page body; full-bleed views use it directly. */
+export function PageHeader({ title, intro, actions, testId }: { title: ReactNode; intro?: ReactNode; actions?: ReactNode; testId?: string }) {
+  const group = useContext(PageGroup);
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4" data-testid={testId}>
+      <div className="min-w-0">
+        {group && <div className="label">{group}</div>}
+        <h1 className="mt-1.5 text-[30px] font-medium leading-[1.1] tracking-[-0.04em]">{title}</h1>
+        {intro && <p className="mt-2.5 max-w-[680px] muted">{intro}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
 }
 
 export function Page({ title, intro, children, actions }: { title: string; intro?: ReactNode; children: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">{title}</h1>
-          {intro && <p className="mt-1 max-w-3xl muted">{intro}</p>}
-        </div>
-        {actions}
-      </div>
-      <div className="space-y-4">{children}</div>
+    <div className="mx-auto max-w-[1180px] px-5 pb-14 pt-8 md:px-10 md:pt-9">
+      <PageHeader title={title} intro={intro} actions={actions} />
+      <div className="mt-7 space-y-5">{children}</div>
+    </div>
+  );
+}
+
+/** Grey placeholder blocks shaped like the content that is about to appear. */
+export function Skeleton({ rows = 3, className = '' }: { rows?: number; className?: string }) {
+  return (
+    <div className={`space-y-2.5 ${className}`} aria-hidden="true">
+      {Array.from({ length: rows }, (_, i) => <div key={i} className="skel h-3.5" style={{ width: `${92 - ((i * 23) % 40)}%` }} />)}
     </div>
   );
 }
 
 export function Pending({ what }: { what: string }) {
-  return <Empty>{what} is still being computed — results stream in as each analysis layer completes.</Empty>;
+  return (
+    <div className="card p-5" role="status" data-testid="pending">
+      <p className="mb-4 text-[13px] muted">{what} is still being computed. Results stream in as each analysis layer completes.</p>
+      <Skeleton rows={4} />
+    </div>
+  );
+}
+
+/** Filter chip: a toggle button that fills dark when on. */
+export function Chip({ on, onClick, children, testId, title }: { on: boolean; onClick: () => void; children: ReactNode; testId?: string; title?: string }) {
+  return <button type="button" data-testid={testId} title={title} aria-pressed={on} className={`chip ${on ? 'is-selected' : ''}`} onClick={onClick}>{children}</button>;
+}
+
+/** Horizontal bar for a 0..1 share; tone follows the value unless given. */
+export function RiskBar({ value, label, tone, width = 96 }: { value: number; label?: ReactNode; tone?: 'ok' | 'warn' | 'bad' | 'accent'; width?: number }) {
+  const t = tone ?? (value >= 0.66 ? 'bad' : value >= 0.33 ? 'warn' : 'ok');
+  const c = `var(--${t})`;
+  return (
+    <span className="inline-flex items-center gap-2.5">
+      <span className="bar" style={{ width }}><span style={{ width: `${Math.max(2, Math.min(100, value * 100))}%`, background: c }} /></span>
+      {label !== undefined && <span className="tnum font-mono text-[12px]" style={{ color: c }}>{label}</span>}
+    </span>
+  );
 }
 
 /** Shows the first `limit` rows with a "show all" toggle; keeps huge lists cheap to render. */

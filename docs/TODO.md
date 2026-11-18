@@ -5,8 +5,8 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**M9: Git layer is done, waiting for owner review** (2026-11-18): History view, time-travel, History export
-section, planted-truth unit tests, e2e, real-repo measurement. Next, after approval: **U2** (visual redesign + rename to imex), then M10.
+**U2: Visual redesign + rename to imex, in progress** (started 2026-11-19, owner approved going straight through all
+slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first (see M9, Known issues).
 
 ---
 
@@ -24,11 +24,11 @@ section, planted-truth unit tests, e2e, real-repo measurement. Next, after appro
 | M8 | Export: Markdown, Notion ZIP, print/PDF with SVG diagrams, JSON | ✅ |
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
-| M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 (awaiting owner review) |
+| M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
-| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ⬜ direction approved 2026-11-18, starts after M9 |
+| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | 🚧 started 2026-11-19 |
 
 ---
 
@@ -115,17 +115,18 @@ Reference mockup: [docs/design/u2-mockup.html](design/u2-mockup.html) (open it i
 Build in slices, each with a phase review.
 
 **Slice 1: Tokens, type, icons**
-- [ ] Replace the tokens in `src/index.css` with the mockup palette (light: cream `#faf9f5` page, white cards,
-      warm greys, `#141413` text, `#d97757` accent; dark: warm `#1a1918` page). Keep the token names where roles match
-- [ ] Add role tokens `--r-route/service/model/test/int/config` + a radius scale (8 / 12 / 16) + label style (mono uppercase)
-- [ ] Bundle Geist Mono via `@fontsource` (no Google Fonts request; privacy rule). It is the only typeface
-- [ ] Icon set (`lucide-react`, bundled) replacing the one-off inline SVGs
-- [ ] CONVENTIONS § UI: new tokens, type scale, role colours, label style
+- [x] Replace the tokens in `src/index.css` with the mockup palette. Surfaces now mean: `--bg` page, `--bg2` raised,
+      `--bg3` hover/chips, `--bg4` tracks; new `--line2`, `--accent-hover`, `--accent-text` (accent as text, AA)
+- [x] Role tokens `--r-route/service/model/test/int/config`, radius scale `--r-sm/md/lg` (8/12/16), `.label`
+- [x] Geist Mono bundled via `@fontsource/geist-mono` (latin + latin-ext, 400/500/600); the only typeface
+- [x] `lucide-react` icons (nav, theme toggle, privacy pill, close buttons)
+- [x] CONVENTIONS § UI: tokens, type scale, role colours, label style, components
 
 **Slice 2: App shell + kit**
-- [ ] Top bar (logo mark, privacy pill, round theme button), sidebar (mono group labels, raised selected item, counts)
-- [ ] `kit.tsx`: `Page` (eyebrow label, large title), `Card` (16 px radius, header row), `Stat` (big number + sparkline),
-      `Badge`/role pill, `ConfBadge` (mono, solid/dashed/dotted border), filter chips, buttons (dark primary, accent CTA)
+- [x] Top bar (logo mark, privacy pill, round theme button), sidebar (icons, mono group labels, raised selected item, counts)
+- [x] `kit.tsx`: `Page`/`PageHeader` (eyebrow from `PageGroup`, large title), `Card` (16 px radius, header row, `flush`),
+      `Stat` (big number + `Sparkline`), `Badge`/`RoleBadge`, `ConfBadge` (mono), `Chip`, `RiskBar`, `Skeleton`,
+      buttons (dark primary, accent CTA, round)
 - [ ] Tables: mono uppercase headers, file paths with dimmed directory, risk bars
 - [ ] Skeleton loaders instead of "Loading…"; empty states with a short explanation
 

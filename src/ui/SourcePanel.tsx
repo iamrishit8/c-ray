@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { useStore } from '../store/store';
+import { PathText, Skeleton } from './kit';
 import { worker } from '../workers/client';
 
 const WINDOW = 400;
@@ -36,14 +38,15 @@ export function SourcePanel() {
   const [from, to] = range;
   const hlEnd = source.endLine ?? source.line;
   return (
-    <aside className="no-print flex w-[46%] min-w-[340px] max-w-[760px] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg)]" data-testid="source-panel">
-      <header className="flex items-center gap-2 border-b border-[var(--line)] bg-[var(--bg2)] px-3 py-1.5">
-        <div className="mono min-w-0 flex-1 truncate text-xs" title={source.path}>{source.path}<span className="faint">:{source.line}</span></div>
-        {info && <span className="text-xs faint">{info.lang} · {info.loc} lines</span>}
-        <button className="btn" onClick={closeSource} aria-label="Close source preview">Close</button>
+    // On narrow screens the panel floats over the view instead of squeezing it.
+    <aside className="no-print flex w-[46%] min-w-[340px] max-w-[760px] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg2)] max-[1100px]:absolute max-[1100px]:inset-y-0 max-[1100px]:right-0 max-[1100px]:z-20 max-[1100px]:w-[min(560px,94%)] max-[1100px]:min-w-0 max-[1100px]:shadow-[var(--shadow-md)]" data-testid="source-panel" aria-label="Source preview">
+      <header className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2">
+        <div className="mono min-w-0 flex-1 truncate text-[12px]" title={source.path}><PathText path={source.path} line={source.line} /></div>
+        {info && <span className="label whitespace-nowrap">{info.lang} · {info.loc} lines</span>}
+        <button className="btn btn-round !h-8 !w-8" onClick={closeSource} aria-label="Close source preview" title="Close source preview"><X aria-hidden="true" size={16} /></button>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">
-        {text === undefined && <div className="p-4 muted">Loading…</div>}
+        {text === undefined && <div className="p-4" role="status" aria-label="Loading source"><Skeleton rows={8} /></div>}
         {text === null && (
           <div className="p-4 muted" data-testid="source-missing">
             Source text for this file is not available. It was not stored (browser storage was full, or the file was skipped). Re-drop the project to see sources again.
@@ -58,7 +61,7 @@ export function SourcePanel() {
                 const hl = n >= source.line && n <= hlEnd;
                 return (
                   <div key={n} ref={n === source.line ? target : undefined} className="flex" style={hl ? { background: 'var(--hl)' } : undefined} data-line={n}>
-                    <span className="w-12 shrink-0 select-none pr-3 text-right faint">{n}</span>
+                    <span className="tnum w-12 shrink-0 select-none pr-3 text-right faint">{n}</span>
                     <span className="whitespace-pre">{l || ' '}</span>
                   </div>
                 );
