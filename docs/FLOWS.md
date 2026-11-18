@@ -73,8 +73,9 @@ sequenceDiagram
   I->>G: gitFiles (.git/* bytes, ≤250 MB, repo rooted at the project root)
   G->>E: analyzeGit(gitFiles, analysis)
   E->>E: load MemFS · resolve HEAD/branch · log ≤ maxGitCommits (+ shared pack cache)
-  E->>E: per commit: tree diff vs first parent → churn, authors, co-change pairs, message type
-  E->>E: churn list · bus factor · co-change + linked (import path ≤4 hops, D29) · tags peeled
+  E->>E: per commit (newest first): tree diff vs first parent → renames (D32) → old paths aliased to current names
+  E->>E: churn, authors, co-change pairs, message type (all under current names)
+  E->>E: churn list · bus factor · co-change + linked (import path ≤4 hops; any depth for tests, D29/D31) · tags peeled
   loop ≤10 snapshots (HEAD, oldest, recent tags, evenly spaced; D30)
     E->>P: code blobs at that commit (keepPaths, parse results shared by blob hash)
     P-->>E: light Analysis → modules / edges / hotspots at the HEAD module depth

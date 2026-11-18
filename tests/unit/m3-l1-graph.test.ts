@@ -123,4 +123,19 @@ describe('JS module resolution edge cases', () => {
     const fromTest = a.imports.filter((e) => a.files[e.from].path === 'test/app.js');
     expect(fromTest.map((e) => (e.to >= 0 ? a.files[e.to].path : 'unresolved'))).toEqual(['index.js', 'index.js']);
   });
+
+  it("a directory with a package.json resolves through its main, like Node (require('..') → fastify.js)", async () => {
+    const { analysis: a } = await analyzeMem({
+      'package.json': JSON.stringify({ name: 'fastify', main: 'fastify.js' }),
+      'fastify.js': "module.exports = require('./lib/route');\n",
+      'index.js': '// not the entry: main wins\n',
+      'fastify.d.ts': '// declarations: must not shadow fastify.js\n',
+      'lib/route.js': 'module.exports = {};\n',
+      'test/a.test.js': "const f = require('..');\nconst g = require('fastify');\n",
+      'test/deep/b.test.js': "const f = require('../..');\n",
+    });
+    const to = (file: string) => a.imports.filter((e) => a.files[e.from].path === file).map((e) => (e.to >= 0 ? a.files[e.to].path : 'unresolved'));
+    expect(to('test/a.test.js')).toEqual(['fastify.js', 'fastify.js']);
+    expect(to('test/deep/b.test.js')).toEqual(['fastify.js']);
+  });
 });

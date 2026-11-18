@@ -1,0 +1,30 @@
+{
+  "_comment": "Planted truth for the git-moves history (tests/git-fixture.ts, MOVES). Written by hand from that table. It covers two M9 follow-ups: renamed files keep their history, and a test that imports its own package by name (resolved through package.json `exports`) is linked to the code it reaches 6 hops away, so it is not hidden coupling.",
+  "totalCommits": 11,
+  "authors": [
+    { "name": "Alice", "commits": 4, "files": 11 },
+    { "name": "Bob", "commits": 4, "files": 3 },
+    { "name": "Carol", "commits": 3, "files": 1 }
+  ],
+  "churn": {
+    "lib/helpers.js": { "commits": 5, "authors": 3, "topAuthor": "Carol", "topAuthorShare": 0.6 },
+    "lib/format/index.js": { "commits": 2, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "lib/e.js": { "commits": 3, "authors": 2, "topAuthor": "Bob", "topAuthorShare": 0.67 },
+    "test/e.test.js": { "commits": 3, "authors": 1, "topAuthor": "Bob", "topAuthorShare": 1 },
+    "lib/util.js": { "commits": 3, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "lib/legacy.js": { "commits": 3, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "lib/main.js": { "commits": 1, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 }
+  },
+  "notInChurn": ["lib/old-name.js", "lib/fmt.js"],
+  "renames": [
+    { "from": "lib/fmt.js", "to": "lib/format/index.js", "current": "lib/format/index.js", "similarity": 0.83, "conf": "heuristic", "commitMessage": "refactor: move fmt.js to format/index.js" },
+    { "from": "lib/old-name.js", "to": "lib/helpers.js", "current": "lib/helpers.js", "similarity": 1, "conf": "resolved", "commitMessage": "refactor: rename old-name.js to helpers.js" }
+  ],
+  "busFactor": 1,
+  "busFactorRiskyFiles": ["lib/legacy.js", "lib/util.js", "test/e.test.js"],
+  "selfImport": { "from": "test/e.test.js", "spec": "acme-lib", "to": "lib/main.js" },
+  "cochange": [
+    { "a": "lib/legacy.js", "b": "lib/util.js", "count": 3, "score": 1, "linked": false },
+    { "a": "lib/e.js", "b": "test/e.test.js", "count": 2, "score": 0.67, "linked": true }
+  ]
+}

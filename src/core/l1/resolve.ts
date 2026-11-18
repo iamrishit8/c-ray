@@ -3,6 +3,7 @@
 // cannot be resolved is recorded as "unresolved" rather than guessed.
 import type { FileGraph, GImport, GRef } from '../l2/tsgraph';
 import type { StageContext } from '../pipeline';
+import { workspacePackages } from '../packages';
 import { ModuleResolver, packageOf } from '../resolve-js';
 import type { FileParse, RawCall, RawDef } from '../types';
 import { basename, dirname, extname, joinPath, stripExt } from '../util';
@@ -109,7 +110,8 @@ export function buildL1Graphs(ctx: StageContext): void {
   const jsResolver = new ModuleResolver(
     allPaths,
     ctx.units.filter((u) => /^(tsconfig.*|jsconfig)\.json$/.test(basename(u.path))).map((u) => ({ path: u.path, text: u.text })),
-    a.l0.manifests.filter((m) => m.type === 'package.json' && m.name).map((m) => ({ name: m.name!, dir: dirname(m.file) })),
+    // with `main`/`exports`, so a package that imports itself by name (tests: require('fastify')) resolves
+    workspacePackages(ctx),
   );
   const goModules = a.l0.manifests.filter((m) => m.type === 'go.mod' && m.name).map((m) => ({ name: m.name!, dir: dirname(m.file) }));
 

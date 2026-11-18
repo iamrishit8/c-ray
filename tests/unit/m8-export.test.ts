@@ -1,6 +1,8 @@
 import { strFromU8, unzipSync, zipSync, strToU8 } from 'fflate';
+import { Marked } from 'marked';
 import { describe, expect, it } from 'vitest';
 import { buildSections, fullMarkdown, md, notionPages, SECTIONS } from '../../src/core/report';
+import { isSafeHref, renderMarkdown } from '../../src/ui/markdown';
 import { analyzeFixture, analyzeMem, FIXTURE_NAMES } from '../helpers';
 
 const MERMAID_TYPES = /^(flowchart (LR|TD)|erDiagram|sequenceDiagram|graph (LR|TD))$/;
@@ -112,5 +114,44 @@ describe('export', () => {
       'src/b.js': "require('./<script>alert(1)<script>');\n",
     });
     checkMarkdown(fullMarkdown(evil));
+  });
+});
+
+// Known issue closed in U2: `marked` does not sanitize link URLs. The report renderer drops unsafe schemes.
+describe('report Markdown rendering is safe for untrusted text', () => {
+  const hrefs = (html: string) => [...html.matchAll(/(?:href|src)="([^"]*)"/g)].map((m) => m[1]);
+
+  it('isSafeHref allows relative, anchor and http(s)/mailto only', () => {
+    for (const ok of ['#history', 'pages/01.md', '../x.md', 'https://example.com', 'HTTP://x', 'mailto:a@b.c', '/abs']) expect(isSafeHref(ok), ok).toBe(true);
+    for (const bad of ['javascript:alert(1)', 'JavaScript:alert(1)', ' javascript:x', 'java\tscript:x', 'java\nscript:x', 'javascript&colon;x', '&#106;avascript:x', '&#x6A;avascript:x', 'data:text/html,<b>', 'vbscript:x']) expect(isSafeHref(bad), bad).toBe(false);
+  });
+
+  it('renders unsafe links and images as plain text, keeps safe ones', () => {
+    const html = renderMarkdown('[a](javascript:alert(1)) [b](JAVASCRIPT:x) ![c](javascript:y) [d](https://ok.example) <javascript:z> [e](#sec) <b onclick=x>raw</b>');
+    expect(hrefs(html)).toEqual(['https://ok.example', '#sec']);
+    expect(html).toContain('a');
+    expect(html).not.toMatch(/<b onclick/);
+    expect(html).not.toMatch(/href="\s*javascript/i);
+  });
+
+  it('a project whose README, file names and symbols carry javascript: links cannot inject one into the report', async () => {
+    const evil = '[click](javascript:alert(document.domain))';
+    const { analysis: a } = await analyzeMem({
+      'README.md': `# Demo ${evil}\n\n${evil} <img src=x onerror=alert(1)>\n`,
+      'package.json': JSON.stringify({ name: evil, description: evil }),
+      'src/[x](javascript:alert(1)).ts': `export function x() { return 1; }\n`,
+      'src/app.ts': `// TODO ${evil}\nexport const a = '${evil}';\nexport function run() { return '${evil}'; }\n`,
+    }, evil);
+    const text = fullMarkdown(a);
+    expect(text).toContain('## Orientation');
+    // layer 1: the report escapes analysed text (the project name used to reach the summary unescaped)
+    const plain = new Marked().parse(text, { async: false, gfm: true }) as string;
+    expect(hrefs(plain).filter((h) => !isSafeHref(h))).toEqual([]);
+    for (const p of notionPages(a)) expect(hrefs(new Marked().parse(p.content, { async: false }) as string).filter((h) => !isSafeHref(h)), p.path).toEqual([]);
+    // layer 2: the preview renderer drops unsafe schemes whatever the Markdown says
+    const html = renderMarkdown(text);
+    expect(hrefs(html).filter((h) => !isSafeHref(h))).toEqual([]);
+    expect(html).not.toMatch(/javascript:alert[^<]*<\/a>/);
+    expect(html).not.toMatch(/<img/);
   });
 });

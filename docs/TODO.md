@@ -58,12 +58,14 @@ Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, 
   (memory source `keepPaths`); `require('..')` to the project root index was unresolved (`resolve-js.ts`);
   isomorphic-git calls now share a pack cache (git stage 8× faster on express)
 
-**Follow-ups (not blocking)**
-- [ ] Peak memory of the git stage is high (≈0.5–0.8 GB RSS for a 12 MB `.git`, see QUALITY.md). Profile in M12
-      (suspects: inflated pack objects held by the isomorphic-git cache, per-snapshot pipelines)
-- [ ] Co-change between a test and the code it exercises still shows as hidden coupling when the import path is
-      longer than 4 hops or goes through a package name (`require('fastify')`)
-- [ ] Rename detection: a renamed file starts with fresh churn (isomorphic-git `walk` has no rename tracking)
+**Follow-ups** (fixed 2026-11-19, at the start of U2)
+- [x] Peak memory: profiled. The pack cache retains nothing; the git stage retains ≈50 MB heap + ≈50–65 MB
+      buffers on fastify and nothing afterwards. The old 0.5–0.8 GB was the process baseline (QUALITY.md, D32)
+- [x] Test ↔ code co-change shown as hidden coupling: `require('..')` and self-imports now resolve through
+      `package.json` `main`/`exports` (also fixed `main: x.js` resolving to `x.d.ts`); tests link at any depth (D31).
+      Fastify: 25 → 7. Planted truth: `tests/fixtures/git-moves`
+- [x] Rename detection: exact + similarity renames (D32), history merged under the current name, "Renamed and
+      moved files" card in History and table in the export
 
 ## M10: Decisions view + onboarding guide + generated docs
 
@@ -166,5 +168,7 @@ Build in slices, each with a phase review.
 
 Add bugs here with a one-line repro.
 
-- [ ] **Check:** `marked` does not sanitize link URLs. Confirm that a `javascript:` URL can't reach report Markdown
-      from analysed code (e.g. via a README link or symbol name). If it can, add a link renderer that drops unsafe schemes.
+- [x] **Check:** `marked` does not sanitize link URLs (2026-11-19). **It could:** the project name (folder/ZIP
+      name or `package.json` name) reached the Orientation summary unescaped, so `[x](javascript:…)` became a live link
+      in the preview. Fixed twice: the report escapes the summary, and `src/ui/markdown.ts` drops unsafe link/image
+      schemes (entity/whitespace/case obfuscation included). Tests in `m8-export.test.ts`

@@ -10,8 +10,18 @@ import { MemFS } from './memfs';
 
 type Git = typeof import('isomorphic-git');
 /** Shared arguments for every isomorphic-git call. `cache` keeps parsed packfile indexes
- *  between calls; without it each call re-reads them (several times slower on real repos). */
+ *  between calls; without it each call re-reads them (several times slower on real repos).
+ *  It holds the pack and its offset index, not every object read (measured, see QUALITY.md). */
 interface Repo { fs: MemFS; dir: string; cache: object }
+
+/** One path changed by a commit (first-parent diff). */
+interface Change { path: string; kind: 'A' | 'D' | 'M'; oid?: string }
+/** A file moved from `from` to `to` in one commit. Exact = same blob; otherwise line similarity. */
+interface Rename { from: string; to: string; similarity: number }
+/** Bounds for similarity-based rename detection (exact-blob renames are always found). */
+const RENAME_MAX_PAIRS = 400;
+const RENAME_MAX_BYTES = 512 * 1024;
+const RENAME_MIN_SIMILARITY = 0.5;
 
 export interface GitDeps {
   /** Runs a light (L0 + L1) analysis of a historical file set. */
@@ -39,35 +49,115 @@ export function classifyMessage(msg: string): string {
   return 'other';
 }
 
-/** Is there an import path between two files (either direction, at most `hops` steps) at HEAD?
- *  Co-change without one is hidden coupling. Bounded BFS from each queried file. */
+/** Is there an import path between two files (either direction) at HEAD? Co-change without one is
+ *  hidden coupling. Code↔code pairs count a path of at most `hops` steps; a test counts at any depth,
+ *  because a test exercises everything it reaches (D31). BFS per queried file, cached. */
 function importLinks(a: Analysis, hops = 4): (x: string, y: string) => boolean {
   const idx = new Map(a.files.map((f, i) => [f.path, i]));
   const out = new Map<number, number[]>();
   for (const e of a.imports) if (e.to >= 0 && e.to !== e.from) out.set(e.from, [...(out.get(e.from) ?? []), e.to]);
-  const reach = new Map<number, Set<number>>();
-  const reachable = (from: number) => {
-    let seen = reach.get(from);
+  const reach = new Map<string, Set<number>>();
+  const reachable = (from: number, limit: number) => {
+    const key = `${from}:${limit}`;
+    let seen = reach.get(key);
     if (seen) return seen;
     seen = new Set([from]);
     let frontier = [from];
-    for (let d = 0; d < hops && frontier.length; d++) {
+    for (let d = 0; d < limit && frontier.length; d++) {
       const next: number[] = [];
       for (const n of frontier) for (const m of out.get(n) ?? []) if (!seen.has(m)) (seen.add(m), next.push(m));
       frontier = next;
     }
-    reach.set(from, seen);
+    reach.set(key, seen);
     return seen;
   };
   return (x, y) => {
     const i = idx.get(x);
     const j = idx.get(y);
-    return i !== undefined && j !== undefined && (reachable(i).has(j) || reachable(j).has(i));
+    if (i === undefined || j === undefined) return false;
+    const limit = a.files[i].test || a.files[j].test ? a.files.length : hops;
+    return reachable(i, limit).has(j) || reachable(j, limit).has(i);
   };
 }
 
-async function changedFiles(git: Git, repo: Repo, oid: string, parentOid: string | undefined): Promise<string[]> {
-  const out: string[] = [];
+/** Line-multiset similarity (0..1), like git's rename score: shared lines over average size. */
+export function lineSimilarity(x: string, y: string): number {
+  const count = (t: string) => {
+    const m = new Map<string, number>();
+    for (const l of t.split('\n')) {
+      const k = l.trim();
+      if (k) m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  };
+  const a = count(x);
+  const b = count(y);
+  let na = 0;
+  let nb = 0;
+  let common = 0;
+  for (const [k, n] of a) {
+    na += n;
+    common += Math.min(n, b.get(k) ?? 0);
+  }
+  for (const n of b.values()) nb += n;
+  return na + nb === 0 ? 1 : (2 * common) / (na + nb);
+}
+
+const extOf = (p: string) => (/\.[^./]+$/.exec(p)?.[0] ?? '').toLowerCase();
+
+/** Pair added and deleted paths of one commit into renames: identical blobs first, then the most
+ *  similar same-extension file (≥ 50% of lines shared), within a bounded number of comparisons. */
+async function detectRenames(git: Git, repo: Repo, changes: Change[]): Promise<Rename[]> {
+  const adds = changes.filter((c) => c.kind === 'A' && c.oid);
+  const dels = changes.filter((c) => c.kind === 'D' && c.oid);
+  if (adds.length === 0 || dels.length === 0) return [];
+  const out: Rename[] = [];
+  const usedA = new Set<string>();
+  const usedD = new Set<string>();
+  const delByOid = new Map<string, Change[]>();
+  for (const d of dels) delByOid.set(d.oid!, [...(delByOid.get(d.oid!) ?? []), d]);
+  for (const ad of adds) {
+    const d = delByOid.get(ad.oid!)?.find((x) => !usedD.has(x.path));
+    if (!d) continue;
+    out.push({ from: d.path, to: ad.path, similarity: 1 });
+    usedA.add(ad.path);
+    usedD.add(d.path);
+  }
+  const restA = adds.filter((x) => !usedA.has(x.path));
+  const restD = dels.filter((x) => !usedD.has(x.path));
+  const cands: [Change, Change][] = [];
+  for (const ad of restA) for (const d of restD) if (extOf(ad.path) === extOf(d.path)) cands.push([d, ad]);
+  if (cands.length === 0 || cands.length > RENAME_MAX_PAIRS) return out;
+  const text = new Map<string, string | null>();
+  const read = async (oid: string) => {
+    if (!text.has(oid)) {
+      try {
+        const { blob } = await git.readBlob({ ...repo, oid });
+        text.set(oid, blob.length > RENAME_MAX_BYTES || looksBinary(blob) ? null : decodeText(blob));
+      } catch {
+        text.set(oid, null); // unreadable object: treat as not a rename candidate
+      }
+    }
+    return text.get(oid)!;
+  };
+  const scored: { d: Change; ad: Change; sim: number }[] = [];
+  for (const [d, ad] of cands) {
+    const [x, y] = await Promise.all([read(d.oid!), read(ad.oid!)]);
+    if (x === null || y === null) continue;
+    const sim = lineSimilarity(x, y);
+    if (sim >= RENAME_MIN_SIMILARITY) scored.push({ d, ad, sim });
+  }
+  for (const { d, ad, sim } of scored.sort((p, q) => q.sim - p.sim)) {
+    if (usedA.has(ad.path) || usedD.has(d.path)) continue;
+    out.push({ from: d.path, to: ad.path, similarity: Math.round(sim * 100) / 100 });
+    usedA.add(ad.path);
+    usedD.add(d.path);
+  }
+  return out;
+}
+
+async function changedFiles(git: Git, repo: Repo, oid: string, parentOid: string | undefined): Promise<Change[]> {
+  const out: Change[] = [];
   const trees = parentOid ? [git.TREE({ ref: parentOid }), git.TREE({ ref: oid })] : [git.TREE({ ref: oid })];
   await git.walk({
     ...repo, trees,
@@ -78,7 +168,7 @@ async function changedFiles(git: Git, repo: Repo, oid: string, parentOid: string
       const [oa, ob] = await Promise.all([a?.oid(), b?.oid()]);
       if (oa === ob) return null; // identical subtree or file: prune
       if (ta === 'tree' || tb === 'tree') return true;
-      out.push(path);
+      out.push(oa === undefined ? { path, kind: 'A', oid: ob } : ob === undefined ? { path, kind: 'D', oid: oa } : { path, kind: 'M', oid: ob });
       return null;
     },
   });
@@ -200,14 +290,28 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   const types: Record<string, number> = {};
   const words = new Map<string, number>();
   let failed = 0;
+  // Walking newest → oldest: once a rename old → new is seen, older commits that touched `old`
+  // are counted under the file's current name. Chains (a → b → c) collapse to c.
+  const alias = new Map<string, string>();
+  const renames: NonNullable<GitResult['renames']> = [];
   for (let i = 0; i < log.length; i++) {
     const c = log[i];
     const who = c.commit.author;
-    let files: string[] = [];
+    let changes: Change[] = [];
+    let moved: Rename[] = [];
     try {
-      files = await changedFiles(git, repo, c.oid, c.commit.parent[0]);
+      changes = await changedFiles(git, repo, c.oid, c.commit.parent[0]);
+      if (c.commit.parent.length <= 1) moved = await detectRenames(git, repo, changes);
     } catch {
       failed++;
+    }
+    const gone = new Set(moved.map((r) => r.from));
+    const now = (p: string) => alias.get(p) ?? p;
+    const files = [...new Set(changes.filter((ch) => !gone.has(ch.path)).map((ch) => now(ch.path)))];
+    for (const r of moved) {
+      const to = now(r.to);
+      alias.set(r.from, to);
+      if (renames.length < 200) renames.push({ from: r.from, to: r.to, current: to, oid: c.oid, time: who.timestamp * 1000, similarity: r.similarity, conf: r.similarity === 1 ? 'resolved' : 'heuristic' });
     }
     const au = authors.get(who.email) ?? { name: who.name, email: who.email, commits: 0, files: new Set<string>() };
     au.commits++;
@@ -233,7 +337,7 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
     const type = classifyMessage(c.commit.message);
     types[type] = (types[type] ?? 0) + 1;
     for (const w of c.commit.message.split('\n')[0].toLowerCase().split(/[^a-z0-9]+/)) if (w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w)) words.set(w, (words.get(w) ?? 0) + 1);
-    commits.push({ oid: c.oid, msg: c.commit.message.trim().slice(0, 400), author: who.name, email: who.email, time: who.timestamp * 1000, files: files.slice(0, 60), tags: tagsByOid.get(c.oid) });
+    commits.push({ oid: c.oid, msg: c.commit.message.trim().slice(0, 400), author: who.name, email: who.email, time: who.timestamp * 1000, files: changes.map((ch) => ch.path).slice(0, 60), tags: tagsByOid.get(c.oid) });
     if (i % 20 === 0) {
       deps.progress?.(`commit ${i + 1} of ${log.length}`);
       await tick();
@@ -317,7 +421,7 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
       authors: [...authors.values()].map((x) => ({ name: x.name, email: x.email, commits: x.commits, files: x.files.size })).sort((x, y) => y.commits - x.commits),
       busFactor: { overall: bus, risky },
       cochange, messages: { types, keywords: [...words].sort((x, y) => y[1] - x[1]).slice(0, 30).map(([word, count]) => ({ word, count })) },
-      tags, snapshots, notes,
+      tags, snapshots, renames, notes,
     },
     findings,
   };

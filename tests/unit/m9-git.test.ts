@@ -1,11 +1,11 @@
 // M9: git history engine against the planted history of the git-history fixture.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { classifyMessage, diffSnapshots } from '../../src/core/git/analyze';
+import { classifyMessage, diffSnapshots, lineSimilarity } from '../../src/core/git/analyze';
 import { nodeEnv } from '../../src/core/node-env';
 import { runPipeline } from '../../src/core/pipeline';
 import { buildSections, fullMarkdown } from '../../src/core/report';
 import type { Analysis, GitResult } from '../../src/core/types';
-import { ALICE, buildRepo, gitHistoryFiles } from '../git-fixture';
+import { ALICE, buildRepo, gitHistoryFiles, gitMovesFiles } from '../git-fixture';
 import { analyzeMem, groundTruth } from '../helpers';
 
 const truth = groundTruth('git-history');
@@ -180,6 +180,80 @@ describe('co-change filtering', () => {
     const pairs = a.git!.cochange.map((c) => `${c.a} ${c.b} ${c.linked}`);
     expect(pairs.sort()).toEqual(['src/x.ts tests/a.test.ts true', 'src/x.ts tests/b.test.ts true']);
   });
+});
+
+// Follow-ups fixed in U2: renames keep history; a test importing its own package is not hidden coupling.
+describe('git history: renames and package self-imports (git-moves, planted truth)', () => {
+  const moves = groundTruth('git-moves');
+  let a: Analysis;
+  let g: GitResult;
+  beforeAll(async () => {
+    a = await analyze({}, await gitMovesFiles());
+    g = a.git!;
+  }, 120_000);
+
+  it('reads the history', () => {
+    expect(g.totalCommits).toBe(moves.totalCommits);
+    expect(g.authors.map(({ name, commits, files }) => ({ name, commits, files }))).toEqual(moves.authors);
+  });
+
+  it('detects exact and edited renames with the right confidence', () => {
+    const msg = new Map(g.commits.map((c) => [c.oid, c.msg]));
+    expect(g.renames!.map(({ from, to, current, similarity, conf, oid }) => ({ from, to, current, similarity, conf, commitMessage: msg.get(oid) }))).toEqual(moves.renames);
+  });
+
+  it('counts the history of a renamed file under its current name', () => {
+    for (const [file, t] of Object.entries<any>(moves.churn)) {
+      const c = g.churn.find((x) => x.file === file);
+      expect(c, file).toBeTruthy();
+      expect({ commits: c!.commits, authors: c!.authors, topAuthor: c!.topAuthor, topAuthorShare: c!.topAuthorShare }, file).toEqual(t);
+    }
+    for (const old of moves.notInChurn) expect(g.churn.find((c) => c.file === old), old).toBeUndefined();
+  });
+
+  it('computes ownership with renamed files merged', () => {
+    expect(g.busFactor.overall).toBe(moves.busFactor);
+    expect(g.busFactor.risky.map((r) => r.file).sort()).toEqual(moves.busFactorRiskyFiles);
+  });
+
+  it('resolves a self-import by package name through package.json exports', () => {
+    const { from, spec, to } = moves.selfImport;
+    const e = a.imports.find((i) => a.files[i.from].path === from && i.spec === spec)!;
+    expect(e).toBeTruthy();
+    expect(a.files[e.to]?.path).toBe(to);
+  });
+
+  it('links a test to code it reaches through its own package (6 hops); keeps the real hidden pair', () => {
+    expect(g.cochange).toEqual(moves.cochange);
+  });
+
+  it('lists renames in the History report section', () => {
+    const text = fullMarkdown(a);
+    expect(text).toContain('### Renamed and moved files');
+    expect(text).toContain('| `lib/old-name.js` | `lib/helpers.js` | 100% |');
+    expect(text).toMatch(/`lib\/fmt\.js` \| `lib\/format\/index\.js` \| 83% \| [\d-]+ \| _heuristic_/);
+  });
+});
+
+describe('lineSimilarity', () => {
+  it('scores shared lines over average size', () => {
+    expect(lineSimilarity('a\nb\nc\nd', 'a\nb\nc\nd')).toBe(1);
+    expect(lineSimilarity('a\nb\nc\nd', 'a\nb\nx\ny')).toBe(0.5);
+    expect(lineSimilarity('a\nb', 'c\nd')).toBe(0);
+    // indentation and blank lines don't matter
+    expect(lineSimilarity('  a\n\nb', 'a\nb\n')).toBe(1);
+  });
+});
+
+describe('long histories', () => {
+  it('handles a longer history (120 commits, stricter co-change threshold)', async () => {
+    const files = await buildRepo(Array.from({ length: 120 }, (_, v) => ({ who: ALICE, msg: `change ${v}`, files: { 'src/x.ts': `export const x = ${v};\n`, 'src/y.ts': `export const y = ${v};\n` } })));
+    const b = await analyze({}, files);
+    expect(b.git!.totalCommits).toBe(120);
+    expect(b.git!.churn.find((c) => c.file === 'src/x.ts')!.commits).toBe(120);
+    expect(b.git!.cochange).toEqual([{ a: 'src/x.ts', b: 'src/y.ts', count: 120, score: 1, linked: false }]);
+    expect(b.git!.notes).toEqual([]);
+  }, 120_000);
 });
 
 describe('classifyMessage', () => {

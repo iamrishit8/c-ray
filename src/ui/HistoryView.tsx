@@ -136,6 +136,34 @@ function MessagesCard({ g }: { g: GitResult }) {
   );
 }
 
+/** Files moved in the analysed history. Their churn and ownership are already merged under the current name. */
+function RenamesCard({ g }: { g: GitResult }) {
+  const renames = g.renames ?? [];
+  const [all, setAll] = useState(false);
+  if (renames.length === 0) return null;
+  const { rows, more } = capped(renames, all ? renames.length : 8);
+  return (
+    <Card title={`Renamed and moved files (${renames.length})`} right={<span className="text-xs muted">history follows the file</span>}>
+      <p className="mb-2 text-[13px] muted">Churn, ownership and co-change of the old path are counted under the current name. Identical content is exact; an edited move is matched by shared lines (50% or more).</p>
+      <table className="tbl" data-testid="history-renames">
+        <thead><tr><th>From</th><th>To</th><th className="num">Similarity</th><th>When</th><th>Confidence</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={`${r.oid}:${r.from}`}>
+              <td className="mono break-all faint">{r.from}</td>
+              <td><FileLink file={r.current} label={r.to === r.current ? r.to : `${r.to} (now ${r.current})`} /></td>
+              <td className="num">{Math.round(r.similarity * 100)}%</td>
+              <td className="tnum whitespace-nowrap">{day(r.time)}</td>
+              <td><ConfBadge c={r.conf} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {more > 0 && <button className="link mt-2 text-[13px]" onClick={() => setAll(true)}>Show {more} more</button>}
+    </Card>
+  );
+}
+
 function TimeTravelCard({ g }: { g: GitResult }) {
   const snaps = g.snapshots;
   const [fromSel, setFrom] = useState(0);
@@ -253,6 +281,7 @@ export function HistoryView() {
         <OwnershipCard g={g} />
         <MessagesCard g={g} />
       </div>
+      <RenamesCard g={g} />
       <TimeTravelCard g={g} />
     </Page>
   );

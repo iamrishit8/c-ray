@@ -237,3 +237,37 @@ D18–D24 record choices that were already in the code but never written down.
 - **Why:** The history is readable as code, deterministic, and exercises the same isomorphic-git reader as the app.
 - **Alternatives rejected:** A committed `.git` renamed to `dot-git` (binary, hard to review, easy to break);
   mocking isomorphic-git (would not test the real reader).
+
+## D31: A test is linked to any code it reaches; package directories resolve through `main`/`exports`
+- **Date / phase:** 2026-11-19 · U2 (M9 follow-up) · **Status:** Accepted (refines D29 for pairs that include a test)
+- **Context:** On fastify, 25 hidden-coupling pairs were a test and the code it exercises. Three causes:
+  `require('..')` / `require('../..')` only tried `index.*` at the package root (Node uses `package.json` `main`);
+  a declared `main: "fastify.js"` resolved to the sibling `fastify.d.ts` because the resolver stripped `.js` first;
+  L1 never received `main` at all. And the 4-hop limit cut off long paths from a test into the code.
+- **Decision:** (1) A relative import that lands on a directory with a `package.json` resolves through that
+  package's entry, as in Node. (2) The entry is the declared file itself first, then extension variants, then
+  defaults. `exports["."]` (string or conditions) counts as an entry when there is no `main`. L1 and L2 share
+  `workspacePackages` (`src/core/packages.ts`). (3) In co-change, a pair that includes a test is `linked` if
+  any import path exists; code↔code pairs keep the 4-hop limit from D29.
+- **Why:** A test exercises everything it reaches, so a long path is real coupling. Code↔code keeps the limit
+  because in a connected app almost everything reaches everything (D29's reason still holds there). On fastify,
+  hidden test↔code pairs went from 25 to 7.
+- **Alternatives rejected:** Unbounded reachability for every pair (makes "hidden" meaningless, see D29);
+  treating `.d.ts` ↔ `.js` pairs as linked by name (they are real coupling the code doesn't express, D29).
+
+## D32: Rename detection: exact blob match, then line similarity ≥ 50% within a bounded comparison budget
+- **Date / phase:** 2026-11-19 · U2 (M9 follow-up) · **Status:** Accepted
+- **Context:** isomorphic-git's `walk` has no rename tracking, so a moved file started with fresh churn and ownership.
+- **Decision:** Per commit (first-parent, non-merge), pair deleted and added paths: same blob oid first
+  (`resolved`, similarity 1), then same-extension pairs scored by line-multiset similarity (2·shared / total
+  non-blank trimmed lines, like git's rename score), greedily by best score, ≥ 0.5 (`heuristic`). Only when there
+  are at most 400 candidate pairs, and only blobs ≤ 512 KB and not binary. Walking newest → oldest, the old path
+  is aliased to the current name, so older commits count toward the file as it exists at HEAD (chains collapse).
+  `GitResult.renames` keeps up to 200 renames for the UI and report.
+- **Why:** Git's own default (50% similarity) is the convention people know. The bounds keep bulk moves
+  (vendoring, reformatting) from turning into O(n²) blob reads; exact renames are found regardless.
+- **Alternatives rejected:** No rename tracking (wrong ownership for moved code); `git log --follow`-style
+  per-file tracing (one walk per file, far too slow in a browser).
+- **Memory investigation (same follow-up):** the suspected leak (isomorphic-git's pack `offsetCache`) holds
+  nothing on real repos (it only caches deep delta bases). Rotating the cache saved no memory and cost time,
+  so it was not kept. The old "0.5–0.8 GB" figure was mostly the Node + tree-sitter baseline. See QUALITY.md.

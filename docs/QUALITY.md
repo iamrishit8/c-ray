@@ -40,19 +40,32 @@ sites. The view groups dependents by distance so the direct ones are easy to spo
 ### Git history on real repositories
 
 `GIT_REPO=/path/to/clone [GIT_COMMITS=500] npm run bench:git` runs the full pipeline (L2 off) on a real clone with
-packfiles; results in `tests/bench/git-real.results.json`. Measured 2026-11-18 on an Apple-silicon laptop, Node, one run each.
+packfiles; results in `tests/bench/git-real.results.json`. Measured 2026-11-19 on an Apple-silicon laptop, Node, one run each.
 
-| Repo | Files | `.git` | Commits analysed | Snapshots | Git stage | Whole pipeline | Peak RSS (start) |
-|---|---|---|---|---|---|---|---|
-| expressjs/express | 216 | 11.5 MB | 500 of 6,186 | 10 | 1.8 s | 2.1 s | 679 MB (110) |
-| expressjs/express | 216 | 11.5 MB | 2,000 of 6,186 | 10 | 3.6 s | 4.0 s | 575 MB (111) |
-| fastify/fastify | 389 | 12.4 MB | 500 of 4,931 | 10 | 4.2 s | 5.6 s | 838 MB (111) |
+| Repo | Files | `.git` | Commits | Git stage | Whole pipeline | Peak heap | Peak array buffers | Peak RSS |
+|---|---|---|---|---|---|---|---|---|
+| expressjs/express | 216 | 11.5 MB | 500 of 6,186 | 1.7 s | 2.0 s | 136 MB | 133 MB | 765 MB |
+| expressjs/express | 216 | 11.5 MB | 2,000 of 6,186 | 3.7 s | 4.1 s | 203 MB | 156 MB | 708 MB |
+| fastify/fastify | 389 | 12.4 MB | 500 of 4,931 | 4.2 s | 5.3 s | 174 MB | 106 MB | 851 MB |
 
-How to read it: passing one shared `cache` to isomorphic-git made the git stage 8× faster on express (15.5 s → 1.8 s)
-and 4–5× on fastify. Time is now split about evenly between walking commits and re-analysing snapshots. Peak memory is
-the weak spot: hundreds of MB for a 12 MB `.git` (RSS also includes the rest of the pipeline; follow-up in TODO).
-Co-change results: express 24 pairs (3 hidden coupling), fastify 88 pairs (55 hidden coupling, mostly genuine:
-hand-written `.d.ts` files that must change with their `.js`, see D29).
+| Repo (commits) | Co-change pairs | Hidden coupling | …with a `.d.ts` | …test ↔ code | Renames found |
+|---|---|---|---|---|---|
+| express (500) | 24 | 3 | 0 | 3 | 2 |
+| express (2,000) | 103 | 49 | 0 | 3 | 11 |
+| fastify (500) | 97 | 43 (was 55) | 28 | 7 (was 25) | 27 |
+
+How to read it:
+- **Memory.** Peak RSS is mostly not the git stage. The same fastify run with git off already peaks at ≈420 MB RSS
+  (Node + vitest + tree-sitter WASM) but only 36 MB heap / 18 MB array buffers. With forced GC sampling the git stage
+  *retains* ≈50 MB heap + ≈50–65 MB array buffers on fastify (the `.git` bytes, the loaded pack and its index, commit
+  and churn tables) and nothing after the stage ends. The suspected unbounded cache (isomorphic-git's pack
+  `offsetCache`) was measured empty on both repos; see D32. The earlier "0.5–0.8 GB" note was measuring the baseline.
+- **Time.** One shared isomorphic-git `cache` across calls keeps packfile indexes parsed (8× faster on express than
+  without it). Rename detection adds no measurable time (it reads blobs only for commits that add *and* delete files).
+- **Co-change.** Resolving `require('..')` and self-imports through `package.json` `main`/`exports` and linking tests
+  at any depth (D31) took fastify's test ↔ code false positives from 25 to 7. Most of what remains are hand-written
+  `.d.ts` files that must change with their `.js` (genuine, D29). The 27 fastify renames are its `*.test-d.ts` →
+  `*.tst.ts` migration; those files now keep their history, which is why the pair count went up.
 
 ### Scale
 
@@ -60,7 +73,7 @@ Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench
 
 ### Test suite (2026-11-18)
 
-151 unit tests (+1 opt-in benchmark skipped unless `GIT_REPO` is set), 19 e2e tests, all passing.
+See the latest count in TODO.md "Now"; all suites pass at every commit.
 
 ## Known limitations
 
@@ -94,13 +107,17 @@ Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench
   more than 4000 files), each up to 40 MB of code. Snapshots use L1 (heuristic) parsing only, so module edges in
   time-travel are `heuristic`.
 - Only first-parent diffs are used; merge commits count for authors and message types but not for churn or co-change.
-- No rename tracking: a renamed or moved file starts with fresh churn and ownership.
+- Renames: exact moves are always found; edited moves only when ≥ 50% of lines are shared, the extension is the same,
+  both blobs are ≤ 512 KB, and the commit has at most 400 add×delete candidate pairs (D32). A rename inside a merge
+  commit is not seen (first-parent diffs only), and a file split into two keeps history on at most one of them.
 - Co-change ignores commits touching more than 25 code files (bulk reformatting, vendoring) and pairs seen fewer
   than 2 times (3 when more than 60 commits). Test↔test pairs are dropped. "Hidden coupling" can be a false positive
-  when the import path between the files is longer than 4 hops or goes through a package name (D29).
+  for two code files linked only by an import path longer than 4 hops (D29), or when the link is dynamic
+  (`require(variable)`, dependency injection). Tests count as linked at any depth (D31).
 - Bus factor and ownership use the *main author* per file (most commits), not lines authored (no blame).
   Authors are grouped by email for the author list and by name for ownership; one person with two emails appears twice.
 - If isomorphic-git cannot read the `.git` folder (missing objects, some shallow clones), history is disabled and the
   reason is shown (`gitMessage`). Verified on two real repos with packfiles (express, fastify) and a generated repo
   with loose objects and an annotated tag.
-- Peak memory during the git stage is high (≈0.5–0.8 GB RSS for a 12 MB `.git`); very large histories may exhaust a tab.
+- Memory: the git stage holds the whole `.git` in memory (it is uploaded that way) plus ≈2–4× its size while walking;
+  a multi-GB `.git` will not fit in a tab. Ingest caps `.git` at 250 MB.

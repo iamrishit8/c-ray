@@ -37,6 +37,7 @@ flowchart LR
 | `src/core/pipeline.ts` | `runPipeline`: ingest → per-file scan/L1 (cached) → L0 → plugged-in stages → snapshots. | Each stage wrapped in `time()`: failures become notices. |
 | `src/core/stages.ts` | The ordered stage list (`defaultStages`) + `gitStage`. | Add new analysis here. |
 | `src/core/ingest/` | Reading files/folders/ZIPs, ignore rules, binary/minified/generated detection, budgets. | Skips are recorded with a reason. A shared root folder is stripped, except for memory sources with `keepPaths` (git snapshots). |
+| `src/core/packages.ts` | `workspacePackages`: package.json names + entry (`source`/`main`/`module`/`exports["."]`) for L1 and L2 resolution. | D31 |
 | `src/core/l0/` | L0: languages, LOC, manifests, configs, docs, tech-stack detection. | No parsing needed. |
 | `src/core/l1/` | L1: tree-sitter extraction (13 grammars) + heuristic import/call resolver. | Confidence `heuristic` unless proven. |
 | `src/core/l2/tsgraph.ts` | L2: TypeScript compiler API program → exact defs/imports/refs for TS/JS. | Replaces L1 for those files (D13). |
@@ -47,7 +48,7 @@ flowchart LR
 | `src/core/deps.ts` | Cycles, coupling metrics, god modules, layering violations, packages. | |
 | `src/core/health.ts`, `scan.ts` | Findings: size, complexity, nesting, clones, dead exports, TODOs, secrets, eval, SQL concat, TLS. | |
 | `src/core/impact.ts` | Transitive dependents, affected entries/tests, risk score. | Called by the UI on demand. |
-| `src/core/git/` | `analyze.ts`: history from an uploaded `.git` via isomorphic-git over an in-memory FS (`memfs.ts`): churn, authors, bus factor, co-change (+ `linked`, D29), message types, snapshots (D30), hotspot findings. `diff.ts`: `diffSnapshots` for time-travel (no isomorphic-git import, so the UI and report can use it). | Loaded lazily by `gitStage`. |
+| `src/core/git/` | `analyze.ts`: history from an uploaded `.git` via isomorphic-git over an in-memory FS (`memfs.ts`): churn, authors, bus factor, co-change (+ `linked`, D29/D31), renames (D32, history merged under the current name), message types, snapshots (D30), hotspot findings. `diff.ts`: `diffSnapshots` for time-travel (no isomorphic-git import, so the UI and report can use it). | Loaded lazily by `gitStage`. |
 | `src/core/orientation.ts`, `roles.ts` | Summary, architecture-style guesses, "read these first", file roles. | Re-run after each phase. |
 | `src/core/report.ts` | Markdown / Notion pages / diagrams for export. | |
 | `src/core/search.ts` | Symbol + full-text search index. | Built lazily in the coordinator. |
@@ -55,10 +56,10 @@ flowchart LR
 | `src/workers/` | `analysis.worker.ts` (coordinator), `pool.ts` + `parse.worker.ts` (parsing), `l2.worker.ts`, `protocol.ts`, `client.ts`. | |
 | `src/db/db.ts` | IndexedDB stores: `projects`, `analyses`, `sources`, `cache`, `settings`, `handles`. | Retention + quota handling. |
 | `src/store/store.ts` | Single Zustand store: app status, settings, current analysis, tab, source panel, cross-view focus. | |
-| `src/ui/` | React views (one per tab), `kit.tsx` (shared components), `Graph.tsx` (Cytoscape), `Mermaid.tsx`, `SourcePanel.tsx`. | |
+| `src/ui/` | React views (one per tab), `kit.tsx` (shared components), `Graph.tsx` (Cytoscape), `Mermaid.tsx`, `SourcePanel.tsx`, `markdown.ts` (report Markdown → HTML: raw HTML escaped, unsafe URL schemes dropped; DOM-free, unit-tested). | |
 | `scripts/copy-assets.mjs` | Copies grammar WASMs + TS lib `.d.ts` into `public/` (pre-dev/build/install). | Generated, git-ignored. |
 | `vite.config.ts` | Build + `offlinePlugin` that generates `sw.js` precaching all assets. | |
-| `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects + `git-history` ground truth), `git-fixture.ts` (builds the git-history repo at test time, D28). | |
+| `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects + `git-history` + `git-moves` ground truth), `git-fixture.ts` (builds the git-history and git-moves repos at test time, D28). | |
 
 ## Analysis model
 

@@ -2,29 +2,15 @@
 // them into the global symbol table, import edges and reference edges.
 import { isTsJs } from './l0/languages';
 import type { FileGraph, L2Input, L2Result } from './l2/tsgraph';
-import type { ResolverConfig, ResolverPackage } from './resolve-js';
+import type { ResolverConfig } from './resolve-js';
+import { workspacePackages } from './packages';
+export { workspacePackages };
 import type { Stage, StageContext } from './pipeline';
 import type { ImportEdge, PR, RefEdge, SymbolDef } from './types';
 import { buildL1Graphs } from './l1/resolve';
 import { basename, dirname } from './util';
 
 export type RunL2 = (input: L2Input) => Promise<L2Result>;
-
-export function workspacePackages(ctx: StageContext): ResolverPackage[] {
-  const out: ResolverPackage[] = [];
-  for (const m of ctx.a.l0.manifests) {
-    if (m.type !== 'package.json' || !m.name) continue;
-    let main: string | undefined;
-    try {
-      const json = JSON.parse(ctx.unitByPath.get(m.file)?.text ?? '{}');
-      main = typeof json.source === 'string' ? json.source : typeof json.main === 'string' ? json.main : typeof json.module === 'string' ? json.module : undefined;
-    } catch {
-      /* ignore */
-    }
-    out.push({ name: m.name, dir: dirname(m.file), main });
-  }
-  return out;
-}
 
 export function tsConfigs(ctx: StageContext): ResolverConfig[] {
   return ctx.units.filter((u) => /^(tsconfig.*|jsconfig)\.json$/.test(basename(u.path))).map((u) => ({ path: u.path, text: u.text }));

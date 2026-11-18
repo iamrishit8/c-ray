@@ -357,6 +357,10 @@ export interface GitResult {
   messages: { types: Record<string, number>; keywords: { word: string; count: number }[] };
   tags: { name: string; oid: string }[];
   snapshots: ArchSnapshot[];
+  /** Files moved within the analysed commits, newest first (at most 200). Churn, ownership and
+   *  co-change of `from` are counted under `current` (the name at HEAD). `similarity` 1 = identical
+   *  content (`resolved`); lower = shared-line ratio (`heuristic`). Absent in analyses stored before U2. */
+  renames?: { from: string; to: string; current: string; oid: string; time: number; similarity: number; conf: Confidence }[];
   notes: string[];
 }
 

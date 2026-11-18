@@ -107,13 +107,33 @@ export class ModuleResolver {
     return res;
   }
 
+  /** Entry file of a workspace package: `main`/`exports` (see packages.ts), then common defaults. */
+  private packageEntry(p: ResolverPackage): string | null {
+    const cands = [p.main && joinPath(p.dir, p.main), joinPath(p.dir, 'src/index'), joinPath(p.dir, 'index'), joinPath(p.dir, 'src/main'), joinPath(p.dir, 'lib/index')].filter(Boolean) as string[];
+    for (const c of cands) {
+      // the declared file itself first: stripping '.js' first would find a sibling 'x.d.ts' before 'x.js'
+      const r = (this.paths.has(c) ? c : null) ?? resolveFileLike(c.replace(/\.(js|ts)$/, ''), this.paths) ?? resolveFileLike(c, this.paths);
+      if (r) return r;
+    }
+    return null;
+  }
+
   private configFor(from: string): TsConfig | undefined {
     return this.configs.find((c) => c.dir === '' || from.startsWith(c.dir + '/'));
   }
 
   private resolveUncached(spec: string, from: string, fromDir: string): string | null {
-    if (spec.startsWith('.')) return resolveFileLike(joinPath(fromDir, spec), this.paths);
-    if (spec.startsWith('/')) return resolveFileLike(spec.slice(1), this.paths);
+    if (spec.startsWith('.') || spec.startsWith('/')) {
+      const base = spec.startsWith('/') ? spec.slice(1) : joinPath(fromDir, spec);
+      // a directory with a package.json resolves through its `main`/`exports` first, as in Node
+      // (tests: require('..') → the package root's main file, e.g. fastify.js)
+      const pkg = this.pkgs.find((p) => p.dir === base);
+      if (pkg?.main) {
+        const r = this.packageEntry(pkg);
+        if (r) return r;
+      }
+      return resolveFileLike(base, this.paths);
+    }
     const cfg = this.configFor(from);
     if (cfg?.paths) {
       for (const [pattern, targets] of Object.entries(cfg.paths)) {
@@ -133,14 +153,7 @@ export class ModuleResolver {
       if (r) return r;
     }
     for (const p of this.pkgs) {
-      if (spec === p.name) {
-        const cands = [p.main && joinPath(p.dir, p.main), joinPath(p.dir, 'src/index'), joinPath(p.dir, 'index'), joinPath(p.dir, 'src/main'), joinPath(p.dir, 'lib/index')].filter(Boolean) as string[];
-        for (const c of cands) {
-          const r = resolveFileLike(c.replace(/\.(js|ts)$/, ''), this.paths) ?? resolveFileLike(c, this.paths);
-          if (r) return r;
-        }
-        return null;
-      }
+      if (spec === p.name) return this.packageEntry(p);
       if (spec.startsWith(p.name + '/')) {
         const sub = spec.slice(p.name.length + 1);
         return resolveFileLike(joinPath(p.dir, sub), this.paths) ?? resolveFileLike(joinPath(p.dir, 'src', sub), this.paths);
