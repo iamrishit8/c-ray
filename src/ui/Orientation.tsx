@@ -6,7 +6,7 @@ import { ROLE_LABEL } from '../core/roles';
 import type { Analysis, SkipReason } from '../core/types';
 import { fmtBytes, fmtNum, groupBy } from '../core/util';
 import { useStore } from '../store/store';
-import { Badge, Card, ConfBadge, FileLink, Page, Stat } from './kit';
+import { Badge, Card, ConfBadge, FileLink, Page, RoleBadge, Stat } from './kit';
 
 export function SkippedList({ a, open = false }: { a: Analysis; open?: boolean }) {
   const [show, setShow] = useState(open);
@@ -19,14 +19,14 @@ export function SkippedList({ a, open = false }: { a: Analysis; open?: boolean }
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px]"><b>{fmtNum(a.coverage.skipped)}</b> file(s) skipped:</span>
         {[...groups].map(([r, items]) => (
-          <button key={r} className={`rounded px-1.5 text-[11px] leading-[18px] ${reason === r ? 'is-selected' : 'bg-[var(--bg3)] text-[var(--fg2)]'}`} onClick={() => { setReason(reason === r ? 'all' : r); setShow(true); }} title={SKIP_LABELS[r]}>
+          <button key={r} className={`chip ${reason === r ? 'is-selected' : ''}`} aria-pressed={reason === r} onClick={() => { setReason(reason === r ? 'all' : r); setShow(true); }} title={SKIP_LABELS[r]}>
             {r} · {items.length}
           </button>
         ))}
         <button className="link text-[13px]" onClick={() => setShow(!show)}>{show ? 'Hide list' : 'Show list'}</button>
       </div>
       {show && (
-        <div className="mt-2 max-h-72 overflow-auto rounded border border-[var(--line)]">
+        <div className="mt-3 max-h-72 overflow-auto rounded-[var(--r-md)] border border-[var(--line)]">
           <table className="tbl">
             <thead><tr><th>Path</th><th>Reason</th><th>Size</th></tr></thead>
             <tbody>
@@ -52,7 +52,7 @@ export function Orientation() {
   return (
     <Page title="Orientation" intro="What this codebase is, how big it is, where execution starts and what to read first. Everything inferred is labelled with its confidence and source.">
       <Card title="Summary">
-        <p data-testid="summary" className="text-[15px] leading-relaxed">{o.summary}</p>
+        <p data-testid="summary" className="text-[14.5px] leading-[1.7]">{o.summary}</p>
         {a.notices.length > 0 && (
           <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-[var(--warn)]" data-testid="notices">
             {a.notices.map((n, i) => <li key={i}>{n}</li>)}
@@ -61,8 +61,9 @@ export function Orientation() {
       </Card>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Files analysed" value={fmtNum(a.files.length)} sub={`${a.coverage.pctFiles}% of ${fmtNum(a.coverage.discovered)} discovered`} />
-        <Stat label="Lines of code" value={fmtNum(totalLoc)} sub={`${fmtBytes(a.files.reduce((s, f) => s + f.size, 0))} of text`} />
+        {/* with history, the sparklines show code files and lines across the architecture snapshots */}
+        <Stat label="Files analysed" value={fmtNum(a.files.length)} sub={`${a.coverage.pctFiles}% of ${fmtNum(a.coverage.discovered)} discovered`} spark={a.git?.snapshots.map((s) => s.files)} />
+        <Stat label="Lines of code" value={fmtNum(totalLoc)} sub={`${fmtBytes(a.files.reduce((s, f) => s + f.size, 0))} of text`} spark={a.git?.snapshots.map((s) => s.loc)} sparkColor="var(--accent)" />
         <Stat label="Definitions" value={fmtNum(a.symbols.length)} sub={`L1 ${fmtNum(a.coverage.l1Files)} files · L2 ${fmtNum(a.coverage.l2Files)} files`} />
         <Stat label="Directories" value={fmtNum(a.l0.tree.dirs)} sub={`max depth ${a.l0.tree.maxDepth}`} />
       </div>
@@ -78,9 +79,9 @@ export function Orientation() {
           <div className="space-y-1.5">
             {code.slice(0, 10).map((l) => (
               <div key={l.lang} className="flex items-center gap-2 text-[13px]">
-                <span className="w-24 shrink-0">{langName(l.lang)}</span>
-                <div className="h-2 flex-1 overflow-hidden rounded bg-[var(--bg3)]"><div className="h-full bg-[var(--accent)]" style={{ width: `${Math.max(1, (l.loc / totalLoc) * 100)}%` }} /></div>
-                <span className="w-36 shrink-0 text-right faint">{fmtNum(l.loc)} lines · {l.files} files</span>
+                <span className="w-24 shrink-0 truncate">{langName(l.lang)}</span>
+                <span className="bar min-w-12 flex-1"><span className="bg-[var(--accent)]" style={{ width: `${Math.max(1, (l.loc / totalLoc) * 100)}%` }} /></span>
+                <span className="tnum shrink-0 whitespace-nowrap text-right text-[12px] faint">{fmtNum(l.loc)} lines · {l.files} files</span>
               </div>
             ))}
             {code.length === 0 && <div className="muted">No recognised source code.</div>}
@@ -159,7 +160,7 @@ export function Orientation() {
           <ol className="space-y-2" data-testid="read-first">
             {o.readFirst.map((r, i) => (
               <li key={r.file} className="flex gap-2 text-[13px]">
-                <span className="w-5 shrink-0 text-right faint">{i + 1}.</span>
+                <span className="tnum w-5 shrink-0 text-right faint">{i + 1}.</span>
                 <div className="min-w-0"><FileLink file={r.file} /><div className="text-xs muted">{r.reasons.join(' · ')}</div></div>
               </li>
             ))}
@@ -170,7 +171,7 @@ export function Orientation() {
       {roles.length > 0 && (
         <Card title="Roles (inferred from names, directories and framework detectors)">
           <div className="flex flex-wrap gap-2">
-            {roles.map(([role, files]) => <Badge key={role} title={files.slice(0, 12).map((f) => f.path).join('\n')}>{ROLE_LABEL[role]} · {files.length}</Badge>)}
+            {roles.map(([role, files]) => <RoleBadge key={role} role={role} title={files.slice(0, 12).map((f) => f.path).join('\n')}>{ROLE_LABEL[role]} · {files.length}</RoleBadge>)}
           </div>
         </Card>
       )}

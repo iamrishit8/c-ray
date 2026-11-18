@@ -1,6 +1,6 @@
 # Conventions
 
-How we write code, build UI and review changes in C-Ray. If a rule here blocks you, discuss it and record the outcome
+How we write code, build UI and review changes in imex. If a rule here blocks you, discuss it and record the outcome
 in DECISIONS.md. Don't quietly break it.
 
 ---
@@ -73,12 +73,14 @@ dark mode swaps these variables under `.dark`, and `Graph.tsx` / `Mermaid.tsx` r
 | `--bg3` / `--bg4` | hover, chips, code background / bar tracks, skeletons |
 | `--fg` / `--fg2` / `--fg3` | primary text / secondary (`.muted`) / tertiary (`.faint`, labels) |
 | `--line` / `--line2` | dividers inside cards / control borders, chip outlines, graph boxes |
-| `--accent`, `--accent-hover`, `--accent-fg` | terracotta fills: CTA buttons, progress, focus ring, graph focus; text on an accent fill |
+| `--accent`, `--accent-hover`, `--accent-fg` | terracotta fills: CTA buttons, progress, focus ring, graph focus; text on an accent fill (near-black in both themes for AA, D34) |
+| `--accent-mark` | the logo mark's arrows (decorative, white) |
 | `--accent-text` | accent used **as text** (links, selected rows): darker/lighter variant that meets AA |
 | `--accent-soft` | selected list row background (`.is-selected`) |
 | `--ok` `--warn` `--bad` (+ `-soft`) | status: resolved/success · heuristic/warning · high severity/error |
 | `--r-route` `--r-service` `--r-model` `--r-test` `--r-int` `--r-config` | role colours (badges, graph nodes, charts); see `ROLE_FAMILY` in `kit.tsx` |
 | `--hl` | highlighted source lines |
+| `--tint-text` | how much of a hue badge text keeps before blending toward `--fg` (78%): `color-mix(in srgb, <hue> var(--tint-text), var(--fg))` |
 | `--r-sm` / `--r-md` / `--r-lg` | radius 8 (buttons, inputs) / 12 (overlays) / 16 (cards) |
 | `--shadow-sm`, `--shadow-md` | card elevation / floating overlays |
 
@@ -129,7 +131,8 @@ If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document 
 - Icon-only buttons need `aria-label` (and `title`). Decorative SVGs get `aria-hidden="true"`.
 - The current nav item has `aria-current="page"`. Alerts use `role="alert"`, loading uses `role="status"`.
 - Colour is never the only signal: confidence badges also differ by border style and text; severity has a text label.
-- Contrast: check new token pairs in both themes (aim for WCAG AA, 4.5:1 for body text).
+- Contrast: run `npm run audit:contrast` after changing tokens; every text pair must reach WCAG AA (4.5:1), graph
+  dots and other non-text marks 3:1. Text on a tinted background uses `--tint-text` blending (D34).
 
 ### Graphs and diagrams
 - Interactive graphs: `Graph.tsx` (Cytoscape). Diagrams that also go into exports: `Mermaid.tsx`.

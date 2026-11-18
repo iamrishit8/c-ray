@@ -27,8 +27,11 @@
   --accent: #d97757;
   --accent-hover: #c6613f;
   /* accent used as text (links, selected labels): darker so it meets AA on cream and white */
-  --accent-text: #b5533a;
-  --accent-fg: #ffffff;
+  --accent-text: #a94c33;
+  /* text on a terracotta fill: near-black meets AA (white is only 3.1:1 for 13 px labels) */
+  --accent-fg: #141413;
+  /* the logo mark's arrows are decorative, so they stay white as in the mockup */
+  --accent-mark: #ffffff;
   --ok: #2e7d43;
   --warn: #946112;
   --bad: #bf3a30;
@@ -41,6 +44,8 @@
   --r-int: #13857f;
   --r-config: #87867f;
   --soft: 10%;
+  /* text on a tinted badge: the hue blended 22% toward --fg, so it meets AA on its own tint in both themes */
+  --tint-text: 78%;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--bg2));
   --ok-soft: color-mix(in srgb, var(--ok) var(--soft), var(--bg2));
   --warn-soft: color-mix(in srgb, var(--warn) 12%, var(--bg2));
@@ -156,6 +161,7 @@ table.tbl th.num, table.tbl td.num { text-align: right; font-variant-numeric: ta
 .canvas { background-color: var(--bg); background-image: radial-gradient(var(--line2) 1px, transparent 1px); background-size: 20px 20px; }
 .overlay { position: absolute; background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r-md); box-shadow: var(--shadow-md); }
 
+.mermaid-box svg { display: block; margin: 0 auto; }
 .md h1 { font-size: 1.6rem; font-weight: 500; letter-spacing: -0.03em; margin: 1.2em 0 0.5em; }
 .md h2 { font-size: 1.2rem; font-weight: 500; letter-spacing: -0.02em; margin: 1.4em 0 0.5em; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
 .md h3 { font-size: 1.02rem; font-weight: 600; margin: 1.1em 0 0.4em; }

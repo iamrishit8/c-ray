@@ -68,7 +68,7 @@ export function SymbolsView() {
       {refSym !== null && <Card title="Find references" right={<button className="btn" onClick={() => setRefSym(null)}>Close</button>}><References a={a} sym={refSym} /></Card>}
       {fileMode && (
         <Card title="Internal call graph">
-          {callGraph.length === 0 ? <div className="muted">No calls between this file’s own functions were found.</div> : <div className="h-80"><Graph elements={callGraph} layout="breadthfirst" testId="call-graph" /></div>}
+          {callGraph.length === 0 ? <div className="muted">No calls between this file’s own functions were found.</div> : <div className="h-96 overflow-hidden rounded-[var(--r-md)] border border-[var(--line)]"><Graph elements={callGraph} layout="breadthfirst" testId="call-graph" /></div>}
         </Card>
       )}
       <Card title={`Functions (${fmtNum(fns.length)})`} right={
@@ -76,13 +76,13 @@ export function SymbolsView() {
           <option value="complexity">Sort by complexity</option><option value="lines">Sort by length</option><option value="nesting">Sort by nesting</option>
         </select>}>
         <table className="tbl" data-testid="functions">
-          <thead><tr><th>Function</th><th>Location</th><th>Complexity</th><th>Nesting</th><th>Lines</th><th>Params</th><th>Layer</th><th></th></tr></thead>
+          <thead><tr><th>Function</th><th>Location</th><th className="num">Complexity</th><th className="num">Nesting</th><th className="num">Lines</th><th className="num">Params</th><th>Layer</th><th></th></tr></thead>
           <tbody>
             {sorted.map(({ s, i }) => (
               <tr key={i}>
-                <td className="mono font-semibold">{m.symLabel(i)}{s.exported && <> <Badge>exported</Badge></>}</td>
+                <td className="mono font-medium">{m.symLabel(i)}{s.exported && <> <Badge>exported</Badge></>}</td>
                 <td><FileLink file={m.path(s.file)} line={s.line} endLine={s.endLine} /></td>
-                <td>{s.complexity}</td><td>{s.nesting}</td><td>{s.endLine - s.line + 1}</td><td>{s.params}</td>
+                <td className={`num ${s.complexity >= 15 ? 'text-[var(--bad)]' : s.complexity >= 8 ? 'text-[var(--warn)]' : ''}`}>{s.complexity}</td><td className="num">{s.nesting}</td><td className="num">{s.endLine - s.line + 1}</td><td className="num">{s.params}</td>
                 <td><ConfBadge c={a.files[s.file].level === 2 ? 'resolved' : 'heuristic'} /></td>
                 <td className="whitespace-nowrap"><button className="btn" onClick={() => setRefSym(i)}>References</button>{!fileMode && <> <button className="btn" onClick={() => setTab('impact', { symbol: i })}>Impact</button></>}</td>
               </tr>

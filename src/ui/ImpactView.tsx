@@ -3,7 +3,7 @@ import { analyzeImpact, type ImpactTarget } from '../core/impact';
 import { modelOf } from '../core/model';
 import { groupBy } from '../core/util';
 import { useStore } from '../store/store';
-import { Badge, Card, ConfBadge, Empty, FileLink, Page } from './kit';
+import { Badge, Card, ConfBadge, Empty, FileLink, Page, PathText, RiskBar } from './kit';
 
 const LEVEL_TONE = { low: 'ok', medium: 'warn', high: 'bad', 'very high': 'bad' } as const;
 
@@ -34,9 +34,9 @@ export function ImpactView() {
   return (
     <Page title="Impact analysis" intro="Pick a file or a symbol to see everything that depends on it (transitively), which entry points and tests are affected, and a risk score with its factors.">
       <div className="relative max-w-2xl">
-        <input data-testid="impact-input" className="input w-full" placeholder="Type a file path or symbol name…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input data-testid="impact-input" data-search-focus className="input w-full !py-2" placeholder="Type a file path or symbol name…  ( / )" value={q} onChange={(e) => setQ(e.target.value)} aria-label="File or symbol to analyse" />
         {(suggestions.files.length > 0 || suggestions.syms.length > 0) && (
-          <div className="card absolute z-10 mt-1 max-h-80 w-full overflow-auto shadow-lg" data-testid="impact-suggestions">
+          <div className="card absolute z-10 mt-1 max-h-80 w-full overflow-auto py-1 !shadow-[var(--shadow-md)]" data-testid="impact-suggestions">
             {suggestions.syms.map((i) => (
               <button key={'s' + i} className="block w-full px-3 py-1 text-left text-[13px] hover:bg-[var(--bg3)]" onClick={() => { setTarget({ symbol: i }); setQ(''); }}>
                 <Badge>{a.symbols[i].kind}</Badge> <span className="mono font-semibold">{m.symLabel(i)}</span> <span className="faint">{m.path(a.symbols[i].file)}:{a.symbols[i].line}</span>
@@ -50,13 +50,14 @@ export function ImpactView() {
           </div>
         )}
       </div>
-      {!impact ? <Empty>Nothing selected yet. Tip: the System map and Dependencies views have an “Impact” button on files.</Empty> : (
+      {!impact ? <Empty title="Nothing selected yet">Search for a file or symbol above. The System map, Dependencies and History views also have an “Impact” button on files.</Empty> : (
         <>
           <Card title={`Impact of ${impact.label}`}>
             <div className="flex flex-wrap items-center gap-6" data-testid="impact-risk">
               <div>
-                <div className="text-[11px] uppercase tracking-wide faint">Risk score</div>
-                <div className="text-3xl font-semibold">{impact.risk.score}<span className="text-base faint">/100</span> <Badge tone={LEVEL_TONE[impact.risk.level]}>{impact.risk.level}</Badge></div>
+                <div className="label">Risk score</div>
+                <div className="tnum mt-1 text-[34px] font-medium leading-none tracking-[-0.04em]">{impact.risk.score}<span className="text-base faint">/100</span> <Badge tone={LEVEL_TONE[impact.risk.level]}>{impact.risk.level}</Badge></div>
+                <div className="mt-2"><RiskBar value={impact.risk.score / 100} width={180} /></div>
               </div>
               <ul className="list-disc pl-5 text-[13px] muted">
                 {impact.risk.factors.map((f, i) => <li key={i}>+{f.points} — {f.label}</li>)}
@@ -74,11 +75,11 @@ export function ImpactView() {
                 <div className="space-y-3" data-testid="impact-files">
                   {byDist.map(([dist, files]) => (
                     <div key={dist}>
-                      <div className="mb-1 text-xs font-semibold">{dist === 1 ? 'Direct dependents' : `${dist} steps away`} <span className="faint">({files.length})</span></div>
+                      <div className="label mb-1.5">{dist === 1 ? 'Direct dependents' : `${dist} steps away`} <span className="tnum">({files.length})</span></div>
                       <ul className="space-y-0.5 text-[13px]">
                         {files.slice(0, 80).map((f) => (
                           <li key={f.file} className="flex flex-wrap items-center gap-1.5">
-                            <FileLink file={f.file} line={f.sites[0]} label={f.file} />
+                            <FileLink file={f.file} line={f.sites[0]} label={<PathText path={f.file} />} />
                             {f.sites.length > 0 && <span className="faint text-xs">line{f.sites.length > 1 ? 's' : ''} {f.sites.slice(0, 6).sort((x, y) => x - y).join(', ')}</span>}
                             {f.conf !== 'resolved' && <ConfBadge c={f.conf} />}
                           </li>

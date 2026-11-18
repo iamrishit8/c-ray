@@ -5,8 +5,10 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**U2: Visual redesign + rename to imex, in progress** (started 2026-11-19, owner approved going straight through all
-slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first (see M9, Known issues).
+**U2: Visual redesign + rename to imex is done, waiting for owner review** (2026-11-19; owner approved going
+straight through all slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first
+(see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
+Next, after approval: M10.
 
 ---
 
@@ -28,7 +30,7 @@ slices with one review at the end). M9 follow-ups and the `marked` link check we
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
-| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | 🚧 started 2026-11-19 |
+| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 (awaiting owner review) |
 
 ---
 
@@ -108,7 +110,7 @@ Needs an explicit privacy design first. This is the only feature that may send d
 - [ ] Browser matrix check: Chrome, Firefox, Safari (folder picking, nested workers, File System Access fallback)
 - [ ] Final polish, README screenshots (after U2), deploy guide
 
-## U2: Visual redesign + rename to imex
+## U2: Visual redesign + rename to imex ✅
 
 Approved direction (D27): warm palette, everything in Geist Mono, terracotta accent, role colours.
 Reference mockup: [docs/design/u2-mockup.html](design/u2-mockup.html) (open it in a browser; ☾ toggles dark mode).
@@ -127,8 +129,9 @@ Build in slices, each with a phase review.
 - [x] `kit.tsx`: `Page`/`PageHeader` (eyebrow from `PageGroup`, large title), `Card` (16 px radius, header row, `flush`),
       `Stat` (big number + `Sparkline`), `Badge`/`RoleBadge`, `ConfBadge` (mono), `Chip`, `RiskBar`, `Skeleton`,
       buttons (dark primary, accent CTA, round)
-- [ ] Tables: mono uppercase headers, file paths with dimmed directory, risk bars
-- [ ] Skeleton loaders instead of "Loading…"; empty states with a short explanation
+- [x] Tables: mono uppercase headers, file paths with dimmed directory (`PathText`, wraps at `/`), risk bars
+      (`RiskBar`: hotspots, co-change score, instability, impact risk)
+- [x] Skeleton loaders (app start, source panel, map preview, `Pending`); empty states with a title and next step
 
 **Slice 3: Diagrams**
 - [x] `Graph.tsx`: all colours from CSS tokens at runtime (`cssVar`), restyled in place on theme change
@@ -141,23 +144,33 @@ Build in slices, each with a phase review.
 - [x] Mermaid: `base` theme with `themeVariables` from tokens and Geist Mono (export/print still SVG)
 
 **Slice 4: Views**
-- [ ] Home: hero, drop zone, sample project button using a bundled fixture
-- [ ] Restyle every view (Orientation, System map, Flows, Data, Symbols, Health, Deps, Impact, History, Export, Search)
-- [ ] Consistent page headers for full-bleed views (System map, Flows) with `Page`-style title + intro
+- [x] Home: hero, drop zone with icon, feature strip, **Try a sample project** (bundled `express-mongoose` fixture,
+      lazy chunk, `sample-project` test id)
+- [x] Restyle every view (Orientation, System map, Flows, Data, Symbols, Health, Deps, Impact, History, Export, Search):
+      chips for filters, role badges, `.label` subheads, sparklines from git snapshots (Orientation, History)
+- [x] Full-bleed views (System map, Flows) use `PageHeader` (eyebrow, title, intro) above the canvas/list
 
 **Rename C-Ray → imex** (imex = import/export)
-- [ ] UI strings, `<title>`, `index.html`, `package.json` name, `vite.config.ts` (PWA manifest), README, CLAUDE.md, docs
-- [ ] Export headers/filenames in `src/core/report.ts` and `ExportView.tsx`
-- [ ] IndexedDB name in `src/db/db.ts` and storage keys in `store.ts`: migrate or keep the old DB name so saved
-      projects don't disappear (decide in DECISIONS); update `m1-persistence.spec.ts`
+- [x] UI strings, `<title>`, favicon, `index.html`, `package.json` name, `vite.config.ts` (plugin + SW cache), README, CLAUDE.md, docs
+- [x] Export headers/filenames in `src/core/report.ts` and `ExportView.tsx` (`<project>-imex.md`, `<project> imex report/`)
+- [x] IndexedDB name kept as `c-ray` so saved projects survive; theme key `imex-theme` with fallback (D33);
+      `m1-persistence.spec.ts` comments why
 
 **Carried over from the old U2 list**
-- [ ] Responsive: collapse side nav to icons/drawer below ~900 px; source panel as overlay on narrow screens
-- [ ] `Graph.tsx`: replace hard-coded hex colours (`#d97706`, `#dc2626`, …) with values read from CSS tokens
-- [ ] Keyboard navigation for list+detail views (↑/↓ in Flows/Data lists, `/` to focus search)
-- [ ] Home page: richer empty state (what you'll get, sample project button using a bundled fixture)
-- [ ] Contrast audit of all token pairs in both themes (WCAG AA)
-- [ ] Consistent page headers for full-bleed views (System map, Flows) with `Page`-style title + intro
+- [x] Responsive: icon-rail nav below 900 px; source panel as overlay below 1100 px (e2e at 820 px)
+- [x] `Graph.tsx`: no hard-coded colours (tokens at runtime, D35)
+- [x] Keyboard: ↑/↓/Home/End in the Flows and Data lists (`listKeys`), `/` focuses the view's filter or opens Search
+- [x] Home: richer empty state + sample project
+- [x] Contrast audit of all token pairs in both themes: `npm run audit:contrast`, all AA (D34, QUALITY.md)
+- [x] Consistent page headers for full-bleed views
+
+**Tests:** `tests/e2e/u2-ui.spec.ts` (branding + sample, theme key migration, keyboard, graph controls + focus mode,
+narrow layout), renames e2e in `m9-history.spec.ts`. Suites: 164 unit (+1 opt-in bench), 25 e2e, all passing.
+
+**Follow-ups**
+- [ ] README screenshots (M12, now that the look is final)
+- [ ] Phone-width layouts for the dense tables (card lists instead of tables) if mobile use matters
+- [ ] Keyboard focus mode for graphs (Tab through nodes, Enter to focus) — today focus is mouse/touch only
 
 ---
 

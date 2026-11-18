@@ -117,7 +117,7 @@ export const useStore = create<State>((set, get) => {
       const theme = get().theme === 'dark' ? 'light' : 'dark';
       document.documentElement.classList.toggle('dark', theme === 'dark');
       try {
-        localStorage.setItem('c-ray-theme', theme);
+        localStorage.setItem('imex-theme', theme);
       } catch {
         /* private mode */
       }

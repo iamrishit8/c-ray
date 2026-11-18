@@ -8,7 +8,7 @@ export { workspacePackages };
 import type { Stage, StageContext } from './pipeline';
 import type { ImportEdge, PR, RefEdge, SymbolDef } from './types';
 import { buildL1Graphs } from './l1/resolve';
-import { basename, dirname } from './util';
+import { basename } from './util';
 
 export type RunL2 = (input: L2Input) => Promise<L2Result>;
 

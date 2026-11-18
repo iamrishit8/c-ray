@@ -34,7 +34,7 @@ test('expired projects are purged on start; "clear all" empties storage', async 
   // age one project past its expiry
   await page.evaluate(async () => {
     await new Promise<void>((resolve, reject) => {
-      const open = indexedDB.open('c-ray');
+      const open = indexedDB.open('c-ray'); // DB name kept across the rename to imex (D33)
       open.onsuccess = () => {
         const db = open.result;
         const tx = db.transaction('projects', 'readwrite');

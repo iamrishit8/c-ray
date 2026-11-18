@@ -5,7 +5,7 @@ import { diffSnapshots } from '../core/git/diff';
 import type { GitResult } from '../core/types';
 import { fmtNum } from '../core/util';
 import { useStore } from '../store/store';
-import { Badge, Card, ConfBadge, Empty, FileLink, Page, Pending, Stat, capped } from './kit';
+import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page, Pending, RiskBar, Stat, capped } from './kit';
 
 const day = (t: number) => new Date(t).toISOString().slice(0, 10);
 const pctOf = (share: number) => `${Math.round(share * 100)}%`;
@@ -14,6 +14,16 @@ const TYPE_LABEL: Record<string, string> = {
   feat: 'features', fix: 'fixes', refactor: 'refactors', chore: 'chores', docs: 'docs', test: 'tests', perf: 'performance',
   build: 'build', ci: 'CI', style: 'style', revert: 'reverts', merge: 'merges', other: 'other',
 };
+
+/** Commits per time bucket (12 equal slices from the oldest to the newest analysed commit), oldest first. */
+function commitsOverTime(g: GitResult): number[] {
+  if (g.commits.length < 2) return [];
+  const t0 = g.commits[g.commits.length - 1].time;
+  const span = Math.max(1, g.commits[0].time - t0);
+  const bins = new Array(12).fill(0);
+  for (const c of g.commits) bins[Math.min(11, Math.floor(((c.time - t0) / span) * 12))]++;
+  return bins;
+}
 
 function signed(n: number) {
   return n > 0 ? `+${fmtNum(n)}` : n < 0 ? `−${fmtNum(-n)}` : '±0';
@@ -26,7 +36,7 @@ function ChurnCard({ g }: { g: GitResult }) {
   const rows = useMemo(() => g.churn.filter((c) => !q || c.file.toLowerCase().includes(q.toLowerCase())), [g.churn, q]);
   const { rows: shown, more } = capped(rows, limit);
   return (
-    <Card title={`Most changed files (${g.churn.length})`} right={<span className="flex items-center gap-2"><input className="input" placeholder="filter files…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter changed files" /><ConfBadge c="resolved" /></span>}>
+    <Card title={`Most changed files (${g.churn.length})`} right={<span className="flex items-center gap-2"><input className="input" placeholder="filter files…  ( / )" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter changed files" data-search-focus /><ConfBadge c="resolved" /></span>}>
       <p className="mb-2 text-[13px] muted">Commits that touched each file that still exists (merge commits excluded). Files that change often and are complex are the riskiest to work on; see Health → Hotspots.</p>
       {rows.length === 0 ? <div className="muted">No files match.</div> : (
         <table className="tbl" data-testid="history-churn">
@@ -63,9 +73,9 @@ function CochangeCard({ g }: { g: GitResult }) {
       </p>
       {g.cochange.length === 0 ? <div className="muted">No pair of code files changed together often enough to be meaningful.</div> : (
         <>
-          <div className="mb-2 flex gap-2">
-            <button className={`btn ${!onlyHidden ? 'is-selected' : ''}`} onClick={() => setOnlyHidden(false)}>All · {g.cochange.length}</button>
-            <button data-testid="cochange-hidden-only" className={`btn ${onlyHidden ? 'is-selected' : ''}`} onClick={() => setOnlyHidden(true)}>Hidden coupling · {hidden}</button>
+          <div className="mb-3 flex gap-1.5">
+            <Chip on={!onlyHidden} onClick={() => setOnlyHidden(false)}>All · {g.cochange.length}</Chip>
+            <Chip testId="cochange-hidden-only" on={onlyHidden} onClick={() => setOnlyHidden(true)}>Hidden coupling · {hidden}</Chip>
           </div>
           <table className="tbl" data-testid="history-cochange">
             <thead><tr><th>Files</th><th className="num">Together</th><th className="num">Score</th><th>Import between them</th></tr></thead>
@@ -74,7 +84,7 @@ function CochangeCard({ g }: { g: GitResult }) {
                 <tr key={c.a + '\u0000' + c.b}>
                   <td><div><FileLink file={c.a} /></div><div><FileLink file={c.b} /></div></td>
                   <td className="num">{c.count}</td>
-                  <td className="num">{c.score.toFixed(2)}</td>
+                  <td className="num"><RiskBar value={c.score} label={c.score.toFixed(2)} tone="accent" width={56} /></td>
                   <td>{c.linked === undefined ? <span className="faint">unknown (re-analyse)</span> : c.linked ? <Badge>yes</Badge> : <Badge tone="warn">no: hidden coupling</Badge>}</td>
                 </tr>
               ))}
@@ -97,7 +107,7 @@ function OwnershipCard({ g }: { g: GitResult }) {
           <tbody>{g.busFactor.risky.map((r) => <tr key={r.file}><td><FileLink file={r.file} /></td><td>{r.author}</td><td className="num">{pctOf(r.share)}</td><td className="num">{r.commits}</td></tr>)}</tbody>
         </table>
       )}
-      <h3 className="mb-1 mt-4 text-xs font-semibold">Authors ({g.authors.length})</h3>
+      <h3 className="label mb-1 mt-5">Authors ({g.authors.length})</h3>
       <table className="tbl" data-testid="history-authors">
         <thead><tr><th>Author</th><th className="num">Commits</th><th className="num">Files touched</th></tr></thead>
         <tbody>{g.authors.slice(0, 15).map((au) => <tr key={au.email}><td>{au.name} <span className="faint">{au.email}</span></td><td className="num">{au.commits}</td><td className="num">{au.files}</td></tr>)}</tbody>
@@ -117,16 +127,14 @@ function MessagesCard({ g }: { g: GitResult }) {
         {types.map(([t, n]) => (
           <div key={t} className="flex items-center gap-2 text-[13px]" data-type={t}>
             <span className="w-24 shrink-0">{TYPE_LABEL[t] ?? t}</span>
-            <span className="h-2 rounded-full bg-[var(--bg3)]" style={{ width: '60%' }}>
-              <span className="block h-2 rounded-full bg-[var(--accent)]" style={{ width: `${(n / max) * 100}%` }} />
-            </span>
+            <span className="bar" style={{ width: '60%' }}><span className="bg-[var(--accent)]" style={{ width: `${(n / max) * 100}%` }} /></span>
             <span className="tnum muted">{n}</span>
           </div>
         ))}
       </div>
       {g.messages.keywords.length > 0 && (
         <>
-          <h3 className="mb-1 mt-4 text-xs font-semibold">Frequent words in commit subjects</h3>
+          <h3 className="label mb-1.5 mt-5">Frequent words in commit subjects</h3>
           <div className="flex flex-wrap gap-1.5" data-testid="history-keywords">
             {g.messages.keywords.slice(0, 24).map((k) => <Badge key={k.word}>{k.word} <span className="faint tnum">{k.count}</span></Badge>)}
           </div>
@@ -267,7 +275,7 @@ export function HistoryView() {
   return (
     <Page title="History" intro="How the code got here, read from the .git folder in your browser. Counts are exact; what they suggest (coupling, ownership risk) is a heuristic signal to check, not a verdict.">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="history-stats">
-        <Stat label="Commits analysed" value={fmtNum(g.totalCommits)} sub={g.truncated ? 'most recent only (history truncated)' : last ? `since ${day(last.time)}` : undefined} />
+        <Stat label="Commits analysed" value={fmtNum(g.totalCommits)} spark={commitsOverTime(g)} sparkColor="var(--accent)" sub={g.truncated ? 'most recent only (history truncated)' : last ? `since ${day(last.time)}` : undefined} />
         <Stat label="Authors" value={fmtNum(g.authors.length)} sub={g.authors[0] ? `most active: ${g.authors[0].name}` : undefined} />
         <Stat label="Bus factor" value={<span data-testid="bus-factor">{g.busFactor.overall}</span>} sub="fewest people who own more than half of the files" />
         <Stat label="Branch" value={<span className="mono text-lg">{g.branch}</span>} sub={<span className="mono">HEAD {g.head.slice(0, 7)}{g.tags.length ? ` · ${g.tags.length} tag(s)` : ''}</span>} />

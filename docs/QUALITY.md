@@ -67,6 +67,13 @@ How to read it:
   `.d.ts` files that must change with their `.js` (genuine, D29). The 27 fastify renames are its `*.test-d.ts` →
   `*.tst.ts` migration; those files now keep their history, which is why the pair count went up.
 
+### Colour contrast (U2, 2026-11-19)
+
+`npm run audit:contrast` checks every token pair the UI renders, in both themes (results printed, exit 1 on failure).
+All pairs pass WCAG AA. Lowest margins: light `--fg3` on the page 4.58:1 (tertiary text, labels); light
+`--r-config` badge text on its tint 4.67:1; light `--r-int` graph dot 4.48:1 (non-text, needs 3:1). The mockup's
+white-on-terracotta button text (3.1:1) and raw role colours as badge text (down to 3.3:1) failed and were changed (D34).
+
 ### Scale
 
 Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench:scale`.
@@ -101,6 +108,17 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 
 ### Export (M8)
 - PDF relies on the browser's print dialog; layout differs slightly between browsers.
+- The Print button switches to the light theme while the dialog is open. Printing with Ctrl/Cmd+P in dark mode prints
+  dark cards and diagrams on white paper.
+
+### UI (U2)
+- Folder labels in graphs sit centred above the box: Cytoscape can't place a compound node's label inside its top-left
+  corner (the mockup's position).
+- Graph labels are one font size: the subtitle line (role · size) can't be smaller or dimmer than the name.
+- Canvas waits at most 1.5 s for Geist Mono; on a very slow first load a graph may draw in the fallback monospace
+  until it is rebuilt (e.g. filter change).
+- Below 900 px the side nav is an icon rail (labels in tooltips); below 1100 px the source panel overlays the view.
+  Phone widths are usable but not designed for (dense tables scroll).
 
 ### Git (M9)
 - Commit walk is capped (`maxGitCommits`, default 500, most recent first); at most 10 snapshots (4 on projects with

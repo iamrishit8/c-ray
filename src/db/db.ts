@@ -26,6 +26,7 @@ export interface ProjectMeta {
   hasHandle: boolean;
 }
 
+// Kept from before the rename to imex so saved projects survive (D33).
 const DB_NAME = 'c-ray';
 const DB_VERSION = 1;
 const CHUNK = 400;

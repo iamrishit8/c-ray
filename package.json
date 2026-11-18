@@ -1,9 +1,9 @@
 {
-  "name": "c-ray",
+  "name": "imex",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "C-Ray (Codebase X-Ray): understand any unfamiliar codebase, entirely in your browser.",
+  "description": "imex: understand any unfamiliar codebase, entirely in your browser.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -18,7 +18,8 @@
     "postinstall": "node scripts/copy-assets.mjs",
     "predev": "node scripts/copy-assets.mjs",
     "prebuild": "node scripts/copy-assets.mjs",
-    "bench:git": "vitest run tests/bench/git-real.test.ts"
+    "bench:git": "vitest run tests/bench/git-real.test.ts",
+    "audit:contrast": "node scripts/contrast-audit.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

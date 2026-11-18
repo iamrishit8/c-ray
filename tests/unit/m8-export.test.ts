@@ -84,7 +84,7 @@ describe('export', () => {
     const zip = zipSync(Object.fromEntries(pages.map((p) => [p.path, strToU8(p.content)])));
     const files = unzipSync(zip);
     const paths = Object.keys(files);
-    const root = 'nestjs-prisma X-ray';
+    const root = 'nestjs-prisma imex report';
     expect(paths).toContain(`${root}.md`);
     expect(paths.filter((p) => p.startsWith(`${root}/`)).length).toBe(buildSections(a).length);
     for (const p of paths) {

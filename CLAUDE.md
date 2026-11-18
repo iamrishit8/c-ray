@@ -1,4 +1,4 @@
-# C-Ray — Codebase X-Ray
+# imex: codebase explainer (formerly C-Ray)
 
 A static web app that explains an unfamiliar codebase (structure, request flows, data model, risk,
 history) **entirely in the browser**. The user drops a file, folder or ZIP; nothing leaves the machine.

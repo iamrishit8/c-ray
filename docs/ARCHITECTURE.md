@@ -1,6 +1,6 @@
 # Architecture
 
-C-Ray is a **static site**. There is no backend: ingestion, parsing, analysis, persistence and export all
+imex (formerly C-Ray) is a **static site**. There is no backend: ingestion, parsing, analysis, persistence and export all
 happen in the browser tab. The same analysis code also runs in Node for tests and benchmarks.
 
 ## Layers at a glance
@@ -56,8 +56,9 @@ flowchart LR
 | `src/workers/` | `analysis.worker.ts` (coordinator), `pool.ts` + `parse.worker.ts` (parsing), `l2.worker.ts`, `protocol.ts`, `client.ts`. | |
 | `src/db/db.ts` | IndexedDB stores: `projects`, `analyses`, `sources`, `cache`, `settings`, `handles`. | Retention + quota handling. |
 | `src/store/store.ts` | Single Zustand store: app status, settings, current analysis, tab, source panel, cross-view focus. | |
-| `src/ui/` | React views (one per tab), `kit.tsx` (shared components), `Graph.tsx` (Cytoscape), `Mermaid.tsx`, `SourcePanel.tsx`, `markdown.ts` (report Markdown → HTML: raw HTML escaped, unsafe URL schemes dropped; DOM-free, unit-tested). | |
+| `src/ui/` | React views (one per tab), `kit.tsx` (shared components, `PageGroup` context, `listKeys`), `Graph.tsx` (Cytoscape + zoom/legend/minimap overlays, colours from tokens, D35), `Mermaid.tsx` (base theme from tokens), `SourcePanel.tsx`, `icons.ts` (lucide icon per tab), `Logo.tsx`, `sample.ts` (bundled sample project, lazy chunk), `markdown.ts` (report Markdown → HTML: raw HTML escaped, unsafe URL schemes dropped; DOM-free, unit-tested). | |
 | `scripts/copy-assets.mjs` | Copies grammar WASMs + TS lib `.d.ts` into `public/` (pre-dev/build/install). | Generated, git-ignored. |
+| `scripts/contrast-audit.mjs` | `npm run audit:contrast`: WCAG ratios of the token pairs in `src/index.css`, both themes (D34). | Exits 1 below AA. |
 | `vite.config.ts` | Build + `offlinePlugin` that generates `sw.js` precaching all assets. | |
 | `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects + `git-history` + `git-moves` ground truth), `git-fixture.ts` (builds the git-history and git-moves repos at test time, D28). | |
 
@@ -96,8 +97,10 @@ Cancel = terminate the coordinator worker (the client re-creates it).
 
 ## UI shell
 
-`App` (header, banners) → `Home` (drop zone, settings, stored projects) or `ProjectView` (grouped side nav + current
-view + `SourcePanel`). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share; History
+`App` (56 px top bar: logo, project crumb, privacy pill, theme; banners) → `Home` (hero, drop zone, sample project,
+feature strip, settings, stored projects) or `ProjectView` (grouped side nav with icons, an icon rail below 900 px;
+current view wrapped in `PageGroup` so `Page` shows the group as its eyebrow; `SourcePanel`, an overlay below
+1100 px). `ProjectView` also owns the `/` shortcut (focus `[data-search-focus]` or open Search). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share; History
 sits in Assess after Impact);
 `projectOnly` tabs are hidden in File Mode. Views read `analysis` from the store; cross-view navigation uses
 `setTab(tab, focus)`.
@@ -106,4 +109,4 @@ sits in Assess after Impact);
 
 Per project: metadata, the `Analysis`, sources (chunked; dropped first when quota is hit), and the per-file parse
 cache keyed by content hash (incremental re-analysis). Project id = hash of the name (D5). Retention: 1d/7d/30d/forever.
-Theme is in `localStorage` (D11).
+Theme is in `localStorage` under `imex-theme` (D11, D33). The IndexedDB name is still `c-ray` (D33).

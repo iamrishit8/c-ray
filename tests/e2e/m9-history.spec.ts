@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 import { zipSync } from 'fflate';
 import { readFileSync } from 'node:fs';
-import { gitHistoryFiles } from '../git-fixture';
+import { gitHistoryFiles, gitMovesFiles } from '../git-fixture';
 import { analyzeFixture, openTab, uploadZip } from './util';
 
 async function gitHistoryZip(): Promise<Buffer> {
@@ -70,4 +70,22 @@ test('history: a project without .git shows an explanation', async ({ page }) =>
   await analyzeFixture(page, 'express-mongoose');
   await openTab(page, 'history');
   await expect(page.getByTestId('history-empty')).toContainText('.git');
+});
+
+test('history: renamed files keep their history and are listed with confidence', async ({ page }) => {
+  const files: Record<string, Uint8Array> = {};
+  for (const f of await gitMovesFiles()) files[`git-moves/${f.path}`] = f.bytes;
+  await page.goto('/');
+  await uploadZip(page, 'git-moves', Buffer.from(zipSync(files)));
+  await expect(page.getByTestId('progress')).toHaveCount(0, { timeout: 90_000 });
+  await openTab(page, 'history');
+
+  const renames = page.getByTestId('history-renames');
+  await expect(renames.locator('tbody tr')).toHaveCount(2);
+  await expect(renames.locator('tbody tr').first()).toContainText('lib/fmt.js');
+  await expect(renames.locator('tbody tr').first().locator('[data-conf]')).toHaveText('heuristic');
+  await expect(renames.locator('tbody tr').nth(1).locator('[data-conf]')).toHaveText('resolved');
+  // churn for the renamed file includes the commits made under its old name (5, not 2)
+  const row = page.getByTestId('history-churn').locator('tbody tr', { hasText: 'lib/helpers.js' });
+  await expect(row.locator('td').nth(1)).toHaveText('5');
 });

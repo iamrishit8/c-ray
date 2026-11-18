@@ -13,7 +13,7 @@ function themeVariables() {
     lineColor: v('fg3'), textColor: v('fg'), nodeTextColor: v('fg'), titleColor: v('fg'),
     clusterBkg: v('bg3'), clusterBorder: v('line2'), edgeLabelBackground: v('bg2'),
     // ER diagrams
-    attributeBackgroundColorOdd: v('bg2'), attributeBackgroundColorEven: v('bg3'),
+    attributeBackgroundColorOdd: v('bg2'), attributeBackgroundColorEven: v('bg3'), rowOdd: v('bg2'), rowEven: v('bg3'),
     // sequence diagrams
     actorBkg: v('bg2'), actorBorder: v('line2'), actorTextColor: v('fg'), actorLineColor: v('line2'), signalColor: v('fg2'), signalTextColor: v('fg'),
     labelBoxBkgColor: v('bg3'), labelBoxBorderColor: v('line2'), labelTextColor: v('fg'), loopTextColor: v('fg2'),

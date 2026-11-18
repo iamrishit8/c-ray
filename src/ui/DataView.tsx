@@ -3,7 +3,7 @@ import { modelOf } from '../core/model';
 import { erToMermaid } from '../core/schema';
 import { groupBy } from '../core/util';
 import { useStore } from '../store/store';
-import { Badge, Card, ConfBadge, Empty, FileLink, Page, Pending } from './kit';
+import { Badge, Card, ConfBadge, Empty, FileLink, Page, Pending, RoleBadge, listKeys } from './kit';
 import { Mermaid } from './Mermaid';
 
 export function DataView() {
@@ -22,24 +22,24 @@ export function DataView() {
   };
   const current = entities.find((e) => e.name === sel) ?? null;
   return (
-    <Page title="Data model & data flow" intro="Entities, fields, relations and indexes reconstructed from ORM models, migrations and SQL — and which code reads or writes each entity. Reconstruction is syntactic: check the linked source before relying on a detail.">
+    <Page title="Data model" intro="Entities, fields, relations and indexes reconstructed from ORM models, migrations and SQL, and which code reads or writes each entity. Reconstruction is syntactic: check the linked source before relying on a detail.">
       {entities.length === 0 ? (
-        <Empty>No schema definitions were found (Prisma, Mongoose, TypeORM, Sequelize, SQLAlchemy, Django, JPA, ActiveRecord, Eloquent, EF Core, GORM, migrations or SQL DDL).</Empty>
+        <Empty title="No data model found">No schema definitions were found (Prisma, Mongoose, TypeORM, Sequelize, SQLAlchemy, Django, JPA, ActiveRecord, Eloquent, EF Core, GORM, migrations or SQL DDL).</Empty>
       ) : (
         <>
-          <Card title={`Entity-relationship diagram (${entities.length} entities, ${relations.length} relations)`} right={entities.length > 60 ? <span className="text-xs faint">first 60 entities</span> : undefined}>
+          <Card testId="er-card" title={`Entity-relationship diagram (${entities.length} entities, ${relations.length} relations)`} right={entities.length > 60 ? <span className="text-xs faint">first 60 entities</span> : undefined}>
             <Mermaid code={er} testId="er-diagram" />
           </Card>
           <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
             <Card title="Entities">
-              <ul className="space-y-0.5 text-[13px]" data-testid="entity-list">
+              <ul className="space-y-0.5 text-[13px]" data-testid="entity-list" onKeyDown={listKeys(entities.map((e) => e.name), current?.name ?? null, setSel)} aria-label="Entities (use arrow keys)">
                 {entities.map((e) => {
                   const acc = byEntity.get(e.name) ?? [];
                   return (
                     <li key={e.name}>
-                      <button className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${current?.name === e.name ? 'is-selected' : 'hover:bg-[var(--bg3)]'}`} onClick={() => setSel(e.name)}>
-                        <span className="mono font-semibold">{e.name}</span>
-                        <span className={`text-[11px] ${current?.name === e.name ? '' : 'faint'}`}>{e.fields.length} fields · {acc.filter((x) => x.op === 'read').length}R/{acc.filter((x) => x.op === 'write').length}W</span>
+                      <button data-key={e.name} aria-current={current?.name === e.name ? 'true' : undefined} className={`flex w-full items-center justify-between gap-2 rounded-[var(--r-sm)] px-2.5 py-1.5 text-left ${current?.name === e.name ? 'is-selected' : 'hover:bg-[var(--bg3)]'}`} onClick={() => setSel(e.name)}>
+                        <span className="mono font-medium">{e.name}</span>
+                        <span className={`tnum whitespace-nowrap text-[11px] font-normal ${current?.name === e.name ? '' : 'faint'}`}>{e.fields.length} fields · {acc.filter((x) => x.op === 'read').length}R/{acc.filter((x) => x.op === 'write').length}W</span>
                       </button>
                     </li>
                   );
@@ -54,7 +54,7 @@ export function DataView() {
                     <tbody>
                       {current.fields.map((f) => (
                         <tr key={f.name}>
-                          <td className="mono font-semibold">{f.name}</td><td className="mono">{f.type}</td>
+                          <td className="mono font-medium">{f.name}</td><td className="mono muted">{f.type}</td>
                           <td className="space-x-1">{f.pk && <Badge tone="accent">PK</Badge>}{f.unique && <Badge>unique</Badge>}{f.nullable === false && <Badge>not null</Badge>}{f.nullable === true && <Badge>nullable</Badge>}{f.ref && <Badge tone="warn">→ {f.ref}</Badge>}</td>
                           <td><FileLink file={current.file} line={f.line} label={`:${f.line}`} /></td>
                         </tr>
@@ -63,10 +63,10 @@ export function DataView() {
                     </tbody>
                   </table>
                   {current.indexes.length > 0 && (
-                    <div className="mt-3 text-[13px]"><b>Indexes:</b> {current.indexes.map((ix, i) => <span key={i} className="mr-3"><FileLink file={current.file} line={ix.line} label={`(${ix.fields.join(', ')})`} />{ix.unique && <> <Badge>unique</Badge></>}</span>)}</div>
+                    <div className="mt-4 text-[13px]"><span className="label mr-2">Indexes</span> {current.indexes.map((ix, i) => <span key={i} className="mr-3"><FileLink file={current.file} line={ix.line} label={`(${ix.fields.join(', ')})`} />{ix.unique && <> <Badge>unique</Badge></>}</span>)}</div>
                   )}
                   {relations.some((r) => r.from === current.name || r.to === current.name) && (
-                    <div className="mt-2 text-[13px]"><b>Relations:</b>
+                    <div className="mt-4 text-[13px]"><span className="label">Relations</span>
                       <ul className="mt-1 space-y-0.5">
                         {relations.filter((r) => r.from === current.name || r.to === current.name).map((r, i) => (
                           <li key={i}><span className="mono">{r.from}</span> <Badge>{r.kind}</Badge> <span className="mono">{r.to}</span>{r.via && <span className="faint"> via {r.via}</span>} — <FileLink file={r.file} line={r.line} /> <ConfBadge c={r.conf} /></li>
@@ -86,7 +86,7 @@ export function DataView() {
                             <td><FileLink file={x.file} line={x.line} /></td>
                             <td className="mono">{where(x.file, x.line)}</td>
                             <td className="muted">{x.detail}</td>
-                            <td className="muted">{m.file(x.file)?.role}</td>
+                            <td>{m.file(x.file) && <RoleBadge role={m.file(x.file)!.role}>{m.file(x.file)!.role}</RoleBadge>}</td>
                           </tr>
                         ))}
                       </tbody>

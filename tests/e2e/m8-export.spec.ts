@@ -8,7 +8,7 @@ test('export: Markdown, Notion ZIP and JSON downloads; section selection', async
   await openTab(page, 'export');
 
   const [md] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-md').click()]);
-  expect(md.suggestedFilename()).toBe('express-mongoose-xray.md');
+  expect(md.suggestedFilename()).toBe('express-mongoose-imex.md');
   const text = readFileSync((await md.path())!, 'utf8');
   expect(text).toContain('# express-mongoose');
   expect(text).toContain('## Routes and flows');
@@ -20,8 +20,8 @@ test('export: Markdown, Notion ZIP and JSON downloads; section selection', async
 
   const [zip] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-notion').click()]);
   const files = Object.keys(unzipSync(new Uint8Array(readFileSync((await zip.path())!))));
-  expect(files).toContain('express-mongoose X-ray.md');
-  expect(files.some((f) => f.startsWith('express-mongoose X-ray/01 Orientation'))).toBe(true);
+  expect(files).toContain('express-mongoose imex report.md');
+  expect(files.some((f) => f.startsWith('express-mongoose imex report/01 Orientation'))).toBe(true);
   expect(files.some((f) => f.includes('Hotspots'))).toBe(false);
 
   const [json] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);

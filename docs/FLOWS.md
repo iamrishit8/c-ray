@@ -1,6 +1,6 @@
 # Runtime flows
 
-How data moves through C-Ray at runtime. Update when a flow changes.
+How data moves through imex at runtime. Update when a flow changes.
 
 ## 1. Analyse a dropped project
 
@@ -14,8 +14,8 @@ sequenceDiagram
   participant L2 as L2 worker
   participant DB as IndexedDB
 
-  U->>H: drop folder / files / ZIP
-  H->>H: fromDrop / fromFileList / fromDirectoryHandle (prune ignored dirs)
+  U->>H: drop folder / files / ZIP, or "Try a sample project"
+  H->>H: fromDrop / fromFileList / fromDirectoryHandle (prune ignored dirs), or samplePicked() (lazy chunk, memory source)
   H->>S: analyze(picked)
   S->>C: rpc analyze {source, name, options, retention}
   C->>DB: loadCache(projectId)
@@ -35,6 +35,9 @@ sequenceDiagram
   C-->>S: result {meta, persisted}
   S->>U: ProjectView renders progressively
 ```
+
+The sample project is the `express-mongoose` fixture inlined at build time (`src/ui/sample.ts`), analysed and stored
+like any other project under the name `sample-express-api`; nothing is fetched.
 
 Failure rules: a failing stage adds a notice and the run continues; an ingest failure (nothing analysable) returns a
 user-facing error and Home shows the skipped list.

@@ -4,7 +4,7 @@ import type { Occurrence, SearchResult } from '../core/search';
 import type { Analysis } from '../core/types';
 import { useStore } from '../store/store';
 import { worker } from '../workers/client';
-import { Badge, Card, ConfBadge, Empty, FileLink, Page } from './kit';
+import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page } from './kit';
 
 /** Find-references: exact (L2) and heuristic (L1) edges first, then plain text matches labelled unresolved. */
 export function References({ a, sym }: { a: Analysis; sym: number }) {
@@ -71,14 +71,16 @@ export function SearchView() {
   return (
     <Page title="Search" intro="Full-text and symbol search over the analysed files. Click a symbol to jump to its definition; “References” lists where it is used (exact for TypeScript/JavaScript, heuristic elsewhere).">
       <div className="flex flex-wrap items-center gap-2">
-        <input autoFocus data-testid="search-input" className="input w-full max-w-xl" placeholder="Search symbols, text or file paths…" value={q} onChange={(e) => { setQ(e.target.value); setRefSym(null); }} />
-        {(['all', 'symbol', 'text'] as const).map((k) => (
-          <label key={k} className="flex items-center gap-1 text-[13px]"><input type="radio" name="kind" checked={kind === k} onChange={() => setKind(k)} />{k === 'all' ? 'Everything' : k === 'symbol' ? 'Symbols' : 'Text'}</label>
-        ))}
+        <input autoFocus data-testid="search-input" data-search-focus className="input w-full max-w-xl !py-2" placeholder="Search symbols, text or file paths…" value={q} onChange={(e) => { setQ(e.target.value); setRefSym(null); }} aria-label="Search" />
+        <div className="flex gap-1.5" role="group" aria-label="Search in">
+          {(['all', 'symbol', 'text'] as const).map((k) => (
+            <Chip key={k} on={kind === k} onClick={() => setKind(k)} testId={`search-kind-${k}`}>{k === 'all' ? 'Everything' : k === 'symbol' ? 'Symbols' : 'Text'}</Chip>
+          ))}
+        </div>
         {busy && <span className="faint text-xs">searching…</span>}
       </div>
       {refSym !== null && <Card title="Find references" right={<button className="btn" onClick={() => setRefSym(null)}>Close</button>}><References a={a} sym={refSym} /></Card>}
-      {!res ? <Empty>Type to search {a.symbols.length.toLocaleString()} definitions and {a.files.length.toLocaleString()} files.</Empty> : (
+      {!res ? <Empty title="Search everything that was analysed">Type to search {a.symbols.length.toLocaleString()} definitions and {a.files.length.toLocaleString()} files.</Empty> : (
         <>
           {kind !== 'text' && (
             <Card title={`Symbols (${res.symbols.length})`}>
@@ -89,7 +91,7 @@ export function SearchView() {
                       const s = a.symbols[h.sym];
                       return (
                         <tr key={h.sym}>
-                          <td><button className="link mono font-semibold" onClick={() => openSource(m.path(s.file), s.line, s.endLine)}>{m.symLabel(h.sym)}</button></td>
+                          <td><button className="link mono font-medium" onClick={() => openSource(m.path(s.file), s.line, s.endLine)}>{m.symLabel(h.sym)}</button></td>
                           <td><Badge>{s.kind}</Badge></td>
                           <td><FileLink file={m.path(s.file)} line={s.line} /></td>
                           <td className="text-right"><button className="btn" data-testid="find-refs" onClick={() => setRefSym(h.sym)}>References ({m.refsTo.get(h.sym)?.length ?? 0})</button></td>

@@ -1,5 +1,5 @@
 // Shared UI building blocks (D27 look). Plain and readable on purpose; colours only via CSS tokens.
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { Confidence, Role } from '../core/types';
 import { useStore } from '../store/store';
 
@@ -23,9 +23,9 @@ export type Tone = 'plain' | 'accent' | 'ok' | 'warn' | 'bad';
 const TONES: Record<Tone, string> = {
   plain: 'bg-[var(--bg3)] text-[var(--fg2)]',
   accent: 'bg-[var(--accent-soft)] text-[var(--accent-text)]',
-  ok: 'text-[var(--ok)] bg-[var(--ok-soft)]',
-  warn: 'text-[var(--warn)] bg-[var(--warn-soft)]',
-  bad: 'text-[var(--bad)] bg-[var(--bad-soft)]',
+  ok: 'text-[color-mix(in_srgb,var(--ok)_var(--tint-text),var(--fg))] bg-[var(--ok-soft)]',
+  warn: 'text-[color-mix(in_srgb,var(--warn)_var(--tint-text),var(--fg))] bg-[var(--warn-soft)]',
+  bad: 'text-[color-mix(in_srgb,var(--bad)_var(--tint-text),var(--fg))] bg-[var(--bad-soft)]',
 };
 
 export function Badge({ children, tone = 'plain', title }: { children: ReactNode; tone?: Tone; title?: string }) {
@@ -49,7 +49,7 @@ export const roleVar = (role: Role) => `var(--r-${ROLE_FAMILY[role]})`;
 export function RoleBadge({ role, children, title }: { role: Role; children: ReactNode; title?: string }) {
   const c = roleVar(role);
   return (
-    <span title={title} data-role={role} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full py-px pl-2 pr-2.5 text-[11.5px] font-medium leading-[18px]" style={{ color: c, background: `color-mix(in srgb, ${c} var(--soft), transparent)` }}>
+    <span title={title} data-role={role} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full py-px pl-2 pr-2.5 text-[11.5px] font-medium leading-[18px]" style={{ color: `color-mix(in srgb, ${c} var(--tint-text), var(--fg))`, background: `color-mix(in srgb, ${c} var(--soft), var(--bg2))` }}>
       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
       {children}
     </span>
@@ -61,7 +61,8 @@ export function PathText({ path, line }: { path: string; line?: number }) {
   const cut = path.lastIndexOf('/') + 1;
   return (
     <>
-      {cut > 0 && <span className="dir">{path.slice(0, cut)}</span>}
+      {/* <wbr> lets long paths wrap after the directory instead of mid-name */}
+      {cut > 0 && <><span className="dir">{path.slice(0, cut)}</span><wbr /></>}
       {path.slice(cut)}
       {line ? <span className="dir">:{line}</span> : null}
     </>
@@ -73,7 +74,7 @@ export function FileLink({ file, line, endLine, label, className = '' }: { file:
   const openSource = useStore((s) => s.openSource);
   if (!file) return <span className="faint">{label ?? '—'}</span>;
   return (
-    <button className={`file mono break-all text-left ${className}`} data-ref={`${file}:${line ?? 1}`} onClick={() => openSource(file, line ?? 1, endLine)} title={`Open ${file}${line ? `:${line}` : ''}`}>
+    <button className={`file mono text-left [overflow-wrap:anywhere] ${className}`} data-ref={`${file}:${line ?? 1}`} onClick={() => openSource(file, line ?? 1, endLine)} title={`Open ${file}${line ? `:${line}` : ''}`}>
       {label ?? <PathText path={file} line={line} />}
     </button>
   );
@@ -189,4 +190,19 @@ export function RiskBar({ value, label, tone, width = 96 }: { value: number; lab
 /** Shows the first `limit` rows with a "show all" toggle; keeps huge lists cheap to render. */
 export function capped<T>(items: T[], limit: number): { rows: T[]; more: number } {
   return { rows: items.slice(0, limit), more: Math.max(0, items.length - limit) };
+}
+
+/** ↑/↓ (and Home/End) move the selection in a list + detail view. Put the handler on the list container;
+ *  rows are buttons carrying `data-key`, so focus follows the selection. */
+export function listKeys<K extends string>(keys: K[], current: K | null, select: (k: K) => void) {
+  return (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) || keys.length === 0) return;
+    e.preventDefault();
+    const i = current === null ? -1 : keys.indexOf(current);
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? keys.length - 1 : Math.max(0, Math.min(keys.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)));
+    select(keys[next]);
+    const el = e.currentTarget.querySelector<HTMLElement>(`[data-key="${CSS.escape(keys[next])}"]`);
+    el?.focus();
+    el?.scrollIntoView({ block: 'nearest' });
+  };
 }

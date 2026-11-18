@@ -1,4 +1,6 @@
-# C-Ray — Codebase X-Ray
+# imex
+
+A codebase explainer that runs entirely in your browser (formerly C-Ray).
 
 Drop in a file, a folder or a ZIP and get an interactive explanation of an unfamiliar codebase:
 what it is, how it is organised, how requests and data flow, what is risky, and why it appears to be

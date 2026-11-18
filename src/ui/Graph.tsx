@@ -242,6 +242,11 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
         inst.layout({ name: 'grid' }).run();
       }
       if (keep && hadView) inst.viewport(hadView);
+      // tiny graphs: fitting would blow 3 nodes up to poster size
+      else if (inst.zoom() > 1.25) {
+        inst.zoom(1.25);
+        inst.center();
+      }
       inst.on('tap', 'node', (e) => {
         focus(inst, e.target.id());
         handlers.current.onSelect?.(e.target.id());

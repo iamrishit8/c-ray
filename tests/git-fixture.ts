@@ -178,7 +178,7 @@ export async function gitHistoryFiles(): Promise<{ path: string; bytes: Uint8Arr
 
 /** Build a repository from a list of commits (oldest first) and return its working tree + `.git/`. */
 export async function buildRepo(history: Step[]): Promise<{ path: string; bytes: Uint8Array }[]> {
-  const dir = mkdtempSync(join(tmpdir(), 'cray-git-'));
+  const dir = mkdtempSync(join(tmpdir(), 'imex-git-'));
   try {
     await git.init({ fs, dir, defaultBranch: 'main' });
     for (let i = 0; i < history.length; i++) {

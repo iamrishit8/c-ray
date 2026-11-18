@@ -7,7 +7,7 @@ import { join, relative } from 'node:path';
 /** Emits sw.js with the list of built assets so the app works offline after first load. */
 function offlinePlugin() {
   return {
-    name: 'c-ray-offline',
+    name: 'imex-offline',
     apply: 'build' as const,
     closeBundle() {
       const dist = join(import.meta.dirname, 'dist');
@@ -22,7 +22,7 @@ function offlinePlugin() {
       walk(dist);
       const version = Date.now().toString(36);
       const sw = `// generated at build time
-const CACHE = 'c-ray-${version}';
+const CACHE = 'imex-${version}';
 const ASSETS = ${JSON.stringify(['./', ...files])};
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
