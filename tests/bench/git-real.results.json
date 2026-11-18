@@ -1,0 +1,65 @@
+[
+  {
+    "repo": "express",
+    "date": "2026-11-18",
+    "maxGitCommits": 500,
+    "files": 216,
+    "gitBytesMB": 11.5,
+    "commits": 500,
+    "truncated": true,
+    "snapshots": 10,
+    "authors": 110,
+    "cochangePairs": 24,
+    "hiddenCoupling": 3,
+    "busFactor": 1,
+    "gitStageMs": 1762,
+    "totalMs": 2142,
+    "rssStartMB": 110,
+    "rssPeakMB": 679,
+    "notes": [
+      "History is long: only the most recent 500 commits were analysed."
+    ]
+  },
+  {
+    "repo": "fastify",
+    "date": "2026-11-18",
+    "maxGitCommits": 500,
+    "files": 389,
+    "gitBytesMB": 12.4,
+    "commits": 500,
+    "truncated": true,
+    "snapshots": 10,
+    "authors": 147,
+    "cochangePairs": 88,
+    "hiddenCoupling": 55,
+    "busFactor": 5,
+    "gitStageMs": 4211,
+    "totalMs": 5577,
+    "rssStartMB": 111,
+    "rssPeakMB": 838,
+    "notes": [
+      "History is long: only the most recent 500 commits were analysed."
+    ]
+  },
+  {
+    "repo": "express",
+    "date": "2026-11-18",
+    "maxGitCommits": 2000,
+    "files": 216,
+    "gitBytesMB": 11.5,
+    "commits": 2000,
+    "truncated": true,
+    "snapshots": 10,
+    "authors": 271,
+    "cochangePairs": 80,
+    "hiddenCoupling": 27,
+    "busFactor": 1,
+    "gitStageMs": 3575,
+    "totalMs": 3997,
+    "rssStartMB": 111,
+    "rssPeakMB": 575,
+    "notes": [
+      "History is long: only the most recent 2000 commits were analysed."
+    ]
+  }
+]

@@ -62,9 +62,30 @@ print stylesheet), or JSON (`rpc exportJson`, built in the worker).
 
 ## 6. Git history (M9)
 
-`gitStage` → `analyzeGit(gitFiles)`: load `.git` into `MemFS` → walk commits (cap `maxGitCommits`) → churn, authors,
-bus factor, co-change, message types → pick ≤10 snapshots (≤40 MB each) → re-run a light pipeline (L1 + assemble) per
-snapshot, sharing parse results by blob hash → `analysis.git` + hotspot findings. No UI yet (see TODO M9).
+```mermaid
+sequenceDiagram
+  participant I as ingest
+  participant G as gitStage (coordinator)
+  participant E as analyzeGit (isomorphic-git + MemFS)
+  participant P as light pipeline (L1 + assemble)
+  participant U as HistoryView / report
+
+  I->>G: gitFiles (.git/* bytes, ≤250 MB, repo rooted at the project root)
+  G->>E: analyzeGit(gitFiles, analysis)
+  E->>E: load MemFS · resolve HEAD/branch · log ≤ maxGitCommits (+ shared pack cache)
+  E->>E: per commit: tree diff vs first parent → churn, authors, co-change pairs, message type
+  E->>E: churn list · bus factor · co-change + linked (import path ≤4 hops, D29) · tags peeled
+  loop ≤10 snapshots (HEAD, oldest, recent tags, evenly spaced; D30)
+    E->>P: code blobs at that commit (keepPaths, parse results shared by blob hash)
+    P-->>E: light Analysis → modules / edges / hotspots at the HEAD module depth
+  end
+  E-->>G: GitResult + churn×complexity hotspot findings
+  G-->>U: analysis.git (final snapshot), persisted with the analysis
+  U->>U: diffSnapshots(from, to) on demand (core/git/diff.ts, cheap)
+```
+
+No `.git` → `gitMessage` explains how to include it. Unreadable `.git` (or no commits) → the stage catches the error,
+sets `git = null` and a `gitMessage` with the reason; every other stage's output is kept.
 
 ## 7. Offline
 

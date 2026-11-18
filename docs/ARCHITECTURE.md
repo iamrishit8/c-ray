@@ -36,7 +36,7 @@ flowchart LR
 | `src/core/types.ts` | The `Analysis` model and every shared type. | Bump `ANALYSIS_VERSION` on breaking shape changes. |
 | `src/core/pipeline.ts` | `runPipeline`: ingest → per-file scan/L1 (cached) → L0 → plugged-in stages → snapshots. | Each stage wrapped in `time()`: failures become notices. |
 | `src/core/stages.ts` | The ordered stage list (`defaultStages`) + `gitStage`. | Add new analysis here. |
-| `src/core/ingest/` | Reading files/folders/ZIPs, ignore rules, binary/minified/generated detection, budgets. | Skips are recorded with a reason. |
+| `src/core/ingest/` | Reading files/folders/ZIPs, ignore rules, binary/minified/generated detection, budgets. | Skips are recorded with a reason. A shared root folder is stripped, except for memory sources with `keepPaths` (git snapshots). |
 | `src/core/l0/` | L0: languages, LOC, manifests, configs, docs, tech-stack detection. | No parsing needed. |
 | `src/core/l1/` | L1: tree-sitter extraction (13 grammars) + heuristic import/call resolver. | Confidence `heuristic` unless proven. |
 | `src/core/l2/tsgraph.ts` | L2: TypeScript compiler API program → exact defs/imports/refs for TS/JS. | Replaces L1 for those files (D13). |
@@ -47,7 +47,7 @@ flowchart LR
 | `src/core/deps.ts` | Cycles, coupling metrics, god modules, layering violations, packages. | |
 | `src/core/health.ts`, `scan.ts` | Findings: size, complexity, nesting, clones, dead exports, TODOs, secrets, eval, SQL concat, TLS. | |
 | `src/core/impact.ts` | Transitive dependents, affected entries/tests, risk score. | Called by the UI on demand. |
-| `src/core/git/` | History from an uploaded `.git` via isomorphic-git over an in-memory FS: churn, authors, bus factor, co-change, snapshots, diff. | **M9, UI pending.** |
+| `src/core/git/` | `analyze.ts`: history from an uploaded `.git` via isomorphic-git over an in-memory FS (`memfs.ts`): churn, authors, bus factor, co-change (+ `linked`, D29), message types, snapshots (D30), hotspot findings. `diff.ts`: `diffSnapshots` for time-travel (no isomorphic-git import, so the UI and report can use it). | Loaded lazily by `gitStage`. |
 | `src/core/orientation.ts`, `roles.ts` | Summary, architecture-style guesses, "read these first", file roles. | Re-run after each phase. |
 | `src/core/report.ts` | Markdown / Notion pages / diagrams for export. | |
 | `src/core/search.ts` | Symbol + full-text search index. | Built lazily in the coordinator. |
@@ -58,13 +58,13 @@ flowchart LR
 | `src/ui/` | React views (one per tab), `kit.tsx` (shared components), `Graph.tsx` (Cytoscape), `Mermaid.tsx`, `SourcePanel.tsx`. | |
 | `scripts/copy-assets.mjs` | Copies grammar WASMs + TS lib `.d.ts` into `public/` (pre-dev/build/install). | Generated, git-ignored. |
 | `vite.config.ts` | Build + `offlinePlugin` that generates `sw.js` precaching all assets. | |
-| `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects). | |
+| `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects + `git-history` ground truth), `git-fixture.ts` (builds the git-history repo at test time, D28). | |
 
 ## Analysis model
 
 `Analysis` (in `types.ts`) is one serialisable object per project. Key fields:
 `files`, `skipped`, `coverage`, `l0`, `symbols`, `imports`, `refs`, `frameworks`, `routes`, `entries`, `facts`,
-`schema`, `deps`, `findings`, `git`, `decisions` (M10, empty today), `orientation`, `notices`, `timings`, `stage`.
+`schema`, `deps`, `findings`, `git` (`GitResult` or `null`; `gitMessage` says why it is null), `decisions` (M10, empty today), `orientation`, `notices`, `timings`, `stage`.
 
 `stage` moves `l0 → graph → done`; the UI renders whatever is available (progressive snapshots).
 
@@ -96,7 +96,8 @@ Cancel = terminate the coordinator worker (the client re-creates it).
 ## UI shell
 
 `App` (header, banners) → `Home` (drop zone, settings, stored projects) or `ProjectView` (grouped side nav + current
-view + `SourcePanel`). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share);
+view + `SourcePanel`). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share; History
+sits in Assess after Impact);
 `projectOnly` tabs are hidden in File Mode. Views read `analysis` from the store; cross-view navigation uses
 `setTab(tab, focus)`.
 

@@ -41,6 +41,11 @@ const EXT_CANDIDATES = ['', '.ts', '.tsx', '.d.ts', '.js', '.jsx', '.mjs', '.cjs
 
 /** Resolves a relative-looking path against the project file set. */
 export function resolveFileLike(base: string, paths: Set<string>): string | null {
+  // '..' / '../' that lands on the project root (common in tests: require('..')) → root index file
+  if (base === '') {
+    for (const ext of EXT_CANDIDATES) if (ext.startsWith('/index') && paths.has(ext.slice(1))) return ext.slice(1);
+    return null;
+  }
   for (const ext of EXT_CANDIDATES) if (paths.has(base + ext)) return base + ext;
   // TS allows importing './x.js' for './x.ts'
   const m = /^(.*)\.(js|jsx|mjs|cjs)$/.exec(base);

@@ -9,6 +9,9 @@ import { decodeText, looksBinary, tick } from '../util';
 import { MemFS } from './memfs';
 
 type Git = typeof import('isomorphic-git');
+/** Shared arguments for every isomorphic-git call. `cache` keeps parsed packfile indexes
+ *  between calls; without it each call re-reads them (several times slower on real repos). */
+interface Repo { fs: MemFS; dir: string; cache: object }
 
 export interface GitDeps {
   /** Runs a light (L0 + L1) analysis of a historical file set. */
@@ -36,11 +39,38 @@ export function classifyMessage(msg: string): string {
   return 'other';
 }
 
-async function changedFiles(git: Git, fs: MemFS, oid: string, parentOid: string | undefined): Promise<string[]> {
+/** Is there an import path between two files (either direction, at most `hops` steps) at HEAD?
+ *  Co-change without one is hidden coupling. Bounded BFS from each queried file. */
+function importLinks(a: Analysis, hops = 4): (x: string, y: string) => boolean {
+  const idx = new Map(a.files.map((f, i) => [f.path, i]));
+  const out = new Map<number, number[]>();
+  for (const e of a.imports) if (e.to >= 0 && e.to !== e.from) out.set(e.from, [...(out.get(e.from) ?? []), e.to]);
+  const reach = new Map<number, Set<number>>();
+  const reachable = (from: number) => {
+    let seen = reach.get(from);
+    if (seen) return seen;
+    seen = new Set([from]);
+    let frontier = [from];
+    for (let d = 0; d < hops && frontier.length; d++) {
+      const next: number[] = [];
+      for (const n of frontier) for (const m of out.get(n) ?? []) if (!seen.has(m)) (seen.add(m), next.push(m));
+      frontier = next;
+    }
+    reach.set(from, seen);
+    return seen;
+  };
+  return (x, y) => {
+    const i = idx.get(x);
+    const j = idx.get(y);
+    return i !== undefined && j !== undefined && (reachable(i).has(j) || reachable(j).has(i));
+  };
+}
+
+async function changedFiles(git: Git, repo: Repo, oid: string, parentOid: string | undefined): Promise<string[]> {
   const out: string[] = [];
   const trees = parentOid ? [git.TREE({ ref: parentOid }), git.TREE({ ref: oid })] : [git.TREE({ ref: oid })];
   await git.walk({
-    fs, dir: DIR, trees,
+    ...repo, trees,
     map: async (path, entries) => {
       if (path === '.') return true;
       const [a, b] = parentOid ? entries : [null, entries[0]];
@@ -55,10 +85,17 @@ async function changedFiles(git: Git, fs: MemFS, oid: string, parentOid: string 
   return out;
 }
 
-async function snapshotAt(git: Git, fs: MemFS, oid: string, label: string, time: number, deps: GitDeps, blobCache: Map<string, string | null>, ignore: IgnoreMatcher): Promise<ArchSnapshot | null> {
+/** Module grouping depth: the shallowest that yields at least 4 modules. Chosen once (at HEAD)
+ *  so every snapshot groups files the same way and diffs compare like with like. */
+function moduleDepth(paths: string[]): number {
+  for (const d of [1, 2]) if (new Set(paths.map((p) => moduleOf(p, d))).size >= 4) return d;
+  return 3;
+}
+
+async function snapshotAt(git: Git, repo: Repo, oid: string, label: string, time: number, depth: number, deps: GitDeps, blobCache: Map<string, string | null>, ignore: IgnoreMatcher): Promise<ArchSnapshot | null> {
   const blobs: { path: string; oid: string }[] = [];
   await git.walk({
-    fs, dir: DIR, trees: [git.TREE({ ref: oid })],
+    ...repo, trees: [git.TREE({ ref: oid })],
     map: async (path, [entry]) => {
       if (path === '.' || !entry) return true;
       const type = await entry.type();
@@ -73,7 +110,7 @@ async function snapshotAt(git: Git, fs: MemFS, oid: string, label: string, time:
     let text = blobCache.get(b.oid);
     if (text === undefined) {
       try {
-        const { blob } = await git.readBlob({ fs, dir: DIR, oid: b.oid });
+        const { blob } = await git.readBlob({ ...repo, oid: b.oid });
         text = blob.length > 1024 * 1024 || looksBinary(blob) ? null : decodeText(blob);
       } catch {
         text = null;
@@ -88,10 +125,6 @@ async function snapshotAt(git: Git, fs: MemFS, oid: string, label: string, time:
   if (files.length === 0) return null;
   const a = await deps.analyzeSnapshot(files, label);
   const code = a.files.filter((f) => CODE_LANGS.has(f.lang));
-  const depth = (() => {
-    for (const d of [1, 2, 3]) if (new Set(code.map((f) => moduleOf(f.path, d))).size >= 4 || d === 3) return d;
-    return 2;
-  })();
   const mods = new Map<string, { name: string; files: number; loc: number }>();
   const langs: Record<string, number> = {};
   for (const f of code) {
@@ -125,11 +158,13 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   const git: Git = await import('isomorphic-git');
   const fs = new MemFS();
   for (const [path, bytes] of gitFiles) fs.load(`${DIR}/${path}`, bytes);
+  const repo: Repo = { fs, dir: DIR, cache: {} };
   const notes: string[] = [];
-  const head = await git.resolveRef({ fs, dir: DIR, ref: 'HEAD' });
-  const branch = (await git.currentBranch({ fs, dir: DIR }).catch(() => undefined)) || '(detached)';
+  const head = await git.resolveRef({ ...repo, ref: 'HEAD' });
+  const branch = (await git.currentBranch({ ...repo }).catch(() => undefined)) || '(detached)';
   const max = a.options.maxGitCommits;
-  const log = await git.log({ fs, dir: DIR, ref: head, depth: max + 1 });
+  const log = await git.log({ ...repo, ref: head, depth: max + 1 });
+  if (log.length === 0) throw new Error('the repository has no commits');
   const truncated = log.length > max;
   if (truncated) {
     log.length = max;
@@ -138,11 +173,11 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
 
   // tags (peel annotated tags to their commit)
   const tags: GitResult['tags'] = [];
-  for (const name of await git.listTags({ fs, dir: DIR }).catch(() => [] as string[])) {
+  for (const name of await git.listTags({ ...repo }).catch(() => [] as string[])) {
     try {
-      let oid = await git.resolveRef({ fs, dir: DIR, ref: `refs/tags/${name}` });
+      let oid = await git.resolveRef({ ...repo, ref: `refs/tags/${name}` });
       try {
-        const t = await git.readTag({ fs, dir: DIR, oid });
+        const t = await git.readTag({ ...repo, oid });
         oid = t.tag.object;
       } catch {
         /* lightweight tag */
@@ -158,6 +193,7 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   // per-commit changed files
   const commits: CommitInfo[] = [];
   const current = new Set(a.files.map((f) => f.path));
+  const isTest = new Set(a.files.filter((f) => f.test).map((f) => f.path));
   const churn = new Map<string, { commits: number; authors: Map<string, number>; last: number }>();
   const authors = new Map<string, { name: string; email: string; commits: number; files: Set<string> }>();
   const pairs = new Map<string, number>();
@@ -169,7 +205,7 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
     const who = c.commit.author;
     let files: string[] = [];
     try {
-      files = await changedFiles(git, fs, c.oid, c.commit.parent[0]);
+      files = await changedFiles(git, repo, c.oid, c.commit.parent[0]);
     } catch {
       failed++;
     }
@@ -190,7 +226,8 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
       const live = files.filter((f) => current.has(f) && CODE_LANGS.has(detectLanguage(f)));
       if (live.length >= 2 && live.length <= 25) {
         live.sort();
-        for (let x = 0; x < live.length; x++) for (let y = x + 1; y < live.length; y++) pairs.set(`${live[x]}\u0000${live[y]}`, (pairs.get(`${live[x]}\u0000${live[y]}`) ?? 0) + 1);
+        // test ↔ test pairs are skipped: a sweep across a test suite is not coupling
+        for (let x = 0; x < live.length; x++) for (let y = x + 1; y < live.length; y++) if (!(isTest.has(live[x]) && isTest.has(live[y]))) pairs.set(`${live[x]}\u0000${live[y]}`, (pairs.get(`${live[x]}\u0000${live[y]}`) ?? 0) + 1);
       }
     }
     const type = classifyMessage(c.commit.message);
@@ -205,7 +242,8 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   if (failed) notes.push(`${failed} commit(s) could not be diffed (missing objects, e.g. a shallow clone).`);
 
   const churnList = [...churn].filter(([f]) => current.has(f)).map(([file, c]) => {
-    const top = [...c.authors].sort((x, y) => y[1] - x[1])[0];
+    // ties go to the alphabetically first author so results don't depend on walk order
+    const top = [...c.authors].sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0];
     return { file, commits: c.commits, authors: c.authors.size, lastTime: c.last, topAuthor: top[0], topAuthorShare: Math.round((top[1] / c.commits) * 100) / 100 };
   }).sort((x, y) => y.commits - x.commits);
 
@@ -214,7 +252,7 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   for (const c of churnList) owned.set(c.topAuthor, (owned.get(c.topAuthor) ?? 0) + 1);
   let acc = 0;
   let bus = 0;
-  for (const [, n] of [...owned].sort((x, y) => y[1] - x[1])) {
+  for (const [, n] of [...owned].sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))) {
     acc += n;
     bus++;
     if (acc > churnList.length / 2) break;
@@ -223,9 +261,10 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
 
   const churnOf = new Map(churnList.map((c) => [c.file, c.commits]));
   const minPair = log.length > 60 ? 3 : 2;
+  const linked = importLinks(a);
   const cochange = [...pairs].filter(([, n]) => n >= minPair).map(([k, count]) => {
     const [x, y] = k.split('\u0000');
-    return { a: x, b: y, count, score: Math.round((count / Math.max(1, Math.min(churnOf.get(x) ?? count, churnOf.get(y) ?? count))) * 100) / 100 };
+    return { a: x, b: y, count, score: Math.round((count / Math.max(1, Math.min(churnOf.get(x) ?? count, churnOf.get(y) ?? count))) * 100) / 100, linked: linked(x, y) };
   }).sort((x, y) => y.count * y.score - x.count * x.score).slice(0, 200);
 
   // architecture snapshots: HEAD, tagged commits and evenly spaced samples
@@ -233,24 +272,30 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   const chosen = new Map<string, { label: string; time: number }>();
   const short = (oid: string) => oid.slice(0, 7);
   const byOid = new Map(commits.map((c) => [c.oid, c]));
-  chosen.set(commits[0].oid, { label: `HEAD (${short(commits[0].oid)})`, time: commits[0].time });
-  for (const t of tags.slice(-6)) {
-    const c = byOid.get(t.oid);
-    if (c && !chosen.has(t.oid)) chosen.set(t.oid, { label: `${t.name} (${short(t.oid)})`, time: c.time });
-  }
+  // big projects get fewer snapshots: each one re-parses the tree at that commit
   const budget = a.files.length > 4000 ? 4 : MAX_SNAPSHOTS;
+  chosen.set(commits[0].oid, { label: `HEAD (${short(commits[0].oid)})`, time: commits[0].time });
+  // most recent tags within the analysed window (listTags is alphabetical, not chronological)
+  const inWindow = tags.filter((t) => byOid.has(t.oid)).sort((x, y) => byOid.get(x.oid)!.time - byOid.get(y.oid)!.time);
+  for (const t of inWindow.slice(-Math.min(6, budget - 2))) {
+    if (!chosen.has(t.oid)) chosen.set(t.oid, { label: `${t.name} (${short(t.oid)})`, time: byOid.get(t.oid)!.time });
+  }
+  // the oldest analysed commit is the natural time-travel baseline
+  const oldest = commits[commits.length - 1];
+  if (!chosen.has(oldest.oid)) chosen.set(oldest.oid, { label: `${new Date(oldest.time).toISOString().slice(0, 10)} (${short(oldest.oid)})`, time: oldest.time });
   const firstParent = commits.filter((c) => c.files.length > 0 || commits.length < 20);
   for (let k = 1; chosen.size < Math.min(budget, firstParent.length) && k <= budget * 3; k++) {
     const c = firstParent[Math.min(firstParent.length - 1, Math.round((k / budget) * (firstParent.length - 1)))];
     if (!chosen.has(c.oid)) chosen.set(c.oid, { label: `${new Date(c.time).toISOString().slice(0, 10)} (${short(c.oid)})`, time: c.time });
   }
   const ignore = new IgnoreMatcher(DEFAULT_IGNORE);
+  const depth = moduleDepth(a.files.filter((f) => CODE_LANGS.has(f.lang)).map((f) => f.path));
   const blobCache = new Map<string, string | null>();
   let n = 0;
   for (const [oid, info] of [...chosen].sort((x, y) => x[1].time - y[1].time)) {
     deps.progress?.(`architecture snapshot ${++n} of ${chosen.size}`);
     try {
-      const s = await snapshotAt(git, fs, oid, info.label, info.time, deps, blobCache, ignore);
+      const s = await snapshotAt(git, repo, oid, info.label, info.time, depth, deps, blobCache, ignore);
       if (s) snapshots.push(s);
     } catch (e) {
       notes.push(`Snapshot at ${info.label} failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -278,33 +323,4 @@ export async function analyzeGit(gitFiles: Map<string, Uint8Array>, a: Analysis,
   };
 }
 
-export interface ArchDiff {
-  addedModules: ArchSnapshot['modules'];
-  removedModules: ArchSnapshot['modules'];
-  changedModules: { name: string; filesBefore: number; filesAfter: number; locBefore: number; locAfter: number }[];
-  addedEdges: ArchSnapshot['edges'];
-  removedEdges: ArchSnapshot['edges'];
-  hotspotGrowth: { file: string; before: number; after: number }[];
-  loc: [number, number];
-  files: [number, number];
-  avgComplexity: [number, number];
-}
-
-/** Architecture diff between two snapshots (time-travel). */
-export function diffSnapshots(before: ArchSnapshot, after: ArchSnapshot): ArchDiff {
-  const b = new Map(before.modules.map((m) => [m.name, m]));
-  const a = new Map(after.modules.map((m) => [m.name, m]));
-  const ek = (e: { from: string; to: string }) => `${e.from}\u0000${e.to}`;
-  const be = new Set(before.edges.map(ek));
-  const ae = new Set(after.edges.map(ek));
-  const hb = new Map(before.hotspots.map((h) => [h.file, h.complexity]));
-  return {
-    addedModules: after.modules.filter((m) => !b.has(m.name)),
-    removedModules: before.modules.filter((m) => !a.has(m.name)),
-    changedModules: after.modules.filter((m) => b.has(m.name) && (b.get(m.name)!.loc !== m.loc || b.get(m.name)!.files !== m.files)).map((m) => ({ name: m.name, filesBefore: b.get(m.name)!.files, filesAfter: m.files, locBefore: b.get(m.name)!.loc, locAfter: m.loc })).sort((x, y) => Math.abs(y.locAfter - y.locBefore) - Math.abs(x.locAfter - x.locBefore)),
-    addedEdges: after.edges.filter((e) => !be.has(ek(e))),
-    removedEdges: before.edges.filter((e) => !ae.has(ek(e))),
-    hotspotGrowth: after.hotspots.map((h) => ({ file: h.file, before: hb.get(h.file) ?? 0, after: h.complexity })).filter((h) => h.after !== h.before).sort((x, y) => y.after - y.before - (x.after - x.before)),
-    loc: [before.loc, after.loc], files: [before.files, after.files], avgComplexity: [before.avgComplexity, after.avgComplexity],
-  };
-}
+export { diffSnapshots, type ArchDiff } from './diff';

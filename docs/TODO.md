@@ -5,8 +5,8 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**Current milestone: M9: Git layer (finish).** The engine is in (`src/core/git/`, commit 9e85fdc). What's missing is
-the UI, tests and docs. After that comes M10.
+**M9: Git layer is done, waiting for owner review** (2026-11-18): History view, time-travel, History export
+section, planted-truth unit tests, e2e, real-repo measurement. Next, after approval: **U2** (visual redesign + rename to imex), then M10.
 
 ---
 
@@ -24,7 +24,7 @@ the UI, tests and docs. After that comes M10.
 | M8 | Export: Markdown, Notion ZIP, print/PDF with SVG diagrams, JSON | ✅ |
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
-| **M9** | **Git layer: churn, co-change, bus factor, time-travel** | 🟡 engine done, UI/tests pending |
+| M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 (awaiting owner review) |
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
@@ -32,29 +32,38 @@ the UI, tests and docs. After that comes M10.
 
 ---
 
-## M9: Git layer (finish)
+## M9: Git layer ✅
 
 Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, co-change, message types/keywords, tags,
-≤10 architecture snapshots) + churn×complexity `hotspot` findings; `diffSnapshots` compares two snapshots.
+≤10 architecture snapshots) + churn×complexity `hotspot` findings; `diffSnapshots` (`src/core/git/diff.ts`) compares two snapshots.
 
 - [x] History engine over an in-memory `.git` (isomorphic-git), wired in as `gitStage`
-- [ ] **Test fixture with history**: helper that builds a small repo with isomorphic-git at test time (planted commits,
-      authors, a co-changing pair, a single-owner file, a tag), plus a `ground-truth.json`
-- [ ] **Unit tests** `tests/unit/m9-git.test.ts`: churn counts, authors, bus factor, co-change pairs/scores,
-      `classifyMessage`, snapshot selection, `diffSnapshots`, hotspot findings; "no .git" and "corrupt .git" paths
-- [ ] **History view** (`src/ui/HistoryView.tsx`, group *Assess*, `projectOnly`):
-  - [ ] Overview stats: commits (truncated?), authors, bus factor, branch/head
-  - [ ] Churn table (file, commits, authors, top author share, last change) with `FileLink`s + "Impact" jump
-  - [ ] Co-change pairs (files that change together with no import between them = hidden coupling)
-  - [ ] Bus-factor risk list (single-owner files)
-  - [ ] Commit-type breakdown + top keywords
-  - [ ] Empty state when no `.git` (explains how to include it)
-- [ ] **Time-travel**: snapshot timeline → pick two → module/edge/hotspot diff (`diffSnapshots`), modules added/removed
-- [ ] Health view: hotspots render correctly when history exists (verify with fixture)
-- [ ] Export: add a "History" section to `report.ts` (Markdown + Notion + print)
-- [ ] **E2E** `tests/e2e/m9-history.spec.ts`: upload fixture ZIP with `.git`, see churn/co-change/bus factor, diff two snapshots
-- [ ] Measure on one real mid-size repo (time + memory); write numbers and limitations in QUALITY.md
-- [ ] Docs: ARCHITECTURE (view, any protocol change), FLOWS §6, DECISIONS for any new choice
+- [x] Test fixture with history: `tests/git-fixture.ts` builds the `git-history` repo at test time (12 commits,
+      3 authors, a co-changing pair with no import, a single-owner file, an annotated tag, a module added late);
+      planted truth in `tests/fixtures/git-history/ground-truth.json` (D28)
+- [x] Unit tests `tests/unit/m9-git.test.ts` (35): churn, authors, bus factor, co-change (direct/indirect link,
+      test↔test skipped), `classifyMessage`, snapshots, `diffSnapshots`, hotspots, report section, truncation,
+      no `.git`, corrupt `.git`, `enableGit: false`
+- [x] History view (`src/ui/HistoryView.tsx`, group *Assess*, `projectOnly`, badge = hidden-coupling pairs):
+      stats, churn table with Impact jump, co-change with "hidden coupling" filter, ownership + authors,
+      commit types + keywords, empty state
+- [x] Time-travel: snapshot timeline + from/to pickers → files/lines/modules/complexity deltas, modules
+      added/removed/changed, module edges new/dropped, complexity growth of the most complex files
+- [x] Health view: hotspots render when history exists (covered by the e2e)
+- [x] Export: "History" section in `report.ts` (Markdown, Notion, print)
+- [x] E2E `tests/e2e/m9-history.spec.ts`: ZIP with `.git` → churn, co-change, bus factor, time-travel, hotspots, export; no-`.git` empty state
+- [x] Measured on express and fastify (`npm run bench:git`); numbers and limitations in QUALITY.md
+- [x] Docs: ARCHITECTURE, FLOWS §6, DECISIONS D28–D30, CONVENTIONS (`.num`), QUALITY
+- Fixed on the way: snapshots of repos whose code all sat in one folder lost that folder from their paths
+  (memory source `keepPaths`); `require('..')` to the project root index was unresolved (`resolve-js.ts`);
+  isomorphic-git calls now share a pack cache (git stage 8× faster on express)
+
+**Follow-ups (not blocking)**
+- [ ] Peak memory of the git stage is high (≈0.5–0.8 GB RSS for a 12 MB `.git`, see QUALITY.md). Profile in M12
+      (suspects: inflated pack objects held by the isomorphic-git cache, per-snapshot pipelines)
+- [ ] Co-change between a test and the code it exercises still shows as hidden coupling when the import path is
+      longer than 4 hops or goes through a package name (`require('fastify')`)
+- [ ] Rename detection: a renamed file starts with fresh churn (isomorphic-git `walk` has no rename tracking)
 
 ## M10: Decisions view + onboarding guide + generated docs
 
@@ -91,6 +100,7 @@ Needs an explicit privacy design first. This is the only feature that may send d
 - [ ] Scale benchmark: `gen:synthetic` 10k / 50k / 100k files → time per phase, peak memory, IndexedDB size → QUALITY.md
 - [ ] Robustness tests: malformed ZIP, zip bomb guard, binary disguised as text, deeply nested dirs, huge single file,
       invalid UTF-8, storage quota exceeded, worker crash mid-run, cancel mid-run
+- [ ] Git stage memory (see M9 follow-ups) and time on 5k+ file repos with long histories
 - [ ] Performance: profile UI-thread helpers (D22). Move to the worker if a frame is >100 ms on the 50k repo;
       virtualize long tables
 - [ ] Browser matrix check: Chrome, Firefox, Safari (folder picking, nested workers, File System Access fallback)

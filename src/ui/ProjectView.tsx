@@ -13,6 +13,7 @@ import { HealthView } from './HealthView';
 import { ImpactView } from './ImpactView';
 import { DataView } from './DataView';
 import { ExportView } from './ExportView';
+import { HistoryView } from './HistoryView';
 
 export interface TabDef {
   id: string;
@@ -34,6 +35,7 @@ export const TABS: TabDef[] = [
   { id: 'deps', label: 'Dependencies', view: DepsView, projectOnly: true, group: 'Assess', badge: (a) => a.deps.cycles.length + a.deps.violations.length, badgeTitle: 'cycles + layering violations' },
   { id: 'health', label: 'Health', view: HealthView, group: 'Assess', badge: (a) => a.findings.filter((f) => f.sev === 'high' || f.sev === 'medium').length, badgeTitle: 'high/medium findings' },
   { id: 'impact', label: 'Impact', view: ImpactView, projectOnly: true, group: 'Assess' },
+  { id: 'history', label: 'History', view: HistoryView, projectOnly: true, group: 'Assess', badge: (a) => a.git?.cochange.filter((c) => c.linked === false).length ?? null, badgeTitle: 'hidden-coupling pairs (change together, no import)' },
   { id: 'symbols', label: 'Symbols', view: SymbolsView, group: 'Explore' },
   { id: 'search', label: 'Search', view: SearchView, group: 'Explore' },
   { id: 'export', label: 'Export', view: ExportView, group: 'Share' },

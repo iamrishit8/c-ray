@@ -94,6 +94,7 @@ Typography: system UI font (`--font-sans`), `--font-mono` for code and paths. Pa
 | `.btn`, `.btn-primary`, `.btn-danger`, `.btn-icon` | Buttons. One primary action per area at most |
 | `.is-selected` | **The** selected state for nav items, list rows, filter chips (with `.btn` it also tints the border) |
 | `.input`, `table.tbl`, `.card`, `.link`, `.muted`, `.faint`, `.mono` | Form fields, data tables, surfaces, text styles |
+| `th.num` / `td.num` (in `table.tbl`) | Numeric columns: right-aligned header and cells, tabular figures. Use for counts, scores, percentages |
 
 If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document it here.
 

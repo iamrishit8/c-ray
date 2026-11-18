@@ -149,6 +149,33 @@ D18–D24 record choices that were already in the code but never written down.
 - **Why:** They are interactive and cheap on typical repos; a worker round-trip would add latency and complexity.
 - **Revisit:** Move to the worker if M12 scale tests show frames longer than 100 ms.
 
+## D29: "Hidden coupling" = co-change with no import path within 4 hops; test↔test pairs dropped
+- **Date / phase:** 2026-11-18 · M9
+- **Status:** Accepted
+- **Context:** On express, 75 of 82 co-change pairs had no *direct* import between them. Most were test files
+  changed together in suite-wide sweeps, or a test that reaches the code via `require('..')` → `index.js` → `lib/…`.
+- **Decision:** A pair is `linked` if an import path of at most 4 steps exists in either direction at HEAD (bounded
+  BFS over `imports`). Pairs where both files are tests are not recorded. The UI and report call unlinked pairs
+  "hidden coupling" and label the interpretation `heuristic`; the counts themselves are exact.
+- **Why:** A transitive path is real, visible coupling; only pairs with no path are surprising. On express this cut
+  hidden-coupling pairs from 21 of 24 to 3 of 24; the remaining fastify pairs are mostly genuine (hand-written
+  `.d.ts` files that must change with their `.js`).
+- **Alternatives rejected:** Direct imports only (too noisy); unbounded reachability (in a connected app almost
+  everything reaches everything, so nothing would ever be "hidden").
+
+## D30: Snapshots always include the oldest analysed commit and share one module depth chosen at HEAD
+- **Date / phase:** 2026-11-18 · M9
+- **Status:** Accepted
+- **Context:** Even spacing could skip the first commit, and each snapshot chose its own grouping depth, so a repo
+  that grew from 3 to 6 folders was grouped differently over time and every module looked "added" in a diff.
+- **Decision:** Snapshot picks are HEAD, the oldest commit in the window, the most recent tags (by commit time, at
+  most `budget − 2`), then evenly spaced commits. The module depth is computed once from HEAD's files and used for
+  every snapshot. Snapshot paths are kept repo-relative (`keepPaths` on the memory source) instead of stripping a
+  shared root folder.
+- **Why:** Time-travel diffs must compare like with like; "from the beginning to now" is the comparison people want first.
+- **Alternatives rejected:** A per-snapshot depth (unstable diffs); storing every file per snapshot and grouping in
+  the UI (bigger stored analysis for little gain).
+
 ## UI
 
 ## D23: UI stack: React 19 + one Zustand store + Tailwind v4 with CSS-variable tokens, no component library
@@ -197,3 +224,16 @@ D18–D24 record choices that were already in the code but never written down.
   `tests/` changed with no doc change. NOTES.md removed so nothing is duplicated.
 - **Why:** Sessions start cold. Without a central, current record, decisions and remaining work get lost.
 - **Alternatives rejected:** A single NOTES.md, which mixed checklist, decisions and benchmarks and was already drifting.
+
+## D28: Git test fixture is generated at test time with isomorphic-git
+- **Date / phase:** 2026-11-18 · M9
+- **Status:** Accepted
+- **Context:** History tests need a repository with planted commits, but a nested `.git` folder cannot be committed
+  to this repo, and binary packfiles in `tests/fixtures` would be opaque to review.
+- **Decision:** `tests/git-fixture.ts` writes the `git-history` project commit by commit (fixed authors and
+  timestamps, so commit ids are stable) into a temp folder and returns working tree + `.git/` as in-memory files.
+  Unit tests feed those to `runPipeline`; e2e zips them. The planted facts live in
+  `tests/fixtures/git-history/ground-truth.json`, written by hand from the history table.
+- **Why:** The history is readable as code, deterministic, and exercises the same isomorphic-git reader as the app.
+- **Alternatives rejected:** A committed `.git` renamed to `dot-git` (binary, hard to review, easy to break);
+  mocking isomorphic-git (would not test the real reader).

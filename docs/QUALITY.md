@@ -37,13 +37,30 @@ How to read it: nothing that broke was missed. Precision is low on purpose: the 
 *behavioural* blast radius (callers of callers), while a signature change only breaks compilation at direct use
 sites. The view groups dependents by distance so the direct ones are easy to spot.
 
+### Git history on real repositories
+
+`GIT_REPO=/path/to/clone [GIT_COMMITS=500] npm run bench:git` runs the full pipeline (L2 off) on a real clone with
+packfiles; results in `tests/bench/git-real.results.json`. Measured 2026-11-18 on an Apple-silicon laptop, Node, one run each.
+
+| Repo | Files | `.git` | Commits analysed | Snapshots | Git stage | Whole pipeline | Peak RSS (start) |
+|---|---|---|---|---|---|---|---|
+| expressjs/express | 216 | 11.5 MB | 500 of 6,186 | 10 | 1.8 s | 2.1 s | 679 MB (110) |
+| expressjs/express | 216 | 11.5 MB | 2,000 of 6,186 | 10 | 3.6 s | 4.0 s | 575 MB (111) |
+| fastify/fastify | 389 | 12.4 MB | 500 of 4,931 | 10 | 4.2 s | 5.6 s | 838 MB (111) |
+
+How to read it: passing one shared `cache` to isomorphic-git made the git stage 8× faster on express (15.5 s → 1.8 s)
+and 4–5× on fastify. Time is now split about evenly between walking commits and re-analysing snapshots. Peak memory is
+the weak spot: hundreds of MB for a 12 MB `.git` (RSS also includes the rest of the pipeline; follow-up in TODO).
+Co-change results: express 24 pairs (3 hidden coupling), fastify 88 pairs (55 hidden coupling, mostly genuine:
+hand-written `.d.ts` files that must change with their `.js`, see D29).
+
 ### Scale
 
 Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench:scale`.
 
 ### Test suite (2026-11-18)
 
-115 unit tests, 17 e2e tests, all passing.
+151 unit tests (+1 opt-in benchmark skipped unless `GIT_REPO` is set), 19 e2e tests, all passing.
 
 ## Known limitations
 
@@ -72,7 +89,18 @@ Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench
 ### Export (M8)
 - PDF relies on the browser's print dialog; layout differs slightly between browsers.
 
-### Git (M9, in progress)
-- Commit walk is capped (`maxGitCommits`); at most 10 snapshots of up to 40 MB each.
-- If isomorphic-git cannot read the `.git` folder (e.g. some shallow clones or unusual packfiles), history is
-  disabled and the reason is shown (`gitMessage`). Not yet verified against real-world repos.
+### Git (M9)
+- Commit walk is capped (`maxGitCommits`, default 500, most recent first); at most 10 snapshots (4 on projects with
+  more than 4000 files), each up to 40 MB of code. Snapshots use L1 (heuristic) parsing only, so module edges in
+  time-travel are `heuristic`.
+- Only first-parent diffs are used; merge commits count for authors and message types but not for churn or co-change.
+- No rename tracking: a renamed or moved file starts with fresh churn and ownership.
+- Co-change ignores commits touching more than 25 code files (bulk reformatting, vendoring) and pairs seen fewer
+  than 2 times (3 when more than 60 commits). Test↔test pairs are dropped. "Hidden coupling" can be a false positive
+  when the import path between the files is longer than 4 hops or goes through a package name (D29).
+- Bus factor and ownership use the *main author* per file (most commits), not lines authored (no blame).
+  Authors are grouped by email for the author list and by name for ownership; one person with two emails appears twice.
+- If isomorphic-git cannot read the `.git` folder (missing objects, some shallow clones), history is disabled and the
+  reason is shown (`gitMessage`). Verified on two real repos with packfiles (express, fastify) and a generated repo
+  with loose objects and an annotated tag.
+- Peak memory during the git stage is high (≈0.5–0.8 GB RSS for a 12 MB `.git`); very large histories may exhaust a tab.

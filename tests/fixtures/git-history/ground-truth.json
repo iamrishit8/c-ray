@@ -1,0 +1,43 @@
+{
+  "_comment": "Planted truth for the git-history fixture. The repo itself is generated at test time by tests/git-fixture.ts (a nested .git cannot be committed). Derived by hand from the HISTORY table there, not copied from output.",
+  "branch": "main",
+  "totalCommits": 12,
+  "authors": [
+    { "name": "Alice", "email": "alice@example.com", "commits": 5, "files": 7 },
+    { "name": "Carol", "email": "carol@example.com", "commits": 4, "files": 1 },
+    { "name": "Bob", "email": "bob@example.com", "commits": 3, "files": 3 }
+  ],
+  "churn": {
+    "src/services/pricing.ts": { "commits": 4, "authors": 2, "topAuthor": "Alice", "topAuthorShare": 0.5 },
+    "src/services/tax.ts": { "commits": 4, "authors": 2, "topAuthor": "Alice", "topAuthorShare": 0.5 },
+    "src/legacy/report.ts": { "commits": 4, "authors": 1, "topAuthor": "Carol", "topAuthorShare": 1 },
+    "src/server.ts": { "commits": 2, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "README.md": { "commits": 2, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "package.json": { "commits": 2, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "src/routes/orders.ts": { "commits": 1, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "src/billing/invoice.ts": { "commits": 1, "authors": 1, "topAuthor": "Alice", "topAuthorShare": 1 },
+    "tests/pricing.test.ts": { "commits": 1, "authors": 1, "topAuthor": "Bob", "topAuthorShare": 1 }
+  },
+  "busFactor": 1,
+  "busFactorRisky": [{ "file": "src/legacy/report.ts", "author": "Carol", "share": 1, "commits": 4 }],
+  "cochange": [{ "a": "src/services/pricing.ts", "b": "src/services/tax.ts", "count": 4, "score": 1, "linked": false }],
+  "messageTypes": { "other": 2, "feat": 3, "fix": 3, "refactor": 1, "docs": 1, "test": 1, "chore": 1 },
+  "tags": [{ "name": "v1.0", "commitMessage": "Fix crash in legacy report" }],
+  "snapshots": {
+    "count": 10,
+    "oldestLabelStartsWith": "2026-01-05",
+    "labelsInclude": ["v1.0", "HEAD"],
+    "oldestToHead": {
+      "addedModules": ["src/billing", "src/legacy", "tests"],
+      "removedModules": [],
+      "addedEdges": [["src", "src/billing"], ["src/billing", "src/services"], ["tests", "src/services"]],
+      "removedEdges": [],
+      "files": [4, 7]
+    }
+  },
+  "hotspots": [
+    { "file": "src/services/pricing.ts", "sev": "high" },
+    { "file": "src/legacy/report.ts", "sev": "medium" }
+  ],
+  "notHotspots": ["src/services/tax.ts", "tests/pricing.test.ts"]
+}

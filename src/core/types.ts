@@ -351,7 +351,9 @@ export interface GitResult {
   churn: { file: string; commits: number; authors: number; lastTime: number; topAuthor: string; topAuthorShare: number }[];
   authors: { name: string; email: string; commits: number; files: number }[];
   busFactor: { overall: number; risky: { file: string; author: string; share: number; commits: number }[] };
-  cochange: { a: string; b: string; count: number; score: number }[];
+  /** Files changed in the same commits. `score` = count / churn of the less-changed file.
+   *  `linked`: an import exists between them at HEAD (absent in analyses stored before M9 finished). */
+  cochange: { a: string; b: string; count: number; score: number; linked?: boolean }[];
   messages: { types: Record<string, number>; keywords: { word: string; count: number }[] };
   tags: { name: string; oid: string }[];
   snapshots: ArchSnapshot[];

@@ -17,7 +17,8 @@
     "gen:synthetic": "node scripts/gen-synthetic.mjs",
     "postinstall": "node scripts/copy-assets.mjs",
     "predev": "node scripts/copy-assets.mjs",
-    "prebuild": "node scripts/copy-assets.mjs"
+    "prebuild": "node scripts/copy-assets.mjs",
+    "bench:git": "vitest run tests/bench/git-real.test.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

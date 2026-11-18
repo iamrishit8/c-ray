@@ -4,6 +4,7 @@ import { traceFlow, flowToMermaid } from './flow';
 import { CODE_LANGS } from './l0/languages';
 import { langName } from './orientation';
 import { ROLE_LABEL } from './roles';
+import { diffSnapshots } from './git/diff';
 import { erToMermaid } from './schema';
 import type { Analysis, Confidence, Finding } from './types';
 import { dirname, fmtNum, groupBy } from './util';
@@ -189,6 +190,42 @@ function hotspots(a: Analysis): string {
   return out.join('\n');
 }
 
+const day = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+function history(a: Analysis): string {
+  const g = a.git;
+  if (!g) return '';
+  const out: string[] = [
+    `Read from the uploaded \`.git\` folder (branch ${code(g.branch)}, HEAD ${code(g.head.slice(0, 7))}): ${g.totalCommits} commit(s)${g.truncated ? ' (the most recent ones only; history was truncated)' : ''} by ${g.authors.length} author(s). Counts are exact (_resolved_); what they suggest (coupling, ownership risk) is _heuristic_.`, '',
+    `**Bus factor: ${g.busFactor.overall}.** The fewest authors who are the main author of more than half of the files that still exist.`, '',
+  ];
+  for (const n of g.notes) out.push(`- ${md(n)}`);
+  if (g.notes.length) out.push('');
+  if (g.churn.length) out.push('### Most changed files', '', table(['File', 'Commits', 'Authors', 'Main author', 'Last change'], g.churn.slice(0, 20).map((c) => [loc(c.file), c.commits, c.authors, `${md(c.topAuthor)} (${Math.round(c.topAuthorShare * 100)}%)`, day(c.lastTime)])), '');
+  if (g.cochange.length) {
+    out.push('### Files that change together', '', 'Pairs that were changed in the same commits. A pair with no import between them is likely hidden coupling: a change to one usually needs a change to the other, and nothing in the code says so.', '');
+    out.push(table(['File A', 'File B', 'Together', 'Score', 'Import between them'], g.cochange.slice(0, 25).map((c) => [loc(c.a), loc(c.b), c.count, c.score.toFixed(2), c.linked === undefined ? 'unknown' : c.linked ? 'yes' : 'no: hidden coupling'])), '');
+  }
+  if (g.busFactor.risky.length) out.push('### Single-owner files', '', 'Code files with at least 3 commits where one author made 80% or more of the changes.', '', table(['File', 'Owner', 'Share', 'Commits'], g.busFactor.risky.map((r) => [loc(r.file), md(r.author), `${Math.round(r.share * 100)}%`, r.commits])), '');
+  const types = Object.entries(g.messages.types).sort((x, y) => y[1] - x[1]);
+  if (types.length) out.push('### Commit types', '', types.map(([t, n]) => `${t} ${n}`).join(' · ') + '.', '', g.messages.keywords.length ? `Frequent words in commit subjects: ${g.messages.keywords.slice(0, 15).map((k) => `${md(k.word)} (${k.count})`).join(', ')}.` : '', '');
+  if (g.snapshots.length) {
+    out.push('### Architecture over time', '', table(['Snapshot', 'Code files', 'Lines', 'Modules', 'Avg. function complexity'], g.snapshots.map((s) => [md(s.label), s.files, fmtNum(s.loc), s.modules.length, s.avgComplexity])), '');
+    if (g.snapshots.length >= 2) {
+      const first = g.snapshots[0];
+      const last = g.snapshots[g.snapshots.length - 1];
+      const d = diffSnapshots(first, last);
+      out.push(`From ${md(first.label)} to ${md(last.label)}: ${d.files[0]} → ${d.files[1]} code files, ${fmtNum(d.loc[0])} → ${fmtNum(d.loc[1])} lines.`, '');
+      if (d.addedModules.length) out.push(`- Modules added: ${d.addedModules.map((m) => code(m.name)).join(', ')}`);
+      if (d.removedModules.length) out.push(`- Modules removed: ${d.removedModules.map((m) => code(m.name)).join(', ')}`);
+      if (d.addedEdges.length) out.push(`- New module dependencies: ${d.addedEdges.slice(0, 20).map((e) => `${code(e.from)} → ${code(e.to)}`).join(', ')}`);
+      if (d.removedEdges.length) out.push(`- Dropped module dependencies: ${d.removedEdges.slice(0, 20).map((e) => `${code(e.from)} → ${code(e.to)}`).join(', ')}`);
+      out.push('');
+    }
+  }
+  return out.join('\n');
+}
+
 export const SECTIONS: ReportSection[] = [
   { id: 'orientation', title: 'Orientation', build: orientation },
   { id: 'architecture', title: 'Architecture', build: architecture },
@@ -196,6 +233,7 @@ export const SECTIONS: ReportSection[] = [
   { id: 'schema', title: 'Data model', build: schema },
   { id: 'dependencies', title: 'Dependencies', build: dependencies },
   { id: 'hotspots', title: 'Hotspots and health', build: hotspots },
+  { id: 'history', title: 'History', build: history },
 ];
 
 export interface BuiltSection {

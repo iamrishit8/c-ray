@@ -10,7 +10,8 @@ import { classifyByName, IgnoreMatcher, isGenerated, isMinified } from './filter
 export type InputSource =
   | { kind: 'files'; files: { path: string; file: Blob }[] }
   | { kind: 'zip'; file: Blob; name: string }
-  | { kind: 'memory'; files: { path: string; text?: string; bytes?: Uint8Array }[] };
+  /** `keepPaths`: paths are already repo-relative (git snapshots), so no shared root is stripped. */
+  | { kind: 'memory'; files: { path: string; text?: string; bytes?: Uint8Array }[]; keepPaths?: boolean };
 
 export interface IngestResult {
   units: FileUnit[];
@@ -215,7 +216,7 @@ export async function ingest(
   // --- strip a shared root directory so paths are project-relative ---
   skip.finish();
   const allPaths = [...units.map((u) => u.path), ...skip.list.map((s) => s.path), ...gitRaw.keys()];
-  const root = commonRoot(allPaths);
+  const root = source.kind === 'memory' && source.keepPaths ? '' : commonRoot(allPaths);
   const strip = (p: string) => (root && p.startsWith(root + '/') ? p.slice(root.length + 1) : p);
   if (root) {
     for (const u of units) u.path = strip(u.path);

@@ -32,7 +32,7 @@ export function gitStage(deps: StageDeps): Stage {
         const { git, findings } = await analyzeGit(ctx.gitFiles, ctx.a, {
           progress: (d) => ctx.progress('Reading git history', d),
           analyzeSnapshot: async (files, name) =>
-            (await runPipeline({ kind: 'memory', files }, name, { ...ctx.opts, enableGit: false, respectGitignore: false }, { stages: [l1Stage, assembleStage], processFiles })).analysis,
+            (await runPipeline({ kind: 'memory', files, keepPaths: true }, name, { ...ctx.opts, enableGit: false, respectGitignore: false }, { stages: [l1Stage, assembleStage], processFiles })).analysis,
         });
         ctx.a.git = git;
         ctx.a.gitMessage = undefined;

@@ -112,3 +112,15 @@ describe('L1 alone on TypeScript/JavaScript fixtures (L2 disabled)', () => {
     });
   }
 });
+
+describe('JS module resolution edge cases', () => {
+  it("require('..') and require('../') resolve to the project root index file", async () => {
+    const { analysis: a } = await analyzeMem({
+      'index.js': "module.exports = require('./lib/app');\n",
+      'lib/app.js': 'module.exports = {};\n',
+      'test/app.js': "var a = require('..');\nvar b = require('../');\n",
+    });
+    const fromTest = a.imports.filter((e) => a.files[e.from].path === 'test/app.js');
+    expect(fromTest.map((e) => (e.to >= 0 ? a.files[e.to].path : 'unresolved'))).toEqual(['index.js', 'index.js']);
+  });
+});
