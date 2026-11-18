@@ -56,7 +56,7 @@ export function FlowView() {
             <div key={k}>
               <div className="sticky top-0 bg-[var(--bg2)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide faint">{k === 'route' ? 'HTTP routes' : k === 'page' ? 'Pages' : k === 'main' ? 'Program entry' : k === 'cli' ? 'CLI' : k === 'job' ? 'Background jobs' : 'Event handlers'} · {groups.get(k)!.length}</div>
               {groups.get(k)!.slice(0, 400).map((e) => (
-                <button key={e.id} onClick={() => setSelected(e.id)} className={`block w-full px-3 py-1 text-left text-[12.5px] ${e.id === current ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'hover:bg-[var(--bg3)]'}`}>
+                <button key={e.id} onClick={() => setSelected(e.id)} className={`block w-full px-3 py-1 text-left text-[12.5px] ${e.id === current ? 'is-selected' : 'hover:bg-[var(--bg3)]'}`}>
                   <span className="mono">{e.label}</span>
                   <span className={`block truncate text-[11px] ${e.id === current ? '' : 'faint'}`}>{e.file}:{e.line}</span>
                 </button>

@@ -37,7 +37,7 @@ export function DataView() {
                   const acc = byEntity.get(e.name) ?? [];
                   return (
                     <li key={e.name}>
-                      <button className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${current?.name === e.name ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'hover:bg-[var(--bg3)]'}`} onClick={() => setSel(e.name)}>
+                      <button className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${current?.name === e.name ? 'is-selected' : 'hover:bg-[var(--bg3)]'}`} onClick={() => setSel(e.name)}>
                         <span className="mono font-semibold">{e.name}</span>
                         <span className={`text-[11px] ${current?.name === e.name ? '' : 'faint'}`}>{e.fields.length} fields · {acc.filter((x) => x.op === 'read').length}R/{acc.filter((x) => x.op === 'write').length}W</span>
                       </button>

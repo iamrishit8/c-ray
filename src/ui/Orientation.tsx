@@ -19,7 +19,7 @@ export function SkippedList({ a, open = false }: { a: Analysis; open?: boolean }
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px]"><b>{fmtNum(a.coverage.skipped)}</b> file(s) skipped:</span>
         {[...groups].map(([r, items]) => (
-          <button key={r} className={`rounded px-1.5 text-[11px] leading-[18px] ${reason === r ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--bg3)] text-[var(--fg2)]'}`} onClick={() => { setReason(reason === r ? 'all' : r); setShow(true); }} title={SKIP_LABELS[r]}>
+          <button key={r} className={`rounded px-1.5 text-[11px] leading-[18px] ${reason === r ? 'is-selected' : 'bg-[var(--bg3)] text-[var(--fg2)]'}`} onClick={() => { setReason(reason === r ? 'all' : r); setShow(true); }} title={SKIP_LABELS[r]}>
             {r} · {items.length}
           </button>
         ))}

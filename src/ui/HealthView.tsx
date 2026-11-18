@@ -35,9 +35,9 @@ export function HealthView() {
   return (
     <Page title="Hotspots & health" intro="Signals to review, not verdicts. Each item links to the exact location; pattern-based items (secrets, SQL, clones) are heuristic and can be false positives.">
       <div className="flex flex-wrap items-center gap-2" data-testid="health-cats">
-        <button className={`btn ${cat === 'all' ? 'btn-primary' : ''}`} onClick={() => setCat('all')}>All · {a.findings.length}</button>
+        <button className={`btn ${cat === 'all' ? 'is-selected' : ''}`} onClick={() => setCat('all')}>All · {a.findings.length}</button>
         {ORDER.filter((c) => groups.has(c)).map((c) => (
-          <button key={c} data-testid={`cat-${c}`} className={`btn ${cat === c ? 'btn-primary' : ''}`} onClick={() => { setCat(c); setLimit(200); }}>{CAT_LABEL[c]} · {groups.get(c)!.length}</button>
+          <button key={c} data-testid={`cat-${c}`} className={`btn ${cat === c ? 'is-selected' : ''}`} onClick={() => { setCat(c); setLimit(200); }}>{CAT_LABEL[c]} · {groups.get(c)!.length}</button>
         ))}
         <input className="input ml-auto" placeholder="filter by file or text…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>

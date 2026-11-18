@@ -20,6 +20,13 @@
   --warn: #b45309;
   --bad: #b91c1c;
   --hl: #fef3c7;
+  /* soft tints: selected rows, tinted badges, callouts */
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  --ok-soft: color-mix(in srgb, var(--ok) 12%, var(--bg));
+  --warn-soft: color-mix(in srgb, var(--warn) 14%, var(--bg));
+  --bad-soft: color-mix(in srgb, var(--bad) 12%, var(--bg));
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --radius: 8px;
   color-scheme: light;
 }
 .dark {
@@ -36,6 +43,11 @@
   --warn: #fbbf24;
   --bad: #f87171;
   --hl: #3b3413;
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, var(--bg));
+  --ok-soft: color-mix(in srgb, var(--ok) 16%, var(--bg));
+  --warn-soft: color-mix(in srgb, var(--warn) 16%, var(--bg));
+  --bad-soft: color-mix(in srgb, var(--bad) 16%, var(--bg));
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
   color-scheme: dark;
 }
 
@@ -54,7 +66,14 @@ code, pre, .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
 .btn-danger { color: var(--bad); }
 .input { padding: 5px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 13px; }
-.card { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); box-shadow: var(--shadow-sm); }
+.btn-icon { padding: 5px 7px; }
+/* One selected-state treatment for nav items, list rows and filter chips. */
+.is-selected { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav-item { position: relative; }
+.nav-item.is-selected::before { content: ''; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+.tnum { font-variant-numeric: tabular-nums; }
+.btn.is-selected { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .muted { color: var(--fg2); }
 .faint { color: var(--fg3); }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }

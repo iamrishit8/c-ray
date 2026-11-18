@@ -18,8 +18,8 @@ export function ConfBadge({ c }: { c: Confidence }) {
 }
 
 export function Badge({ children, tone = 'plain', title }: { children: ReactNode; tone?: 'plain' | 'accent' | 'ok' | 'warn' | 'bad'; title?: string }) {
-  const tones = { plain: 'bg-[var(--bg3)] text-[var(--fg2)]', accent: 'bg-[var(--accent)] text-[var(--accent-fg)]', ok: 'text-[var(--ok)] bg-[var(--bg3)]', warn: 'text-[var(--warn)] bg-[var(--bg3)]', bad: 'text-[var(--bad)] bg-[var(--bg3)]' };
-  return <span title={title} className={`inline-block rounded px-1.5 text-[11px] leading-[18px] whitespace-nowrap ${tones[tone]}`}>{children}</span>;
+  const tones = { plain: 'bg-[var(--bg3)] text-[var(--fg2)]', accent: 'bg-[var(--accent-soft)] text-[var(--accent)]', ok: 'text-[var(--ok)] bg-[var(--ok-soft)]', warn: 'text-[var(--warn)] bg-[var(--warn-soft)]', bad: 'text-[var(--bad)] bg-[var(--bad-soft)]' };
+  return <span title={title} className={`inline-block rounded px-1.5 text-[11px] font-medium leading-[18px] whitespace-nowrap ${tones[tone]}`}>{children}</span>;
 }
 
 /** Clickable file:line reference that opens the source preview. */
@@ -37,8 +37,8 @@ export function Card({ title, children, right, className = '' }: { title?: React
   return (
     <section className={`card ${className}`}>
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-2">
-          <h2 className="text-[13px] font-semibold tracking-wide">{title}</h2>
+        <header className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-2.5">
+          <h2 className="text-[13px] font-semibold">{title}</h2>
           {right}
         </header>
       )}
@@ -50,15 +50,15 @@ export function Card({ title, children, right, className = '' }: { title?: React
 export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="card px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wide faint">{label}</div>
-      <div className="text-xl font-semibold">{value}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide faint">{label}</div>
+      <div className="tnum mt-0.5 text-2xl font-semibold tracking-tight">{value}</div>
       {sub && <div className="text-xs muted">{sub}</div>}
     </div>
   );
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-md border border-dashed border-[var(--line)] p-6 text-center muted">{children}</div>;
+  return <div className="rounded-[var(--radius)] border border-dashed border-[var(--line)] bg-[var(--bg2)] p-8 text-center muted">{children}</div>;
 }
 
 export function Page({ title, intro, children, actions }: { title: string; intro?: ReactNode; children: ReactNode; actions?: ReactNode }) {
@@ -66,7 +66,7 @@ export function Page({ title, intro, children, actions }: { title: string; intro
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">{title}</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">{title}</h1>
           {intro && <p className="mt-1 max-w-3xl muted">{intro}</p>}
         </div>
         {actions}
