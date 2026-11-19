@@ -3,6 +3,7 @@ import type { Finding, FindingCat } from '../core/types';
 import { groupBy } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page, Pending, RiskBar } from './kit';
+import { HotspotMap } from './viz/HotspotMap';
 
 export const CAT_LABEL: Record<FindingCat, string> = {
   hotspot: 'Hotspots (churn × complexity)', secret: 'Possible hardcoded secrets', 'tls-disabled': 'TLS verification disabled', 'sql-concat': 'SQL built by concatenation',
@@ -42,6 +43,7 @@ export function HealthView() {
         <input className="input ml-auto" placeholder="filter by file or text…  ( / )" value={q} onChange={(e) => setQ(e.target.value)} data-search-focus aria-label="Filter findings" />
       </div>
       {!a.git && <p className="text-[13px] muted">Churn × complexity hotspots need history: {a.gitMessage ?? 'no .git folder was provided.'}</p>}
+      {a.mode === 'project' && a.stage !== 'l0' && <HotspotMap a={a} />}
       {a.findings.length === 0 && <Empty title="Nothing to flag">No health signals were raised for this project.</Empty>}
       {shown.map((c) => {
         const items = filtered.filter((f) => f.cat === c);

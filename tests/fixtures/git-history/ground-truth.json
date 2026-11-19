@@ -39,5 +39,14 @@
     { "file": "src/services/pricing.ts", "sev": "high" },
     { "file": "src/legacy/report.ts", "sev": "medium" }
   ],
-  "notHotspots": ["src/services/tax.ts", "tests/pricing.test.ts"]
+  "notHotspots": ["src/services/tax.ts", "tests/pricing.test.ts"],
+  "u3": {
+    "_comment": "U3 visualisations. Commit n is made n days after 2026-01-05 (tests/git-fixture.ts), one commit per day.",
+    "calendarActiveDays": 12,
+    "calendarTotal": 12,
+    "calendarFirstDay": "2026-01-05",
+    "authorsByCommits": ["Alice", "Carol", "Bob"],
+    "riskyIncludes": ["src/services/pricing.ts", "src/legacy/report.ts"],
+    "riskyExcludes": ["src/services/tax.ts", "tests/pricing.test.ts"]
+  }
 }

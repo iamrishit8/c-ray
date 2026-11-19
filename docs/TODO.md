@@ -10,7 +10,7 @@ straight through all slices with one review at the end). M9 follow-ups and the `
 (see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
 Owner approved U2 on 2026-11-19 and asked for one more visual phase first: **U3 (motion + codebase
 visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed to GitHub after each slice.
-**U3 slice 1 is done**; slices 2–3 in progress. M10 starts after U3.
+**U3 slices 1–2 are done**; slice 3 in progress. M10 starts after U3.
 
 ---
 
@@ -102,19 +102,21 @@ uses the U2 tokens, and has a plain fallback.
   suggestions dropdown; now `backwards` (D36)
 
 **Slice 2: New codebase visualisations** (the "graphics" part)
-- [ ] **Codebase treemap** (new hero card on Orientation): directories → files sized by lines. Colour modes: role, language,
+- [x] **Codebase treemap** (new hero card on Orientation): directories → files sized by lines. Colour modes: role, language,
       complexity, churn (with history). Click to drill into a folder with an animated zoom, breadcrumb to go back,
       hover card with path, size, role and confidence, double-click opens the source
-- [ ] **Dependency matrix (DSM)** on Dependencies: module × module heat-map of import counts, ordered so layers read
+- [x] **Dependency matrix (DSM)** on Dependencies: module × module heat-map of import counts, ordered so layers read
       top-down; cycles outlined in `--bad`, layering violations in `--warn`; click a cell to list the imports behind it
-- [ ] **Hotspot map** on Health: scatter of complexity (y) × churn (x), bubble size = lines, role colour, the
+- [x] **Hotspot map** on Health: scatter of complexity (y) × churn (x), bubble size = lines, role colour, the
       "risky" top-right quadrant shaded. Without `.git`: complexity × fan-in, with a note
-- [ ] **Commit activity heat-map** on History: GitHub-style calendar of commits per day, plus a per-author timeline strip
-- [ ] **Language / role breakdown**: stacked bar or donut on Orientation, replacing the plain language bars
-- [ ] `src/core/viz/`: `treemap.ts` (squarified, ≤ 5 000 cells, rest grouped as "other"), `matrix.ts` (module
+- [x] **Commit activity heat-map** on History: GitHub-style calendar of commits per day, plus a per-author timeline strip
+- [x] **Language / role breakdown**: stacked bar or donut on Orientation, replacing the plain language bars
+- [x] `src/core/viz/`: `treemap.ts` (squarified, ≤ 5 000 cells, rest grouped as "other"), `matrix.ts` (module
       ordering + cell aggregation), `calendar.ts` (day buckets, time zone safe), `scatter.ts` (quadrant thresholds).
       Unit tests `u3-viz.test.ts` with planted truth on the fixtures (e.g. express-mongoose: the cycle shows as a
       symmetric pair of cells; the git-history calendar has 12 commit days)
+- [x] Also in `src/core/viz/` (used by slice 3): `path.ts`, `radial.ts`, `er.ts`, `progress.ts`. 17 unit tests;
+      planted truth added by hand under `u3` in the express-mongoose and git-history `ground-truth.json` (D37)
 
 **Slice 3: Diagrams that move**
 - [ ] System map: animated expand/collapse (nodes glide from the cluster's position), "marching ants" on the edges of

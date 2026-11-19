@@ -7,6 +7,8 @@ import type { Analysis, SkipReason } from '../core/types';
 import { fmtBytes, fmtNum, groupBy } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, ConfBadge, FileLink, Page, RoleBadge, Stat } from './kit';
+import { Breakdown } from './viz/Breakdown';
+import { Treemap } from './viz/Treemap';
 
 export function SkippedList({ a, open = false }: { a: Analysis; open?: boolean }) {
   const [show, setShow] = useState(open);
@@ -74,22 +76,10 @@ export function Orientation() {
         </div>
       )}
 
+      {a.mode === 'project' && a.files.length > 1 && <Treemap a={a} />}
+
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Languages">
-          <div className="space-y-1.5">
-            {code.slice(0, 10).map((l) => (
-              <div key={l.lang} className="flex items-center gap-2 text-[13px]">
-                <span className="w-24 shrink-0 truncate">{langName(l.lang)}</span>
-                <span className="bar min-w-12 flex-1"><span className="bg-[var(--accent)]" style={{ width: `${Math.max(1, (l.loc / totalLoc) * 100)}%` }} /></span>
-                <span className="tnum shrink-0 whitespace-nowrap text-right text-[12px] faint">{fmtNum(l.loc)} lines · {l.files} files</span>
-              </div>
-            ))}
-            {code.length === 0 && <div className="muted">No recognised source code.</div>}
-            {a.l0.languages.length > code.length && (
-              <div className="pt-1 text-xs faint">Other: {a.l0.languages.filter((l) => !CODE_LANGS.has(l.lang)).map((l) => `${l.lang} (${l.files})`).join(', ')}</div>
-            )}
-          </div>
-        </Card>
+        <Breakdown a={a} />
 
         <Card title="Stack (from manifests and config files)">
           {a.frameworks.length > 0 && (

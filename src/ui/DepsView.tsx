@@ -3,6 +3,7 @@ import { ROLE_LABEL } from '../core/roles';
 import { fmtNum } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, ConfBadge, Empty, FileLink, Page, Pending, RiskBar, RoleBadge, Stat } from './kit';
+import { Matrix } from './viz/Matrix';
 
 type Sort = 'fanIn' | 'fanOut' | 'instability';
 
@@ -27,6 +28,8 @@ export function DepsView() {
         <Stat label="God modules" value={d.godModules.length} />
         <Stat label="External packages" value={d.packages.filter((p) => p.uses.length).length} sub={undeclared.length ? `${undeclared.length} not declared` : undefined} />
       </div>
+
+      <Matrix a={a} />
 
       <Card title={`Circular dependencies (${d.cycles.length})`} right={<span className="text-xs faint">type-only imports are ignored</span>}>
         {d.cycles.length === 0 ? <div className="muted">No circular import paths were found.</div> : (

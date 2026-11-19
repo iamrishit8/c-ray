@@ -326,3 +326,18 @@ D18–D24 record choices that were already in the code but never written down.
 - **Why:** No new dependency, nothing to load, and the browser runs these on the compositor.
 - **Alternatives rejected:** Framer Motion / GSAP (≈ 30–60 KB for effects CSS already does); per-component
   reduced-motion handling (easy to forget one).
+
+## D37: Visualisation layouts are hand-written pure functions in `src/core/viz`; no d3
+- **Date / phase:** 2026-11-19 · U3 slice 2 · **Status:** Accepted (answers U3 open question 3)
+- **Decision:** Squarified treemap (Bruls et al.), DSM ordering (Tarjan SCCs, then a topological order of the
+  component graph so importers come first; ties by role layer, then name), commit calendar (day buckets with an
+  explicit time-zone offset), hotspot scatter, ER grid, rings and circles are small pure functions in
+  `src/core/viz/*`, unit-tested in Node against planted truth. Rendering is plain React SVG in `src/ui/viz/*` with
+  colours from the tokens. Bounds: treemap ≤ 5 000 cells (smallest siblings fold into "N more"), DSM ≤ 40 modules
+  (files when they fit, else the deepest folder depth that fits), calendar ≤ 53 weeks, scatter ≤ 1 500 points,
+  ER ≤ 60 entities. The hotspot "risky" quadrant is the project's own 75th percentile on both axes (never below 1);
+  without history the x axis is fan-in, said so in the UI. Every picture has a table fallback.
+- **Why:** Each layout is 50–150 lines; d3-hierarchy would add a dependency for one of them, and a shared,
+  tested core keeps the pictures honest (the DSM test proves every non-cycle cell is above the diagonal).
+- **Alternatives rejected:** `d3-hierarchy` (fine, but unnecessary); Cytoscape for the matrix/treemap (wrong tool,
+  canvas text, no table fallback); fixed thresholds for "risky" (meaningless across projects of different sizes).

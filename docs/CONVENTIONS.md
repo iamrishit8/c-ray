@@ -148,6 +148,14 @@ If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document 
 - Edge style encodes confidence: solid = resolved, dashed = heuristic, dotted = unresolved. Keep that consistent everywhere.
 - Colours come from the CSS tokens at runtime (`cssVar()` in `Graph.tsx`); the graph restyles on theme change.
 
+### Visualisations (`src/ui/viz/`, D37)
+- Layout maths goes in `src/core/viz/*` (pure, bounded, unit-tested); the component only renders SVG.
+- Every picture: an accessible name (`role="img"` + `aria-label` summary), a `ViewSwitch` table fallback, a legend
+  (`Swatch`), hover detail in `VizTip`, `data-testid`s on the picture and its marks, and marks that link to files.
+- Colours: role → `roleVar()`, language/author series → `langColors()` / `SERIES`, quantities → `heat(0..1)`,
+  status → `--bad` / `--warn` (soft fill + outline, so they read on top of `heat`). Inferred values say so.
+- Keep keyboard access: the main marks are focusable (`tabIndex`, Enter activates); don't make thousands focusable.
+
 ### Copy
 - Plain, specific, sentence case. Say what a number means ("2 high/medium findings", not "2").
 - Hedge exactly as much as the confidence label says. "Likely", "appears to" for heuristic; plain statements for resolved.

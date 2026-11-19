@@ -6,6 +6,7 @@ import type { GitResult } from '../core/types';
 import { fmtNum } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page, Pending, RiskBar, Stat, capped } from './kit';
+import { CommitCalendar } from './viz/Calendar';
 
 const day = (t: number) => new Date(t).toISOString().slice(0, 10);
 const pctOf = (share: number) => `${Math.round(share * 100)}%`;
@@ -283,6 +284,7 @@ export function HistoryView() {
       {g.notes.length > 0 && (
         <ul className="space-y-1 text-[13px] text-[var(--warn)]" data-testid="history-notes">{g.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
       )}
+      <CommitCalendar g={g} />
       <ChurnCard g={g} />
       <CochangeCard g={g} />
       <div className="grid gap-4 lg:grid-cols-2">

@@ -62,5 +62,15 @@
     { "entity": "Order", "file": "src/services/orderService.js", "op": "write" },
     { "entity": "Order", "file": "src/controllers/orderController.js", "op": "read" }
   ],
-  "todos": [{ "file": "src/config.js", "tag": "FIXME" }, { "file": "src/utils/report.js", "tag": "TODO" }]
+  "todos": [{ "file": "src/config.js", "tag": "FIXME" }, { "file": "src/utils/report.js", "tag": "TODO" }],
+  "u3": {
+    "_comment": "U3 visualisations. Derived by hand from the imports list above.",
+    "dsmLevel": "file",
+    "dsmCyclePair": ["src/services/userService.js", "src/services/orderService.js"],
+    "dsmViolationCell": ["src/controllers/orderController.js", "src/models/Order.js"],
+    "importPath": { "from": "src/server.js", "to": "src/models/User.js", "files": ["src/server.js", "src/app.js", "src/routes/users.js", "src/controllers/userController.js", "src/services/userService.js", "src/models/User.js"] },
+    "reversePath": { "from": "src/models/User.js", "to": "src/routes/users.js" },
+    "noPath": ["src/utils/format.js", "src/models/User.js"],
+    "erRelated": ["Order", "User"]
+  }
 }

@@ -139,3 +139,15 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
   with loose objects and an annotated tag.
 - Memory: the git stage holds the whole `.git` in memory (it is uploaded that way) plus ≈2–4× its size while walking;
   a multi-GB `.git` will not fit in a tab. Ingest caps `.git` at 250 MB.
+
+### Visualisations (U3)
+- Treemap: at most 5 000 cells; folders recurse up to 6 levels while a cell is at least 8 px; small siblings fold
+  into one "N more" cell. File labels appear only on cells wide enough; the hover card always has the full path.
+- Dependency matrix: type-only imports and tests are left out (as in the cycle list). Above 40 files it groups by
+  folder, so a file-level cycle inside one folder shows on the diagonal, not as a pair. A module-level cycle can
+  exist without a file-level one (A/x → B/y, B/z → A/w); it is outlined as a cycle too.
+- Hotspot map: the "risky" cut-offs are relative (75th percentile), so every project has a risky corner unless
+  values are flat; without `.git` the x axis is fan-in, not churn.
+- Commit calendar: one year at most (older commits counted as "not shown"); days use the viewer's time zone.
+- Not measured yet: frame times on a 500-node map and the 10k-file treemap (U3 slice 4).
+
