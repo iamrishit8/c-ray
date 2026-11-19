@@ -5,6 +5,7 @@ import { fmtBytes, fmtNum } from '../core/util';
 import type { Retention } from '../db/db';
 import { useStore } from '../store/store';
 import { canPickDirectory, fromDirectoryHandle, fromDrop, fromFileList } from './input';
+import { HelpManual } from './help/HelpManual';
 import { SkippedList } from './Orientation';
 
 const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
@@ -55,7 +56,7 @@ export function Home() {
     void analyze(samplePicked());
   };
   return (
-    <div className="mx-auto max-w-[1080px] space-y-6 px-5 pb-16 pt-10 md:px-10 md:pt-14">
+    <div className="mx-auto max-w-[1080px] space-y-6 px-5 pb-20 pt-10 md:px-10 md:pt-14" data-testid="home">
       <div className="max-w-[760px]">
         <div className="label">Codebase explainer · runs in your browser</div>
         <h1 className="mt-2 text-[34px] font-medium leading-[1.1] tracking-[-0.04em] md:text-[40px]">Understand an unfamiliar codebase.</h1>
@@ -87,52 +88,11 @@ export function Home() {
         {msg && <div className="mt-3 text-[13px] text-[var(--bad)]" role="alert">{msg}</div>}
       </div>
 
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="What you get">
-        {FEATURES.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="card px-4 py-3.5">
-            <Icon aria-hidden="true" size={16} strokeWidth={1.8} className="text-[var(--accent)]" />
-            <div className="mt-2 font-medium">{title}</div>
-            <p className="mt-0.5 text-[12.5px] muted">{text}</p>
-          </li>
-        ))}
-      </ul>
-
       {status === 'error' && analysis && analysis.skipped.length > 0 && (
         <div className="card p-4" data-testid="skipped-only">
           <SkippedList a={analysis} open />
         </div>
       )}
-
-      <div className="card">
-        <button className="flex w-full items-center justify-between rounded-[var(--r-lg)] px-5 py-3.5 text-left font-medium" onClick={() => setShowSettings(!showSettings)} data-testid="settings-toggle" aria-expanded={showSettings}>
-          Analysis settings: ignore list and limits
-          <ChevronRight aria-hidden="true" size={16} className={`faint transition-transform ${showSettings ? 'rotate-90' : ''}`} />
-        </button>
-        {showSettings && (
-          <div className="grid gap-5 border-t border-[var(--line)] p-5 md:grid-cols-2">
-            <label className="block">
-              <div className="mb-1 text-[13px] font-medium">Ignore list (gitignore syntax, one per line)</div>
-              <textarea data-testid="ignore-list" className="input mono h-48 w-full" value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} onBlur={() => void setSettings({ ignore: ignoreText.split('\n').map((l) => l.trim()).filter(Boolean) })} />
-              <button className="link mt-1 text-xs" onClick={() => { setIgnoreText(DEFAULT_IGNORE.join('\n')); void setSettings({ ignore: DEFAULT_IGNORE }); }}>Reset to defaults</button>
-            </label>
-            <div className="space-y-3 text-[13px]">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={settings.respectGitignore} onChange={(e) => void setSettings({ respectGitignore: e.target.checked })} />
-                Respect <code>.gitignore</code> files
-              </label>
-              <label className="flex items-center justify-between gap-2">
-                Per-file size cap (MB)
-                <input className="input w-24" type="number" min={0.1} step={0.5} value={settings.maxFileMB} onChange={(e) => void setSettings({ maxFileMB: Number(e.target.value) || 2 })} />
-              </label>
-              <label className="flex items-center justify-between gap-2">
-                Per-file parse timeout (ms)
-                <input className="input w-24" type="number" min={100} step={100} value={settings.parseTimeoutMs} onChange={(e) => void setSettings({ parseTimeoutMs: Number(e.target.value) || 2000 })} />
-              </label>
-              <p className="muted">Minified, generated, binary and image files are detected and skipped automatically. Everything skipped is listed with its reason after analysis.</p>
-            </div>
-          </div>
-        )}
-      </div>
 
       <div className="card" data-testid="project-list">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3.5">
@@ -177,6 +137,48 @@ export function Home() {
           </table>
         )}
       </div>
+      <div className="card">
+        <button className="flex w-full items-center justify-between rounded-[var(--r-lg)] px-5 py-3.5 text-left font-medium" onClick={() => setShowSettings(!showSettings)} data-testid="settings-toggle" aria-expanded={showSettings}>
+          Analysis settings: ignore list and limits
+          <ChevronRight aria-hidden="true" size={16} className={`faint transition-transform ${showSettings ? 'rotate-90' : ''}`} />
+        </button>
+        {showSettings && (
+          <div className="grid gap-5 border-t border-[var(--line)] p-5 md:grid-cols-2">
+            <label className="block">
+              <div className="mb-1 text-[13px] font-medium">Ignore list (gitignore syntax, one per line)</div>
+              <textarea data-testid="ignore-list" className="input mono h-48 w-full" value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} onBlur={() => void setSettings({ ignore: ignoreText.split('\n').map((l) => l.trim()).filter(Boolean) })} />
+              <button className="link mt-1 text-xs" onClick={() => { setIgnoreText(DEFAULT_IGNORE.join('\n')); void setSettings({ ignore: DEFAULT_IGNORE }); }}>Reset to defaults</button>
+            </label>
+            <div className="space-y-3 text-[13px]">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={settings.respectGitignore} onChange={(e) => void setSettings({ respectGitignore: e.target.checked })} />
+                Respect <code>.gitignore</code> files
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                Per-file size cap (MB)
+                <input className="input w-24" type="number" min={0.1} step={0.5} value={settings.maxFileMB} onChange={(e) => void setSettings({ maxFileMB: Number(e.target.value) || 2 })} />
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                Per-file parse timeout (ms)
+                <input className="input w-24" type="number" min={100} step={100} value={settings.parseTimeoutMs} onChange={(e) => void setSettings({ parseTimeoutMs: Number(e.target.value) || 2000 })} />
+              </label>
+              <p className="muted">Minified, generated, binary and image files are detected and skipped automatically. Everything skipped is listed with its reason after analysis.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="What you get">
+        {FEATURES.map(({ icon: Icon, title, text }) => (
+          <li key={title} className="card px-4 py-3.5">
+            <Icon aria-hidden="true" size={16} strokeWidth={1.8} className="text-[var(--accent)]" />
+            <div className="mt-2 font-medium">{title}</div>
+            <p className="mt-0.5 text-[12.5px] muted">{text}</p>
+          </li>
+        ))}
+      </ul>
+
+      <div className="!mt-12 border-t border-[var(--line)] pt-10"><HelpManual /></div>
     </div>
   );
 }

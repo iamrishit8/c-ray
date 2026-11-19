@@ -33,6 +33,18 @@ export interface Example {
 
 export type SchematicId = 'treemap' | 'graph' | 'flow' | 'er' | 'matrix' | 'hotspot' | 'blast' | 'calendar';
 
+/** Title and caption of each drawn schematic. The pictures are illustrations of the idea, not data. */
+export const SCHEMATICS: Record<SchematicId, { title: string; caption: string }> = {
+  treemap: { title: 'A treemap', caption: 'Each box is a file, sized by its lines of code. The coloured outlines group files into folders, and the colour tells the role.' },
+  graph: { title: 'A system map', caption: 'Nodes are files, arrows are imports. A solid arrow is resolved, a dashed one heuristic, a dotted one unresolved. Folders are boxes you can open.' },
+  flow: { title: 'A request flow', caption: 'The steps that run for one route, in order: middleware, then the handler, then the code it calls, ending at the data.' },
+  er: { title: 'An ER diagram', caption: 'Each card is an entity with its fields. The line between cards is a relation; the key marks the field that links them.' },
+  matrix: { title: 'A dependency matrix', caption: 'A row imports a column. Filled cells below the diagonal follow the layers. A pair of cells mirrored across the diagonal is a cycle, outlined in red.' },
+  hotspot: { title: 'A hotspot map', caption: 'Each dot is a file: churn across, complexity up, size by lines. The shaded top-right corner holds files that are both complex and often changed.' },
+  blast: { title: 'A blast radius', caption: 'The file you change is the centre. Each ring is one more step of distance through the files that depend on it.' },
+  calendar: { title: 'An activity calendar', caption: 'One square per day, darker where there were more commits. Gaps are quiet periods; stripes are steady work.' },
+};
+
 export interface PageEntry {
   /** The tab id from `TABS` (or `file-mode`). A test keeps this list in step with the app. */
   id: string;
@@ -182,8 +194,8 @@ export const PAGES: PageEntry[] = [
         { say: 'Open Onboarding.', do: [{ tab: 'onboarding' }] },
         { say: 'Look at “How to run it”.' },
       ],
-      sees: 'A first-week checklist, then a list of commands (such as npm install or npm start) each with the file it was copied from and a copy button.',
-      checks: [{ testid: 'onboarding-checklist' }, { testid: 'run-commands' }, { testid: 'run-command' }],
+      sees: 'A first-week checklist, then the commands to run it, each with where it came from and a copy button. npm start is resolved (copied from package.json, line 5); npm install is heuristic (the usual command for a Node project, not written anywhere in the repo).',
+      checks: [{ testid: 'onboarding-checklist' }, { testid: 'run-commands', text: 'npm start' }, { testid: 'run-command' }],
     },
   },
   {

@@ -434,7 +434,9 @@ D18–D24 record choices that were already in the code but never written down.
   a unit test fails if a tab has no entry, an entry names a page that is gone, a documented control's `data-testid` is not
   in the UI code, a quoted threshold (god module, complexity colours) differs from the code, or the confidence levels have
   a second wording (`ConfBadge` tooltips import `CONFIDENCE_HELP` from the manual). Every page entry ends with a worked
-  example on the bundled sample project, written as test-id actions plus checks and replayed in Playwright.
+  example on the bundled sample project, written as test-id actions plus checks and replayed in Playwright. On Home the
+  order is hero, drop zone, stored projects, settings, feature strip, manual; the manual has one navigation that adapts:
+  a slim sticky section bar below 1100 px, a contents column with scroll-spy above (both together was redundant).
 - **Why:** Prose that is not tested goes stale silently. As data it can be searched (terms), reused (tooltips) and verified;
   the worked examples double as end-to-end walks of each page on a project with planted truth.
 - **Alternatives rejected:** Per-view help panels (more files to keep true, noisy in a dense tool); a separate Guide tab

@@ -125,6 +125,7 @@ If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document 
 - App shell: 56 px translucent top bar → side nav (236 px, grouped: Understand / Assess / Explore / Share; an icon
   rail below 900 px) → content → optional source panel (an overlay below 1100 px).
 - New tabs: add to `TABS` in `ProjectView.tsx` with a `group`, `badgeTitle` if it has a count, and `projectOnly` if it needs >1 file.
+- **Help manual (D42).** The manual lives only on Home and is data in `src/ui/help/content.ts`. A new page, a new control that a page entry should mention, or a new term/confidence rule means: add or edit its entry there (shape: shows · question · use · read · sure · limits · controls · worked example). `npm test` fails if a tab has no entry or a documented `data-testid` is gone; `tests/e2e/u4-manual.spec.ts` replays every worked example. Plain text only: no HTML, no em dashes. Don't add help panels inside project views.
 - Content pages: max 1180 px, 40 px side padding (20 px on small screens), 20 px vertical rhythm (`space-y-5`). Two-column grids collapse at `lg`.
 - Keyboard: `/` focuses the element marked `data-search-focus` in the current view (or opens Search); list + detail
   views move the selection with ↑/↓ when the list has focus.

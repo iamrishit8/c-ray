@@ -9,7 +9,7 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 typeface (Google Sans for text, Geist Mono for paths and code, confirmed).
 **Next, before M11: phase U4**, in progress (started 2026-11-20): a complete, plain-English **help manual on
 the introductory (Home) page**, together with the **U3 slice 4** items (illustrations, logo, performance check,
-polish). Slice 1 (the content as data + drift guards) is done. M11 starts only after U4 is reviewed and approved.
+polish). Slices 1 (content as data + drift guards) and 2 (Home layout + manual rendering) are done. M11 starts only after U4 is reviewed and approved.
 
 ---
 
@@ -30,7 +30,7 @@ polish). Slice 1 (the content as data + drift guards) is done. M11 starts only a
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
 | U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | ✅ slices 1–3 (slice 4 moved to U4) |
 | M10 | Decisions view + onboarding guide + generated docs | ✅ 2026-11-20 (review pending) |
-| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 🔨 in progress (slice 1 of 4 done) |
+| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 🔨 in progress (slices 1–2 of 4 done) |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
 | U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
@@ -233,12 +233,14 @@ from an open project). Plain English, no jargon without a definition.
 - [x] **Drift guards** (`tests/unit/u4-manual.test.ts`, 12 tests): a page in `TABS` with no manual entry, an entry for a page
       that no longer exists, a documented control or example `data-testid` missing from the UI code, a quoted threshold that
       differs from the code, a second wording of the confidence levels, placeholder text or em dashes
-- [ ] CONVENTIONS and the Definition of Done get one line: "new page, control or term → add it to the Home manual"
-- [ ] Every claim in the manual is checked by walking the real app with a fixture (owner sees the walkthrough in the review)
-- [ ] Each page entry ends with a short worked example on the sample project; a test opens the sample, follows each
-      example's click path via `data-testid`s and checks the stated result is on screen
-- [ ] Manual works offline (no external assets, no network requests), in light and dark, at 820 px, keyboard-only, and
-      with reduced motion; the in-page navigation and entries have accessible names and `data-testid`s
+- [x] CONVENTIONS and the Definition of Done get one line: "new page, control or term → add it to the Home manual"
+- [x] Each page entry ends with a short worked example on the sample project; `u4-manual.spec.ts` opens the sample, follows
+      each example's actions via `data-testid`s and checks the stated result is on screen (the File Mode one drops a single file).
+      Writing them found one wrong claim in the text (`npm install` is heuristic, only `npm start` is copied from the manifest)
+- [ ] Every other claim in the manual is checked by walking the real app (owner sees the walkthrough in the review)
+- [x] Manual works with no external requests, in light and dark, at 820 px (section bar instead of the contents column,
+      no horizontal scroll) and keyboard-only (entries are `<details>`); the navigation and entries have accessible names
+      and `data-testid`s. Reduced motion: smooth scrolling is switched off (`reducedMotion()`)
 
 ### Part B: U3 slice 4 (moved here, unchanged scope)
 - [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
@@ -254,8 +256,10 @@ from an open project). Plain English, no jargon without a definition.
       limits), screenshots of each new picture in the phase review
 
 ### Proposed order (one commit + push per slice, one owner review at the end)
-1. **Content first**: outline and full draft text of the manual as `content.ts`, reviewed by the owner as text before any layout work
-2. **Home layout + manual rendering** (in-page nav, sticky TOC, collapsible entries, terminology search, schematics)
+1. ✅ **Content first**: the full text of the manual as `content.ts`. The text is one data file, so the owner's edits stay cheap
+   at the final review (it was not held back for a separate text review)
+2. ✅ **Home layout + manual rendering** (section bar / sticky contents with scroll-spy, collapsible entries, terminology
+   search, schematics). On wide screens the contents column replaces the section bar (D42 note: showing both was redundant)
 3. **U3 slice 4** (hero illustration, empty states, logo, performance numbers and caps)
 4. **Tests, drift guards, docs, phase review** (walkthrough at http://localhost:5173)
 

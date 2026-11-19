@@ -38,6 +38,7 @@ apply, that's fine; if it applies and is unmet, the task stays open in [TODO.md]
 - [ ] [ARCHITECTURE.md](ARCHITECTURE.md) / [FLOWS.md](FLOWS.md): updated if modules, stages, messages or data flow changed.
 - [ ] [QUALITY.md](QUALITY.md): limitations and benchmark numbers updated.
 - [ ] User-facing copy in the app explains what a view shows and how sure it is.
+- [ ] A new page, control or term is in the Home manual (`src/ui/help/content.ts`), with a worked example that the e2e replays.
 
 ## 6. It's committed
 
