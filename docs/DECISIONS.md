@@ -341,3 +341,18 @@ D18–D24 record choices that were already in the code but never written down.
   tested core keeps the pictures honest (the DSM test proves every non-cycle cell is above the diagonal).
 - **Alternatives rejected:** `d3-hierarchy` (fine, but unnecessary); Cytoscape for the matrix/treemap (wrong tool,
   canvas text, no table fallback); fixed thresholds for "risky" (meaningless across projects of different sizes).
+
+## D38: Diagrams that move: graph motion stays inside `Graph.tsx`; in-app ER is SVG, Mermaid stays for export
+- **Date / phase:** 2026-11-19 · U3 slice 3 · **Status:** Accepted
+- **Decision:** `Graph.tsx` owns all graph motion so views only pass data: new nodes glide out of the folder node
+  they replaced (expand), the focused node's edges "march" for 1.6 s and then return to their confidence style
+  (solid/dashed/dotted must stay readable), `highlight` fades everything except a path or playback prefix, `travel`
+  moves a dot along one edge (flow playback), `pulse` centres and rings a located node. All off above 200 nodes
+  and under reduced motion; the stepping itself still works. The Data view draws its own SVG ER diagram
+  (`src/core/viz/er.ts`, click to focus); the Mermaid diagram is one click away ("as exported") and is still what
+  exports and print use. Graph export: PNG via Cytoscape (what you see); SVG by rendering the current view as a
+  Mermaid flowchart (so the SVG matches the exported diagrams' style).
+- **Why:** One place to enforce the motion rules (D36) and the node cap; Mermaid ER layouts can't be made
+  interactive, while the exported diagrams must stay text so they travel into Markdown and Notion.
+- **Alternatives rejected:** Continuous edge animation while a node is focused (loops while idle, hides the
+  confidence encoding); `cytoscape-svg` for SVG export (another extension with its own styling path, D35).

@@ -58,6 +58,11 @@ Impact (`core/impact.ts`), Flow tracing (`core/flow.ts`), System map layout (`co
 (`core/report.ts`) are computed in the UI from the in-memory `Analysis`. They must stay bounded (caps, depth limits).
 Source preview and search go through the worker (`source`, `search`, `occurrences`).
 
+U3 additions that also run on the UI thread from the stored `Analysis` (all bounded, D37): the treemap, matrix,
+hotspot, calendar, ER and ring layouts (`src/core/viz/*`), the System map path finder (`importPath`, one BFS) and
+flow playback (a timer stepping through an already-traced `Flow`). Locating a search result on the map goes
+through the store: `setTab('map', { file })` → the map expands the file's folders and pulses its node.
+
 ## 5. Export
 
 Export view → `report.ts` builds sections → Markdown download, Notion ZIP (fflate), print/PDF view (Mermaid → SVG,

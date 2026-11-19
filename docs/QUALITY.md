@@ -149,5 +149,10 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 - Hotspot map: the "risky" cut-offs are relative (75th percentile), so every project has a risky corner unless
   values are flat; without `.git` the x axis is fan-in, not churn.
 - Commit calendar: one year at most (older commits counted as "not shown"); days use the viewer's time zone.
+- Graph motion (glide, marching ants, travelling dot) is off above 200 nodes. The System map often opens zoomed
+  out far enough that node labels hide (`min-zoomed-font-size`), as before U3; zoom in or use the legend/hover.
+- SVG export of the map is a Mermaid redraw of the current nodes and edges (layout differs from the canvas);
+  PNG is exactly what is on screen.
 - Not measured yet: frame times on a 500-node map and the 10k-file treemap (U3 slice 4).
+- Tests after U3 slices 1–3 (2026-11-19): 181 unit (+1 opt-in bench) and 34 e2e, all passing.
 

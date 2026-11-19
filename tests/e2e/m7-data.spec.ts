@@ -4,6 +4,8 @@ import { analyzeFixture, openTab } from './util';
 test('data view: ER diagram renders as SVG, entity fields and read/write map', async ({ page }) => {
   await analyzeFixture(page, 'nestjs-prisma');
   await openTab(page, 'data');
+  // U3: the in-app diagram is interactive; the Mermaid version (used in exports) is one click away
+  await page.getByTestId('er-mermaid-toggle').click();
   const er = page.getByTestId('er-diagram');
   await expect(er).toHaveAttribute('data-rendered', 'yes');
   await expect(er.locator('svg')).toBeVisible();
@@ -19,6 +21,7 @@ test('data view: ER diagram renders as SVG, entity fields and read/write map', a
 test('data view works for SQL-only legacy projects', async ({ page }) => {
   await analyzeFixture(page, 'legacy-php');
   await openTab(page, 'data');
+  await page.getByTestId('er-mermaid-toggle').click();
   await expect(page.getByTestId('er-diagram')).toHaveAttribute('data-rendered', 'yes');
   await page.getByTestId('entity-list').getByRole('button', { name: /users/ }).click();
   await expect(page.getByTestId('entity-access')).toContainText('pages/users.php');

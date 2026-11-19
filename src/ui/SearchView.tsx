@@ -51,6 +51,7 @@ export function References({ a, sym }: { a: Analysis; sym: number }) {
 export function SearchView() {
   const a = useStore((s) => s.analysis)!;
   const openSource = useStore((s) => s.openSource);
+  const setTab = useStore((s) => s.setTab);
   const [q, setQ] = useState('');
   const [kind, setKind] = useState<'all' | 'symbol' | 'text'>('all');
   const [res, setRes] = useState<SearchResult | null>(null);
@@ -110,6 +111,7 @@ export function SearchView() {
                   {res.files.map((f) => (
                     <div key={f.path}>
                       <FileLink file={f.path} />
+                      {a.mode === 'project' && <button className="link ml-3 text-xs" data-testid="locate-on-map" onClick={() => setTab('map', { file: f.path })}>show on map</button>}
                       {f.lines.map((l) => (
                         <div key={l.line} className="flex gap-2 pl-4 text-xs"><FileLink file={f.path} line={l.line} label={String(l.line)} className="w-10 shrink-0 text-right" /><span className="mono truncate muted">{l.text}</span></div>
                       ))}

@@ -147,6 +147,9 @@ If you need a new pattern twice, add it to `kit.tsx` / `index.css` and document 
 - Interactive graphs: `Graph.tsx` (Cytoscape). Diagrams that also go into exports: `Mermaid.tsx`.
 - Edge style encodes confidence: solid = resolved, dashed = heuristic, dotted = unresolved. Keep that consistent everywhere.
 - Colours come from the CSS tokens at runtime (`cssVar()` in `Graph.tsx`); the graph restyles on theme change.
+- Motion and overlays are `Graph` props, not view code (D38): `highlight` (path / playback step), `travel` (dot along
+  an edge), `pulse` (locate a node), `exportName` + `toMermaid` (PNG/SVG export). Node data `dotColor` / `heat` /
+  `pad` implement colour-by and size-by. Animations stop above `ANIMATE_MAX_NODES` (200).
 
 ### Visualisations (`src/ui/viz/`, D37)
 - Layout maths goes in `src/core/viz/*` (pure, bounded, unit-tested); the component only renders SVG.

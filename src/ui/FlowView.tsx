@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pause, Play, SkipBack, SkipForward } from 'lucide-react';
 import type { ElementDefinition } from 'cytoscape';
 import { traceFlow, type FlowStep } from '../core/flow';
 import type { EntryPoint } from '../core/types';
@@ -28,6 +29,11 @@ export function FlowView() {
   const [depth, setDepth] = useState(8);
   const [showGraph, setShowGraph] = useState(true);
   useEffect(() => { if (focus?.entry) setSelected(focus.entry); }, [focus]);
+  // playback: -1 = not started; otherwise the index of the active step
+  const [step, setStep] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const listRef = useRef<HTMLOListElement>(null);
 
   const entries = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -36,6 +42,41 @@ export function FlowView() {
   const groups = useMemo(() => groupBy(entries, (e) => e.kind), [entries]);
   const current = selected && a.entries.some((e) => e.id === selected) ? selected : entries[0]?.id ?? null;
   const flow = useMemo(() => (current ? traceFlow(a, current, { maxDepth: depth }) : null), [a, current, depth]);
+  useEffect(() => {
+    setStep(-1);
+    setPlaying(false);
+  }, [flow]);
+  const last = (flow?.steps.length ?? 0) - 1;
+  const stepMs = 1100 / speed;
+  useEffect(() => {
+    if (!playing) return;
+    if (step >= last) {
+      setPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setStep((k) => k + 1), step < 0 ? 0 : stepMs);
+    return () => clearTimeout(t);
+  }, [playing, step, last, stepMs]);
+  useEffect(() => {
+    if (step < 0) return;
+    listRef.current?.querySelector(`[data-step="${step}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [step]);
+  const play = () => {
+    if (step >= last) setStep(-1);
+    setPlaying(!playing || step >= last);
+  };
+  const highlight = useMemo(() => {
+    if (!flow || step < 0) return null;
+    const shown = flow.steps.slice(0, Math.min(step + 1, 120));
+    const cur = flow.steps[step];
+    return {
+      nodes: shown.map((x) => 'n' + x.id),
+      edges: shown.filter((x) => x.parent >= 0).map((x) => 'e' + x.id),
+      current: step < 120 ? 'n' + cur.id : undefined,
+      edge: cur.parent >= 0 && step < 120 ? 'e' + cur.id : undefined,
+    };
+  }, [flow, step]);
+  const travel = useMemo(() => (flow && step > 0 && step < 120 && flow.steps[step].parent >= 0 ? { edge: 'e' + flow.steps[step].id, key: step, ms: stepMs } : null), [flow, step, stepMs]);
   const route = flow?.entry.routeId ? a.routes.find((r) => r.id === flow.entry.routeId) : undefined;
 
   const elements = useMemo<ElementDefinition[]>(() => {
@@ -99,10 +140,24 @@ export function FlowView() {
                 {route.middleware.length > 0 && <> · middleware: {route.middleware.map((m) => m.name).join(' → ')}</>}
               </div>
             )}
+            {flow.steps.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 text-[13px]" data-testid="flow-player" role="group" aria-label="Play the trace">
+                <button className="btn btn-accent" onClick={play} data-testid="flow-play" aria-label={playing ? 'Pause' : 'Play the trace step by step'}>
+                  {playing ? <Pause aria-hidden="true" size={14} /> : <Play aria-hidden="true" size={14} />}{playing ? 'Pause' : step >= last ? 'Replay' : step >= 0 ? 'Resume' : 'Play'}
+                </button>
+                <button className="btn btn-icon" onClick={() => { setPlaying(false); setStep(Math.max(0, step - 1)); }} disabled={step <= 0} aria-label="Previous step" data-testid="flow-step-prev"><SkipBack aria-hidden="true" size={14} /></button>
+                <button className="btn btn-icon" onClick={() => { setPlaying(false); setStep(Math.min(last, step + 1)); }} disabled={step >= last} aria-label="Next step" data-testid="flow-step-next"><SkipForward aria-hidden="true" size={14} /></button>
+                <label className="flex items-center gap-1.5"><span className="label">Speed</span>
+                  <select className="input" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} data-testid="flow-speed">{[0.5, 1, 2, 4].map((v) => <option key={v} value={v}>{v}×</option>)}</select>
+                </label>
+                <span className="tnum faint" data-testid="flow-step-count">{step < 0 ? `${flow.steps.length} steps` : `step ${step + 1} of ${flow.steps.length}`}</span>
+                {step >= 0 && !playing && <button className="link text-[13px]" onClick={() => setStep(-1)}>reset</button>}
+              </div>
+            )}
             <Card title={`Steps (${flow.steps.length})`} right={<span className="text-xs faint">ordered by execution; indent = call depth</span>}>
-              <ol className="space-y-1.5" data-testid="flow-steps">
+              <ol className="space-y-1.5" data-testid="flow-steps" ref={listRef}>
                 {flow.steps.map((s) => (
-                  <li key={s.id} className="flex items-start gap-2 text-[13px]" style={{ paddingLeft: s.depth * 18 }} data-kind={s.kind}>
+                  <li key={s.id} className={`flex items-start gap-2 rounded-[var(--r-sm)] text-[13px] transition-[background-color,opacity] duration-200 ${s.id === step ? 'is-selected' : step >= 0 && s.id > step ? 'opacity-45' : ''}`} style={{ paddingLeft: s.depth * 18 }} data-kind={s.kind} data-step={s.id} data-active={s.id === step || undefined}>
                     <span className="tnum w-6 shrink-0 text-right faint">{s.id + 1}</span>
                     <Badge tone={KIND_TONE[s.kind]}>{KIND_LABEL[s.kind]}</Badge>
                     <div className="min-w-0">
@@ -123,7 +178,7 @@ export function FlowView() {
             </Card>
             {showGraph && flow.steps.length > 1 && (
               <Card flush title="Flow graph" right={flow.steps.length > 120 ? <span className="text-xs faint">first 120 steps</span> : undefined} className="overflow-hidden">
-                <div className="h-[460px]"><Graph elements={elements} layout="elk" testId="flow-graph" legend={FLOW_LEGEND} /></div>
+                <div className="h-[460px]"><Graph elements={elements} layout="elk" testId="flow-graph" legend={FLOW_LEGEND} highlight={highlight} travel={travel} exportName={`${a.name}-flow`} /></div>
               </Card>
             )}
           </div>

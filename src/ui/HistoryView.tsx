@@ -1,12 +1,14 @@
 // History view (M9): churn, co-change, ownership, commit types and architecture
 // time-travel, all read from the uploaded .git folder.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { diffSnapshots } from '../core/git/diff';
 import type { GitResult } from '../core/types';
 import { fmtNum } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page, Pending, RiskBar, Stat, capped } from './kit';
 import { CommitCalendar } from './viz/Calendar';
+import { SnapshotGraph } from './viz/SnapshotGraph';
 
 const day = (t: number) => new Date(t).toISOString().slice(0, 10);
 const pctOf = (share: number) => `${Math.round(share * 100)}%`;
@@ -181,6 +183,23 @@ function TimeTravelCard({ g }: { g: GitResult }) {
   const from = Math.min(fromSel, Math.max(0, snaps.length - 1));
   const to = Math.min(toSel, Math.max(0, snaps.length - 1));
   const d = useMemo(() => (snaps.length >= 2 ? diffSnapshots(snaps[from], snaps[to]) : null), [snaps, from, to]);
+  // play through: step the "to" snapshot from the oldest to HEAD, so the module graph and numbers morph
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!playing) return;
+    if (to >= snaps.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setTo(to + 1), 1200);
+    return () => clearTimeout(t);
+  }, [playing, to, snaps.length]);
+  const play = () => {
+    if (playing) return setPlaying(false);
+    setFrom(0);
+    setTo(1);
+    setPlaying(true);
+  };
   if (snaps.length === 0) return <Card title="Architecture over time"><div className="muted">No snapshots could be taken (no code files at the sampled commits).</div></Card>;
   return (
     <Card title={`Architecture over time (${snaps.length} snapshots)`} right={<ConfBadge c="heuristic" />}>
@@ -205,9 +224,11 @@ function TimeTravelCard({ g }: { g: GitResult }) {
       {snaps.length < 2 ? <div className="muted">Only one snapshot: nothing to compare.</div> : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+            <button className="btn btn-accent" onClick={play} data-testid="snap-play" aria-label={playing ? 'Pause' : 'Play through the snapshots'}>{playing ? <Pause aria-hidden="true" size={14} /> : <Play aria-hidden="true" size={14} />}{playing ? 'Pause' : 'Play through'}</button>
             <label className="flex items-center gap-1.5">From <select data-testid="snap-from" className="input" value={from} onChange={(e) => setFrom(Number(e.target.value))}>{snaps.map((s, i) => <option key={s.oid} value={i}>{s.label}</option>)}</select></label>
             <label className="flex items-center gap-1.5">to <select data-testid="snap-to" className="input" value={to} onChange={(e) => setTo(Number(e.target.value))}>{snaps.map((s, i) => <option key={s.oid} value={i}>{s.label}</option>)}</select></label>
           </div>
+          <div className="mb-4"><SnapshotGraph snaps={snaps} index={to} /></div>
           {d && (
             <div className="space-y-4" data-testid="snap-diff">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

@@ -4,6 +4,7 @@ import { modelOf } from '../core/model';
 import { groupBy } from '../core/util';
 import { useStore } from '../store/store';
 import { Badge, Card, ConfBadge, Empty, FileLink, Page, PathText, RiskBar } from './kit';
+import { BlastRadius } from './viz/BlastRadius';
 
 const LEVEL_TONE = { low: 'ok', medium: 'warn', high: 'bad', 'very high': 'bad' } as const;
 
@@ -69,6 +70,7 @@ export function ImpactView() {
               {impact.heuristic ? ' Some dependents were found through heuristic edges: the real set may be larger or smaller.' : impact.kind === 'symbol' ? ' All dependents were resolved by the TypeScript compiler.' : ''}
             </p>
           </Card>
+          <BlastRadius impact={impact} />
           <div className="grid gap-4 lg:grid-cols-2">
             <Card title={`Dependent files (${impact.files.filter((f) => !f.test).length})`}>
               {byDist.length === 0 ? <div className="muted">No other analysed file depends on this.</div> : (

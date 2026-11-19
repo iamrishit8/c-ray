@@ -3,7 +3,8 @@ import { modelOf } from '../core/model';
 import { erToMermaid } from '../core/schema';
 import { groupBy } from '../core/util';
 import { useStore } from '../store/store';
-import { Badge, Card, ConfBadge, Empty, FileLink, Page, Pending, RoleBadge, listKeys } from './kit';
+import { Badge, Card, Chip, ConfBadge, Empty, FileLink, Page, Pending, RoleBadge, listKeys } from './kit';
+import { ErDiagram } from './viz/ErDiagram';
 import { Mermaid } from './Mermaid';
 
 export function DataView() {
@@ -11,6 +12,7 @@ export function DataView() {
   const m = useMemo(() => modelOf(a), [a, a.symbols.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const { entities, relations, access } = a.schema;
   const [sel, setSel] = useState<string | null>(null);
+  const [mermaid, setMermaid] = useState(false);
   const er = useMemo(() => erToMermaid(a.schema), [a.schema]);
   const byEntity = useMemo(() => groupBy(access, (x) => x.entity), [access]);
   const unmapped = a.facts.filter((f) => f.kind === 'db' && !access.some((x) => x.file === f.file && x.line === f.line));
@@ -27,8 +29,22 @@ export function DataView() {
         <Empty title="No data model found">No schema definitions were found (Prisma, Mongoose, TypeORM, Sequelize, SQLAlchemy, Django, JPA, ActiveRecord, Eloquent, EF Core, GORM, migrations or SQL DDL).</Empty>
       ) : (
         <>
-          <Card testId="er-card" title={`Entity-relationship diagram (${entities.length} entities, ${relations.length} relations)`} right={entities.length > 60 ? <span className="text-xs faint">first 60 entities</span> : undefined}>
-            <Mermaid code={er} testId="er-diagram" />
+          <Card
+            testId="er-card"
+            title={`Entity-relationship diagram (${entities.length} entities, ${relations.length} relations)`}
+            right={
+              <div className="flex gap-1" role="group" aria-label="Diagram style">
+                <Chip on={!mermaid} onClick={() => setMermaid(false)} testId="er-interactive-toggle">interactive</Chip>
+                <Chip on={mermaid} onClick={() => setMermaid(true)} testId="er-mermaid-toggle" title="The same diagram as it appears in exports and print">as exported</Chip>
+              </div>
+            }
+          >
+            {mermaid ? <Mermaid code={er} testId="er-diagram" /> : (
+              <>
+                <p className="mb-3 text-[13px] muted">Click an entity to focus it and its relations; its fields and the code that uses it appear below. Dashed lines and cards are heuristic.</p>
+                <ErDiagram schema={a.schema} selected={current?.name ?? null} onSelect={setSel} />
+              </>
+            )}
           </Card>
           <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
             <Card title="Entities">

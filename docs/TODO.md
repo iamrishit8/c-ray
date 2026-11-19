@@ -10,7 +10,8 @@ straight through all slices with one review at the end). M9 follow-ups and the `
 (see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
 Owner approved U2 on 2026-11-19 and asked for one more visual phase first: **U3 (motion + codebase
 visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed to GitHub after each slice.
-**U3 slices 1–2 are done**; slice 3 in progress. M10 starts after U3.
+**U3 slices 1–3 are done and waiting for owner review** (dev server at http://localhost:5173). Slice 4
+(illustrations, performance check, polish) is next after the review; M10 starts after U3.
 
 ---
 
@@ -29,7 +30,7 @@ visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed t
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
-| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 🚧 slices 1–3 in progress |
+| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 🚧 slices 1–3 done, review pending; slice 4 open |
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
@@ -72,7 +73,7 @@ Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, 
 - [x] Rename detection: exact + similarity renames (D32), history merged under the current name, "Renamed and
       moved files" card in History and table in the export
 
-## U3: Motion + codebase visualisations (in progress)
+## U3: Motion + codebase visualisations (slices 1–3 done)
 
 Goal: make the codebase easier to *see*. Motion only where it explains something (what changed, where to look, how
 things connect), and new pictures of the code that the tables and the node graph can't give. Everything stays local,
@@ -119,18 +120,26 @@ uses the U2 tokens, and has a plain fallback.
       planted truth added by hand under `u3` in the express-mongoose and git-history `ground-truth.json` (D37)
 
 **Slice 3: Diagrams that move**
-- [ ] System map: animated expand/collapse (nodes glide from the cluster's position), "marching ants" on the edges of
+- [x] System map: animated expand/collapse (nodes glide from the cluster's position), "marching ants" on the edges of
       the focused node, pulse when a search result is located on the map
-- [ ] System map: **size by** (lines / fan-in) and **colour by** (role / language / complexity / churn) controls
-- [ ] System map: **path finder**: pick two files to highlight the shortest import path between them, step by step
-- [ ] Flows: **playback**: ▶ steps through the trace, highlighting each step in the list and the graph in sync, with a
+- [x] System map: **size by** (lines / fan-in) and **colour by** (role / language / complexity / churn) controls
+- [x] System map: **path finder**: pick two files to highlight the shortest import path between them, step by step
+- [x] Flows: **playback**: ▶ steps through the trace, highlighting each step in the list and the graph in sync, with a
       dot travelling along the edge (the mockup's dashed "flow" line); pause / step / speed
-- [ ] Impact: **blast radius** picture: radial rings by distance from the target, animated outward ripple, rings
+- [x] Impact: **blast radius** picture: radial rings by distance from the target, animated outward ripple, rings
       labelled "direct", "2 steps", …; tests and entry points marked
-- [ ] History time-travel: **play through snapshots**: module graph and numbers morph from one snapshot to the next
-- [ ] Data: in-app **interactive ER diagram** (entity cards with fields, relation lines with cardinality, click to
+- [x] History time-travel: **play through snapshots**: module graph and numbers morph from one snapshot to the next
+- [x] Data: in-app **interactive ER diagram** (entity cards with fields, relation lines with cardinality, click to
       focus); Mermaid stays for exports and print
-- [ ] Export the current graph view as SVG/PNG (Cytoscape `png()`; SVG through the existing Mermaid path where possible)
+- [x] Export the current graph view as SVG/PNG (Cytoscape `png()`; SVG through the existing Mermaid path where possible)
+- [x] Locate: Search → "show on map" expands the file's folders and pulses its node
+- [x] E2E `tests/e2e/u3-visuals.spec.ts` (9 tests, written now rather than in slice 4): reduced motion, nav
+      highlight + stepper, treemap drill/breadcrumb/tip/table, matrix cycle + cell detail, calendar tooltip,
+      snapshot play-through, hotspot point, flow playback to the last step, blast radius rings, ER focus, path
+      finder, colour/size controls, PNG + SVG export, locate pulse. `m7-data.spec.ts` now switches the ER card to
+      "as exported" before checking the Mermaid SVG
+- Design notes: marching ants run 1.6 s, then edges return to their confidence style; collapse has no animation
+  (only expand glides); playback works under reduced motion, just without the travelling dot (D38)
 
 **Slice 4: Illustration and polish**
 - [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
@@ -139,14 +148,15 @@ uses the U2 tokens, and has a plain fallback.
 - [ ] Logo micro-interaction (arrows swap on hover / while analysing)
 - [ ] Performance check: frame times while panning and focusing on a 500-node map, and while the treemap drills on
       the 10k-file synthetic project. Numbers go in QUALITY.md; anything over budget is turned off above a size cap
-- [ ] E2E `u3-visuals.spec.ts`: treemap drill + breadcrumb, matrix cell → import list, hotspot point → file, calendar
+- [x] ~~E2E `u3-visuals.spec.ts`~~ done early (see slice 3); extend it for the slice-4 items. Was: treemap drill + breadcrumb, matrix cell → import list, hotspot point → file, calendar
       tooltip, flow playback reaches the last step, blast radius rings, ER focus, graph export downloads a file
 - [ ] Docs: CONVENTIONS (motion tokens + rules, viz components), ARCHITECTURE (`src/core/viz`), DECISIONS (motion
       policy, layout library), QUALITY (frame-time numbers, limits), screenshots of each new picture in the phase review
 
 **Out of scope:** 3D views (e.g. "code city" in WebGL), sound, and any animation that loops while idle.
 
-**Open questions for the owner** (defaults in brackets)
+**Open questions for the owner** (defaults in brackets; slices 1–3 went ahead on the defaults: one review for
+slices 1–3 as asked, no 3D view, no d3: hand-written layouts, D37)
 1. Review cadence: one review at the end, or one per slice? [one per slice: this phase is more about taste]
 2. 3D "code city" view: skip, or add as an optional experimental tab? [skip]
 3. Is `d3-hierarchy` OK as a small new dependency? [yes, if the hand-written treemap gets fiddly]

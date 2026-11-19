@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Route as RouteIcon, X } from 'lucide-react';
 import type { Core, ElementDefinition } from 'cytoscape';
 import { buildMapView, defaultExpanded, DIR_PREFIX, filesUnder, type MapFilter } from '../core/mapview';
 import { modelOf } from '../core/model';
@@ -7,13 +8,67 @@ import type { Analysis, Confidence } from '../core/types';
 import { dirname, fmtNum, uniq } from '../core/util';
 import { useStore } from '../store/store';
 import { worker } from '../workers/client';
+import { importPath, type ImportPath } from '../core/viz/path';
 import { Graph } from './Graph';
-import { Badge, Chip, ConfBadge, FileLink, PageHeader, RoleBadge, Skeleton } from './kit';
+import { Badge, Chip, ConfBadge, FileLink, heat, langColors, PageHeader, RoleBadge, SERIES_OTHER, Skeleton } from './kit';
 
 const MAX_NODES = 500;
 /** Short role names for node subtitles ("service · 412 lines"). */
 const ROLE_SHORT: Record<string, string> = { entry: 'entry', route: 'route', controller: 'controller', middleware: 'middleware', service: 'service', repository: 'repository', model: 'model', view: 'view', component: 'component', page: 'page', config: 'config', util: 'util', test: 'test', migration: 'migration', job: 'job', cli: 'cli', client: 'client', messaging: 'messaging', schema: 'schema', doc: 'doc', build: 'build', unknown: 'file' };
 const CONFS: Confidence[] = ['resolved', 'heuristic', 'unresolved'];
+type ColorBy = 'role' | 'lang' | 'complexity' | 'churn';
+type SizeBy = 'none' | 'lines' | 'fanin';
+
+/** The visible node that stands for a file: the file itself, or the collapsed folder it sits in. */
+function visibleNodeOf(ids: Set<string>, path: string): string | null {
+  if (ids.has('file:' + path)) return 'file:' + path;
+  let d = dirname(path);
+  while (d) {
+    if (ids.has(DIR_PREFIX + d)) return DIR_PREFIX + d;
+    d = dirname(d);
+  }
+  return null;
+}
+const ancestors = (path: string) => { const out: string[] = []; let d = dirname(path); while (d) { out.push(d); d = dirname(d); } return out; };
+
+/** Pick two files and show the shortest import path between them, one step at a time. */
+function PathFinder({ a, onPath, onClose }: { a: Analysis; onPath: (p: ImportPath | null, step: number) => void; onClose: () => void }) {
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [res, setRes] = useState<ImportPath | null | 'none'>(null);
+  const [step, setStep] = useState(0);
+  const go = (p: ImportPath | null | 'none', k: number) => {
+    setRes(p);
+    setStep(k);
+    onPath(p && p !== 'none' ? p : null, k);
+  };
+  const find = () => go(importPath(a, from.trim(), to.trim()) ?? 'none', 0);
+  const known = (p: string) => a.files.some((f) => f.path === p.trim());
+  return (
+    <div className="border-b border-[var(--line)] bg-[var(--bg2)] px-5 py-3 md:px-8 fade-in" data-testid="path-finder">
+      <datalist id="map-files">{a.files.slice(0, 3000).map((f) => <option key={f.path} value={f.path} />)}</datalist>
+      <form className="flex flex-wrap items-center gap-2 text-[13px]" onSubmit={(e) => { e.preventDefault(); find(); }}>
+        <span className="label">Path from</span>
+        <input className="input w-72 max-w-full" list="map-files" value={from} onChange={(e) => setFrom(e.target.value)} placeholder="src/server.js" aria-label="Start file" data-testid="path-from" />
+        <span className="label">to</span>
+        <input className="input w-72 max-w-full" list="map-files" value={to} onChange={(e) => setTo(e.target.value)} placeholder="src/models/User.js" aria-label="End file" data-testid="path-to" />
+        <button className="btn btn-primary" type="submit" disabled={!known(from) || !known(to)} data-testid="path-find">Find path</button>
+        <button className="btn btn-round !h-8 !w-8 ml-auto" type="button" onClick={() => { onPath(null, 0); onClose(); }} aria-label="Close path finder" title="Close path finder"><X aria-hidden="true" size={15} /></button>
+      </form>
+      {res === 'none' && <p className="mt-2 text-[13px] muted" data-testid="path-none">No import path connects these files in either direction.</p>}
+      {res && res !== 'none' && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[13px]" data-testid="path-result">
+          <span className="muted">{res.edges.length} step{res.edges.length === 1 ? '' : 's'}{res.direction === 'reverse' ? ' (the second file imports its way to the first)' : ''}</span>
+          <ConfBadge c={res.conf} />
+          <button className="btn btn-icon" onClick={() => go(res, Math.max(0, step - 1))} disabled={step === 0} aria-label="Previous step" data-testid="path-prev"><ChevronLeft aria-hidden="true" size={15} /></button>
+          <span className="tnum" data-testid="path-step">{step + 1} / {res.edges.length}</span>
+          <button className="btn btn-icon" onClick={() => go(res, Math.min(res.edges.length - 1, step + 1))} disabled={step >= res.edges.length - 1} aria-label="Next step" data-testid="path-next"><ChevronRight aria-hidden="true" size={15} /></button>
+          {res.edges[step] && <span className="flex flex-wrap items-center gap-1.5"><FileLink file={res.edges[step].from} line={res.edges[step].line} /><span className="faint">imports</span><FileLink file={res.edges[step].to} /></span>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Preview({ path }: { path: string }) {
   const [text, setText] = useState<string | null>(null);
@@ -92,17 +147,106 @@ export function SystemMap() {
   const [expanded, setExpanded] = useState<Set<string>>(() => defaultExpanded(a, {}, MAX_NODES));
   const [selected, setSelected] = useState<string | null>(null);
   const [layout, setLayout] = useState<'fcose' | 'elk'>('fcose');
+  const [colorBy, setColorBy] = useState<ColorBy>('role');
+  const [sizeBy, setSizeBy] = useState<SizeBy>('none');
+  const [finder, setFinder] = useState(false);
+  const [path, setPath] = useState<{ p: ImportPath; step: number } | null>(null);
+  const [pulse, setPulse] = useState<{ id: string; key: number } | null>(null);
+  const focus = useStore((s) => s.focus);
+  const pulseKey = useRef(0);
   const stamp = `${a.files.length}:${a.imports.length}`;
   useEffect(() => setExpanded(defaultExpanded(a, {}, MAX_NODES)), [stamp]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!focus?.file) return;
+    setExpanded((prev) => new Set([...prev, ...ancestors(focus.file!)]));
+    setSelected('file:' + focus.file);
+  }, [focus]);
   const view = useMemo(() => buildMapView(a, expanded, filter, MAX_NODES), [a, stamp, expanded, filter]); // eslint-disable-line react-hooks/exhaustive-deps
-  const elements = useMemo<ElementDefinition[]>(() => [
-    ...view.nodes.map((n) => ({ data: {
-      id: n.id, label: n.label, kind: n.kind, parent: n.parent, role: n.role,
-      sub: n.container ? undefined : n.kind === 'dir' ? `${fmtNum(n.files)} files · ${fmtNum(n.loc)} lines` : `${ROLE_SHORT[n.role ?? 'unknown']} · ${fmtNum(n.loc)} lines`,
-    } })),
-    ...view.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, count: e.count, conf: e.conf, label: e.count > 1 ? String(e.count) : '' } })),
-  ], [view]);
+  const ids = useMemo(() => new Set(view.nodes.map((n) => n.id)), [view]);
+  useEffect(() => {
+    if (!focus?.file) return;
+    const id = visibleNodeOf(ids, focus.file);
+    if (id) setPulse({ id, key: ++pulseKey.current });
+  }, [focus, ids]);
+
+  // colour by / size by
+  const churn = useMemo(() => new Map((a.git?.churn ?? []).map((c) => [c.file, c.commits])), [a.git]);
+  const lang = useMemo(() => langColors(a.l0.languages), [a.l0.languages]);
+  const metric = (n: (typeof view.nodes)[number]): { cx: number; ch: number } => {
+    const files = n.kind === 'file' ? [n.file!] : filesUnder(a, n.id);
+    let cx = 0;
+    let ch = 0;
+    for (const i of files) {
+      cx = Math.max(cx, a.files[i].complexity);
+      ch = Math.max(ch, churn.get(a.files[i].path) ?? 0);
+    }
+    return { cx, ch };
+  };
+  const fanIn = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of view.edges) m.set(e.target, (m.get(e.target) ?? 0) + e.count);
+    return m;
+  }, [view]);
+  const elements = useMemo<ElementDefinition[]>(() => {
+    const leaf = view.nodes.filter((n) => !n.container);
+    const metrics = new Map(colorBy === 'complexity' || colorBy === 'churn' ? leaf.map((n) => [n.id, metric(n)]) : []);
+    const maxCx = Math.max(1, ...[...metrics.values()].map((m) => m.cx));
+    const maxCh = Math.max(1, ...[...metrics.values()].map((m) => m.ch));
+    const maxLoc = Math.max(1, ...leaf.map((n) => n.loc));
+    const maxFan = Math.max(1, ...leaf.map((n) => fanIn.get(n.id) ?? 0));
+    return [
+      ...view.nodes.map((n) => {
+        const d: Record<string, unknown> = {
+          id: n.id, label: n.label, kind: n.kind, parent: n.parent, role: colorBy === 'role' ? n.role : undefined,
+          sub: n.container ? undefined : n.kind === 'dir' ? `${fmtNum(n.files)} files · ${fmtNum(n.loc)} lines` : `${ROLE_SHORT[n.role ?? 'unknown']} · ${fmtNum(n.loc)} lines`,
+        };
+        if (!n.container) {
+          if (colorBy === 'lang' && n.lang) d.dotColor = lang(n.lang);
+          if (colorBy === 'lang' && !n.lang) d.dotColor = SERIES_OTHER;
+          if (colorBy === 'complexity') d.heat = Math.sqrt(metrics.get(n.id)!.cx / maxCx);
+          if (colorBy === 'churn') d.heat = Math.sqrt(metrics.get(n.id)!.ch / maxCh);
+          if (sizeBy === 'lines') d.pad = Math.round(8 + 22 * Math.sqrt(n.loc / maxLoc));
+          if (sizeBy === 'fanin') d.pad = Math.round(8 + 22 * Math.sqrt((fanIn.get(n.id) ?? 0) / maxFan));
+        }
+        return { data: d };
+      }),
+      ...view.edges.map((e) => ({ data: { id: e.id, source: e.source, target: e.target, count: e.count, conf: e.conf, label: e.count > 1 ? String(e.count) : '' } })),
+    ];
+  }, [view, colorBy, sizeBy, fanIn, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // path finder: make its files visible, then highlight the path and the current step
+  const onPath = (p: ImportPath | null, step: number) => {
+    setPath(p ? { p, step } : null);
+    if (p) setExpanded((prev) => new Set([...prev, ...p.files.flatMap(ancestors)]));
+  };
+  const highlight = useMemo(() => {
+    if (!path) return null;
+    const nodes = path.p.files.map((f) => visibleNodeOf(ids, f)).filter((x): x is string => !!x);
+    const edgeIds = new Set(view.edges.map((e) => e.id));
+    const edges: string[] = [];
+    path.p.edges.forEach((e) => {
+      // path edges always run importer → imported, whichever way the path was asked for
+      const s = visibleNodeOf(ids, e.from);
+      const t = visibleNodeOf(ids, e.to);
+      if (s && t && edgeIds.has(s + '→' + t)) edges.push(s + '→' + t);
+    });
+    const cur = path.p.edges[path.step];
+    const ce = cur && visibleNodeOf(ids, cur.from) + '→' + visibleNodeOf(ids, cur.to);
+    return { nodes, edges, current: cur ? visibleNodeOf(ids, cur.to) ?? undefined : undefined, edge: ce && edgeIds.has(ce) ? ce : undefined };
+  }, [path, ids, view]);
+  const toMermaid = () => {
+    const id = new Map(view.nodes.filter((n) => !n.container).map((n, i) => [n.id, `n${i}`]));
+    const esc = (t: string) => t.replace(/["<>]/g, '');
+    const lines = ['flowchart LR', ...[...id].map(([k, v]) => `  ${v}["${esc(view.nodes.find((n) => n.id === k)!.label)}"]`)];
+    for (const e of view.edges) if (id.has(e.source) && id.has(e.target)) lines.push(`  ${id.get(e.source)} ${e.conf === 'resolved' ? '-->' : '-.->'}${e.count > 1 ? `|${e.count}|` : ''} ${id.get(e.target)}`);
+    return lines.join('\n');
+  };
+  const legend = colorBy === 'lang'
+    ? [...a.l0.languages].sort((x, y) => y.loc - x.loc).slice(0, 6).map((l) => ({ label: l.lang, color: lang(l.lang), fill: true }))
+    : colorBy === 'complexity' || colorBy === 'churn'
+      ? [{ label: `low ${colorBy}`, color: heat(0.1), fill: true }, { label: `high ${colorBy}`, color: heat(1), fill: true }]
+      : undefined;
 
   const roles = useMemo(() => uniq(a.files.map((f) => f.role)).sort(), [a, stamp]); // eslint-disable-line react-hooks/exhaustive-deps
   const langs = useMemo(() => uniq(a.files.map((f) => f.lang)).sort(), [a, stamp]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -151,6 +295,7 @@ export function SystemMap() {
               </select>
               <button className="btn" onClick={() => setExpanded(new Set(['', ...a.files.flatMap((f) => { const out: string[] = []; let d = dirname(f.path); while (d) { out.push(d); d = dirname(d); } return out; })]))} title="Expand as far as the node budget allows">Expand all</button>
               <button className="btn" onClick={() => setExpanded(defaultExpanded(a, {}, 0))}>Collapse all</button>
+              <button className={`btn ${finder ? 'is-selected' : ''}`} onClick={() => { setFinder(!finder); if (finder) setPath(null); }} aria-pressed={finder} data-testid="path-toggle"><RouteIcon aria-hidden="true" size={14} />Path</button>
             </>
           }
         />
@@ -176,10 +321,23 @@ export function SystemMap() {
             </select>
           </label>
           <Chip on={!!filter.hideTests} onClick={() => setFilter({ ...filter, hideTests: !filter.hideTests })} testId="hide-tests">hide tests</Chip>
+          <label className="flex items-center gap-1.5">
+            <span className="label">Colour</span>
+            <select className="input" data-testid="map-color-by" value={colorBy} onChange={(e) => setColorBy(e.target.value as ColorBy)}>
+              <option value="role">role</option><option value="lang">language</option><option value="complexity">complexity</option><option value="churn" disabled={!a.git}>churn{a.git ? '' : ' (needs .git)'}</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5">
+            <span className="label">Size</span>
+            <select className="input" data-testid="map-size-by" value={sizeBy} onChange={(e) => setSizeBy(e.target.value as SizeBy)}>
+              <option value="none">same</option><option value="lines">lines</option><option value="fanin">fan-in</option>
+            </select>
+          </label>
           {(filter.roles?.size || filter.langs?.size) ? <button className="link" onClick={() => setFilter({ ...filter, roles: undefined, langs: undefined })}>clear filters</button> : null}
           <span className="tnum ml-auto text-[12.5px] faint" data-testid="map-counts">{view.nodes.length} nodes · {view.edges.length} edges shown (max {MAX_NODES})</span>
         </div>
       </div>
+      {finder && <PathFinder a={a} onPath={onPath} onClose={() => setFinder(false)} />}
       {view.collapsed.length > 0 && (
         <div className="border-b border-[var(--line)] px-5 py-1.5 text-xs text-[var(--warn)] md:px-8" data-testid="map-budget">
           {view.collapsed.length} director{view.collapsed.length === 1 ? 'y was' : 'ies were'} kept collapsed to stay under {MAX_NODES} nodes. Zoom in or double-click a cluster to expand it.
@@ -188,7 +346,8 @@ export function SystemMap() {
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           {view.nodes.length === 0 ? <div className="p-6 muted">No files match the current filters.</div> : (
-            <Graph elements={elements} layout={layout} testId="map-canvas" onSelect={setSelected} onOpen={(id) => id.startsWith(DIR_PREFIX) && toggle(id.slice(DIR_PREFIX.length))} onZoom={onZoom} />
+            <Graph elements={elements} layout={layout} testId="map-canvas" onSelect={setSelected} onOpen={(id) => id.startsWith(DIR_PREFIX) && toggle(id.slice(DIR_PREFIX.length))} onZoom={onZoom}
+              highlight={highlight} pulse={pulse} exportName={`${a.name}-system-map`} toMermaid={toMermaid} hideRoles={colorBy !== 'role'} legend={legend} />
           )}
         </div>
         <div className="w-80 shrink-0 overflow-auto border-l border-[var(--line)] bg-[var(--bg2)] max-[1100px]:w-64 max-[760px]:hidden">

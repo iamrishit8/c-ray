@@ -24,6 +24,13 @@ function themeVariables() {
 
 let seq = 0;
 
+/** Mermaid source → SVG markup with the app theme (used by <Mermaid> and the graph SVG export). */
+export async function renderMermaidSvg(code: string): Promise<string> {
+  const mermaid = (await import('mermaid')).default;
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: themeVariables(), er: { useMaxWidth: true }, flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' } });
+  return (await mermaid.render(`mmd-${++seq}`, code)).svg;
+}
+
 /** Renders Mermaid source to inline SVG (Mermaid is loaded lazily). Falls back to showing the source on error. */
 export function Mermaid({ code, testId }: { code: string; testId?: string }) {
   const theme = useStore((s) => s.theme);
@@ -36,9 +43,7 @@ export function Mermaid({ code, testId }: { code: string; testId?: string }) {
     setError(null);
     void (async () => {
       try {
-        const mermaid = (await import('mermaid')).default;
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: themeVariables(), er: { useMaxWidth: true }, flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' } });
-        const { svg } = await mermaid.render(`mmd-${++seq}`, code);
+        const svg = await renderMermaidSvg(code);
         if (live && ref.current) {
           ref.current.innerHTML = svg;
           setDone(true);

@@ -1,13 +1,18 @@
 // React wrapper around Cytoscape (lazy-loaded) shared by the system map, flow graphs and call graphs.
 // Every colour comes from the CSS tokens at runtime, so the graph follows the theme (D27).
-// Node data: `label`, optional `sub` (second line), `role` (role dot), `kind: 'dir'` (cluster), `tone`, `conf`.
+// Node data: `label`, optional `sub` (second line), `role` (role dot), `kind: 'dir'` (cluster), `tone`, `conf`,
+// `dotColor` (a token like 'var(--r-int)', replaces the role dot), `heat` (0..1, replaces the role dot), `pad` (size).
 // Edge data: `count` (width + pill label), `conf` (solid / dashed / dotted), `tone`.
+// Motion (D36): new nodes glide out of the folder they were in, focused edges march briefly, a dot can travel
+// along an edge (flow playback), a located node pulses. All of it is off above 200 nodes or under reduced motion.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Core, ElementDefinition, LayoutOptions, StylesheetJson } from 'cytoscape';
-import { Maximize2, Minus, Plus } from 'lucide-react';
+import type { Core, EdgeCollection, ElementDefinition, LayoutOptions, StylesheetJson } from 'cytoscape';
+import { Download, Maximize2, Minus, Plus } from 'lucide-react';
 import type { Role } from '../core/types';
 import { useStore } from '../store/store';
 import { FAMILY_LABEL, ROLE_FAMILY, type RoleFamily } from './kit';
+import { renderMermaidSvg } from './Mermaid';
+import { reducedMotion } from './motion';
 
 export interface GraphProps {
   elements: ElementDefinition[];
@@ -18,10 +23,25 @@ export interface GraphProps {
   className?: string;
   testId?: string;
   /** Extra legend rows (e.g. flow step tones), shown under the role colours. */
-  legend?: { label: string; color: string; dashed?: boolean }[];
+  legend?: { label: string; color: string; dashed?: boolean; fill?: boolean }[];
   /** Hide the minimap (small graphs). Defaults to hiding it below 12 nodes. */
   minimap?: boolean;
+  /** Elements to highlight (path finder, flow playback); everything else fades. `current` / `edge` mark the active step. */
+  highlight?: { nodes: string[]; edges: string[]; current?: string; edge?: string } | null;
+  /** Animate a dot along this edge (flow playback); change `key` to replay. */
+  travel?: { edge: string; key: number; ms: number } | null;
+  /** Centre on this node and pulse it (e.g. a search result located on the map); change `key` to replay. */
+  pulse?: { id: string; key: number } | null;
+  /** Shows the export menu; the download is named `<exportName>.png|svg`. */
+  exportName?: string;
+  /** Mermaid source of the current view, for the SVG export. */
+  toMermaid?: () => string;
+  /** Hide the role legend rows (when nodes are coloured by something else). */
+  hideRoles?: boolean;
 }
+
+/** Above this many nodes graph animations are switched off (D36). */
+export const ANIMATE_MAX_NODES = 200;
 
 let registered = false;
 async function load() {
@@ -60,9 +80,23 @@ function tokens() {
     bg: v('bg'), bg2: v('bg2'), bg3: v('bg3'), fg: v('fg'), fg2: v('fg2'), fg3: v('fg3'), line: v('line'), line2: v('line2'),
     accent: v('accent'), ok: v('ok'), warn: v('warn'), bad: v('bad'),
     roles: Object.fromEntries(FAMILIES.map((f) => [f, v(`r-${f}`)])) as Record<RoleFamily, string>,
+    resolve: (color: string) => (color.startsWith('var(') ? v(color.slice(6, -1)) : color),
   };
 }
 type Tokens = ReturnType<typeof tokens>;
+
+/** Mixes two #rrggbb colours (canvas styles cannot use color-mix()). */
+function mixHex(a: string, b: string, t: number): string {
+  const p = (h: string) => { const v = h.replace('#', ''); const f = v.length === 3 ? v.split('').map((c) => c + c).join('') : v; return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16)); };
+  const [x, y] = [p(a), p(b)];
+  if (x.some(Number.isNaN) || y.some(Number.isNaN)) return b;
+  return '#' + x.map((c, i) => Math.round(c + (y[i] - c) * t).toString(16).padStart(2, '0')).join('');
+}
+/** Same scale as `heat()` in kit.tsx, in 6 bins so Cytoscape caches few dot images. */
+function heatHex(c: Tokens, t: number): string {
+  const v = Math.round(Math.max(0, Math.min(1, t)) * 5) / 5;
+  return v < 0.7 ? mixHex(c.bg3, c.accent, 0.18 + (v / 0.7) * 0.72) : mixHex(c.accent, c.bad, (v - 0.7) / 0.3);
+}
 
 const dot = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="3.5" fill="${color}"/></svg>`)}`;
 
@@ -79,6 +113,13 @@ function stylesheet(c: Tokens, elk: boolean): StylesheetJson {
       'background-image': dot(c.roles[f]), 'background-width': '7px', 'background-height': '7px', 'background-position-x': '9px', 'background-position-y': '11px',
       'background-clip': 'none', 'background-image-containment': 'over', 'text-margin-x': 7, padding: '12px',
     } })),
+    // colour-by / size-by overrides
+    { selector: 'node[dotc]', style: {
+      'background-image': (n: { data: (k: string) => string }) => { const d = n.data('dotc'); return dot(d.startsWith('heat:') ? heatHex(c, Number(d.slice(5))) : c.resolve(d)); },
+      'background-width': '7px', 'background-height': '7px', 'background-position-x': '9px', 'background-position-y': '11px',
+      'background-clip': 'none', 'background-image-containment': 'over', 'text-margin-x': 7, padding: '12px',
+    } },
+    { selector: 'node[pad]', style: { padding: (n: { data: (k: string) => number }) => `${n.data('pad')}px` } },
     // collapsed directory = cluster you can open
     { selector: 'node[kind="dir"]', style: { 'background-color': c.bg3, 'border-color': c.line2, 'font-weight': 600 } },
     // expanded directory = soft folder box with a mono label at its top-left
@@ -110,10 +151,39 @@ function stylesheet(c: Tokens, elk: boolean): StylesheetJson {
     { selector: 'node.focus', style: { 'border-color': c.accent, 'border-width': 2, 'border-opacity': 1 } },
     { selector: 'edge.hot', style: { 'line-color': c.accent, 'target-arrow-color': c.accent, 'line-opacity': 1, width: 'mapData(count, 1, 20, 1.7, 4)', color: c.accent, 'text-border-color': c.accent, 'z-index': 10 } },
     { selector: 'edge:selected', style: { 'line-color': c.accent, 'target-arrow-color': c.accent, 'line-opacity': 1 } },
+    // highlighted path / playback step
+    { selector: 'node.on-path', style: { 'border-color': c.accent, 'border-width': 1.8, opacity: 1 } },
+    { selector: 'edge.on-path', style: { 'line-color': c.accent, 'target-arrow-color': c.accent, 'line-opacity': 0.95, opacity: 1, width: 2.4, 'z-index': 9 } },
+    { selector: 'node.step', style: { 'border-width': 3, 'background-color': mixHex(c.bg2, c.accent, 0.16) } },
+    { selector: 'edge.step', style: { width: 3.4 } },
   ] as unknown as StylesheetJson;
 }
 
+/** "Marching ants" on the focused node's edges for a moment, to show direction; then the confidence style returns. */
+let stopAnts: (() => void) | null = null;
+function ants(cy: Core, edges: EdgeCollection) {
+  stopAnts?.();
+  if (reducedMotion() || cy.nodes().length > ANIMATE_MAX_NODES || edges.empty()) return;
+  const t0 = performance.now();
+  let frame = 0;
+  const clear = () => {
+    cancelAnimationFrame(frame);
+    if (!cy.destroyed()) edges.removeStyle('line-style line-dash-pattern line-dash-offset');
+    stopAnts = null;
+  };
+  const step = (now: number) => {
+    if (cy.destroyed()) return;
+    const t = now - t0;
+    if (t > 1600) return clear();
+    edges.style({ 'line-style': 'dashed', 'line-dash-pattern': [6, 4], 'line-dash-offset': -t / 25 });
+    frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  stopAnts = clear;
+}
+
 function focus(cy: Core, id: string | null) {
+  stopAnts?.();
   cy.batch(() => {
     cy.elements().removeClass('faded nb focus hot');
     if (!id) return;
@@ -127,6 +197,36 @@ function focus(cy: Core, id: string | null) {
     el.addClass('focus');
     el.connectedEdges().addClass('hot');
   });
+  if (id) ants(cy, cy.getElementById(id).connectedEdges());
+}
+
+/** New nodes start where their folder was and glide to their place (expanding a cluster). */
+function glide(inst: Core, oldPos: Map<string, { x: number; y: number }>) {
+  if (reducedMotion() || oldPos.size === 0 || inst.nodes().length > ANIMATE_MAX_NODES) return;
+  inst.nodes().forEach((n) => {
+    if (n.isParent() || oldPos.has(n.id())) return;
+    const path = n.id().replace(/^(file|dir):/, '');
+    const parts = path.split('/');
+    for (let k = parts.length - 1; k > 0; k--) {
+      const from = oldPos.get('dir:' + parts.slice(0, k).join('/'));
+      if (!from) continue;
+      const to = { ...n.position() };
+      n.position(from);
+      n.animate({ position: to }, { duration: 320, easing: 'ease-out-cubic' });
+      return;
+    }
+  });
+}
+
+function download(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Small overview of the whole graph with the current viewport; click or drag to move there. */
@@ -199,7 +299,10 @@ function Minimap({ cy }: { cy: Core }) {
   );
 }
 
-export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, className = '', testId, legend, minimap }: GraphProps) {
+export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, className = '', testId, legend, minimap, highlight, travel, pulse, exportName, toMermaid, hideRoles }: GraphProps) {
+  const dotRef = useRef<HTMLSpanElement>(null);
+  const [ring, setRing] = useState<{ x: number; y: number; key: number } | null>(null);
+  const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   const [cy, setCy] = useState<Core | null>(null);
@@ -213,7 +316,13 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
     for (const e of elements) if (e.data.role) seen.add(ROLE_FAMILY[e.data.role as Role]);
     return FAMILIES.filter((f) => seen.has(f));
   }, [elements]);
-  const withFamily = useMemo(() => elements.map((e) => (e.data.role ? { ...e, data: { ...e.data, family: ROLE_FAMILY[e.data.role as Role] } } : e)), [elements]);
+  const withFamily = useMemo(() => elements.map((e) => {
+    const d = { ...e.data };
+    if (d.role) d.family = ROLE_FAMILY[d.role as Role];
+    if (typeof d.heat === 'number') d.dotc = `heat:${d.heat}`;
+    else if (d.dotColor) d.dotc = d.dotColor;
+    return { ...e, data: d };
+  }), [elements]);
 
   useEffect(() => {
     let dead = false;
@@ -247,6 +356,7 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
         inst.zoom(1.25);
         inst.center();
       }
+      glide(inst, oldPos);
       inst.on('tap', 'node', (e) => {
         focus(inst, e.target.id());
         handlers.current.onSelect?.(e.target.id());
@@ -278,6 +388,73 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
 
   useEffect(() => () => cyRef.current?.destroy(), []);
 
+  // highlighted path / playback step
+  useEffect(() => {
+    if (!cy || cy.destroyed()) return;
+    cy.batch(() => {
+      cy.elements().removeClass('on-path step');
+      if (!highlight) {
+        if (cy.$('.focus').empty()) cy.elements().removeClass('faded');
+        return;
+      }
+      cy.elements().removeClass('faded nb focus hot');
+      const on = cy.collection();
+      for (const id of [...highlight.nodes, ...highlight.edges]) on.merge(cy.getElementById(id));
+      on.addClass('on-path');
+      cy.elements().not(on.union(on.ancestors())).addClass('faded');
+      if (highlight.current) cy.getElementById(highlight.current).addClass('step');
+      if (highlight.edge) cy.getElementById(highlight.edge).addClass('step');
+    });
+  }, [cy, highlight]);
+
+  // a dot travels along the active edge
+  useEffect(() => {
+    const el = dotRef.current;
+    if (!cy || !el || !travel || cy.destroyed()) return;
+    const edge = cy.getElementById(travel.edge);
+    if (edge.empty() || !edge.isEdge()) return;
+    const tgt = edge.target();
+    const ext = cy.extent();
+    const p = tgt.position();
+    if (p.x < ext.x1 || p.x > ext.x2 || p.y < ext.y1 || p.y > ext.y2) cy.center(tgt);
+    if (reducedMotion() || cy.nodes().length > ANIMATE_MAX_NODES) return;
+    const a = edge.source().renderedPosition();
+    const b = tgt.renderedPosition();
+    const anim = el.animate([{ transform: `translate(${a.x}px, ${a.y}px)`, opacity: 1 }, { transform: `translate(${b.x}px, ${b.y}px)`, opacity: 1, offset: 0.9 }, { transform: `translate(${b.x}px, ${b.y}px)`, opacity: 0 }], { duration: Math.max(200, travel.ms * 0.8), easing: 'ease-in-out' });
+    return () => anim.cancel();
+  }, [cy, travel]);
+
+  // locate: centre on a node, focus it and pulse
+  useEffect(() => {
+    if (!cy || !pulse || cy.destroyed()) return;
+    const el = cy.getElementById(pulse.id);
+    if (el.empty()) return;
+    const done = () => {
+      if (cy.destroyed()) return;
+      focus(cy, pulse.id);
+      const p = el.renderedPosition();
+      setRing({ x: p.x, y: p.y, key: pulse.key });
+    };
+    if (reducedMotion()) {
+      cy.center(el);
+      done();
+    } else cy.animate({ center: { eles: el }, zoom: Math.max(cy.zoom(), 1) }, { duration: 320, easing: 'ease-out-cubic', complete: done });
+  }, [cy, pulse]);
+
+  const exportPng = async () => {
+    setMenu(false);
+    const c = cyRef.current;
+    if (!c) return;
+    const blob = (await c.png({ full: true, scale: 2, bg: cssVar('--bg'), output: 'blob-promise' })) as Blob;
+    download(`${exportName}.png`, blob);
+  };
+  const exportSvg = async () => {
+    setMenu(false);
+    if (!toMermaid) return;
+    const svg = await renderMermaidSvg(toMermaid());
+    download(`${exportName}.svg`, new Blob([svg], { type: 'image/svg+xml' }));
+  };
+
   const zoomBy = (f: number) => {
     const c = cyRef.current;
     if (!c) return;
@@ -287,14 +464,25 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
   return (
     <div className={`canvas relative h-full w-full overflow-hidden ${className}`}>
       <div ref={ref} data-testid={testId} className="h-full w-full" />
+      <span ref={dotRef} className="travel-dot" style={{ opacity: 0 }} aria-hidden="true" data-testid="travel-dot" />
+      {ring && <span key={ring.key} className="pulse-ring" style={{ left: ring.x, top: ring.y }} aria-hidden="true" data-testid="locate-pulse" onAnimationEnd={() => setRing(null)} />}
       <div className="overlay right-3.5 top-3.5 flex flex-col gap-0.5 p-[3px]" role="group" aria-label="Zoom">
         <button className="grid h-[30px] w-[30px] place-items-center rounded-[var(--r-sm)] text-[var(--fg2)] hover:bg-[var(--bg3)] hover:text-[var(--fg)]" onClick={() => zoomBy(1.25)} aria-label="Zoom in" title="Zoom in" data-testid="graph-zoom-in"><Plus aria-hidden="true" size={15} /></button>
         <button className="grid h-[30px] w-[30px] place-items-center rounded-[var(--r-sm)] text-[var(--fg2)] hover:bg-[var(--bg3)] hover:text-[var(--fg)]" onClick={() => zoomBy(0.8)} aria-label="Zoom out" title="Zoom out" data-testid="graph-zoom-out"><Minus aria-hidden="true" size={15} /></button>
         <button className="grid h-[30px] w-[30px] place-items-center rounded-[var(--r-sm)] text-[var(--fg2)] hover:bg-[var(--bg3)] hover:text-[var(--fg)]" onClick={() => cyRef.current?.fit(undefined, 28)} aria-label="Fit to screen" title="Fit to screen" data-testid="graph-fit"><Maximize2 aria-hidden="true" size={14} /></button>
+        {exportName && (
+          <button className="grid h-[30px] w-[30px] place-items-center rounded-[var(--r-sm)] text-[var(--fg2)] hover:bg-[var(--bg3)] hover:text-[var(--fg)]" onClick={() => setMenu(!menu)} aria-label="Export this view" title="Export this view" aria-expanded={menu} data-testid="graph-export"><Download aria-hidden="true" size={14} /></button>
+        )}
       </div>
+      {menu && (
+        <div className="overlay right-[58px] top-3.5 flex flex-col p-1 text-[12.5px] fade-in" role="menu" data-testid="graph-export-menu">
+          <button role="menuitem" className="rounded-[var(--r-sm)] px-3 py-1.5 text-left hover:bg-[var(--bg3)]" onClick={() => void exportPng()} data-testid="export-png">PNG image (as shown)</button>
+          {toMermaid && <button role="menuitem" className="rounded-[var(--r-sm)] px-3 py-1.5 text-left hover:bg-[var(--bg3)]" onClick={() => void exportSvg()} data-testid="export-svg">SVG diagram (via Mermaid)</button>}
+        </div>
+      )}
       <div className="overlay bottom-3.5 left-3.5 grid max-w-[calc(100%-200px)] grid-cols-[auto_auto] gap-x-4 gap-y-1 px-3.5 py-2.5 text-[11.5px] muted max-[640px]:hidden" data-testid="graph-legend">
-        {families.map((f) => <span key={f} className="whitespace-nowrap"><i aria-hidden="true" className="mr-1.5 inline-block h-[9px] w-[9px] rounded-[3px] align-[-1px]" style={{ background: `var(--r-${f})` }} />{FAMILY_LABEL[f]}</span>)}
-        {legend?.map((l) => <span key={l.label} className="whitespace-nowrap"><i aria-hidden="true" className="mr-1.5 inline-block h-[9px] w-[9px] rounded-[3px] border-[1.5px] align-[-1px]" style={{ borderColor: l.color, borderStyle: l.dashed ? 'dashed' : 'solid' }} />{l.label}</span>)}
+        {!hideRoles && families.map((f) => <span key={f} className="whitespace-nowrap"><i aria-hidden="true" className="mr-1.5 inline-block h-[9px] w-[9px] rounded-[3px] align-[-1px]" style={{ background: `var(--r-${f})` }} />{FAMILY_LABEL[f]}</span>)}
+        {legend?.map((l) => <span key={l.label} className="whitespace-nowrap"><i aria-hidden="true" className="mr-1.5 inline-block h-[9px] w-[9px] rounded-[3px] border-[1.5px] align-[-1px]" style={{ borderColor: l.color, borderStyle: l.dashed ? 'dashed' : 'solid', background: l.fill ? l.color : undefined }} />{l.label}</span>)}
         <span className="whitespace-nowrap"><span aria-hidden="true" className="mr-1.5 inline-block w-[18px] border-t-[1.6px] border-[var(--fg2)] align-[3px]" />Resolved</span>
         <span className="whitespace-nowrap"><span aria-hidden="true" className="mr-1.5 inline-block w-[18px] border-t-[1.6px] border-dashed border-[var(--fg2)] align-[3px]" />Heuristic</span>
         <span className="whitespace-nowrap"><span aria-hidden="true" className="mr-1.5 inline-block w-[18px] border-t-[1.6px] border-dotted border-[var(--fg2)] align-[3px]" />Unresolved</span>
