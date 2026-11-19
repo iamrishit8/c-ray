@@ -2,13 +2,9 @@
 import { createContext, useContext, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { Confidence, Role } from '../core/types';
 import { useStore } from '../store/store';
+import { CONFIDENCE_HELP } from './help/content';
 import { CountUp } from './motion';
 
-const CONF_TITLE: Record<Confidence, string> = {
-  resolved: 'Resolved: derived exactly (compiler API, manifest or explicit declaration).',
-  heuristic: 'Heuristic: inferred from syntax, names or conventions. Likely, not certain.',
-  unresolved: 'Unresolved: could not be determined statically.',
-};
 const CONF_STYLE: Record<Confidence, string> = {
   resolved: 'text-[var(--ok)] border-[color-mix(in_srgb,var(--ok)_45%,transparent)]',
   heuristic: 'text-[var(--warn)] border-[color-mix(in_srgb,var(--warn)_55%,transparent)] border-dashed',
@@ -17,7 +13,7 @@ const CONF_STYLE: Record<Confidence, string> = {
 
 /** Confidence of an inferred fact. Colour, border style and text all differ, so colour is never the only signal. */
 export function ConfBadge({ c }: { c: Confidence }) {
-  return <span title={CONF_TITLE[c]} data-conf={c} className={`inline-block whitespace-nowrap rounded-md border px-2 font-mono text-[11px] leading-[18px] ${CONF_STYLE[c]}`}>{c}</span>;
+  return <span title={CONFIDENCE_HELP[c]} data-conf={c} className={`inline-block whitespace-nowrap rounded-md border px-2 font-mono text-[11px] leading-[18px] ${CONF_STYLE[c]}`}>{c}</span>;
 }
 
 export type Tone = 'plain' | 'accent' | 'ok' | 'warn' | 'bad';

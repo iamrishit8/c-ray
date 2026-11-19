@@ -421,3 +421,23 @@ D18–D24 record choices that were already in the code but never written down.
   can hold live secrets, and "run this" suggestions from a tool must not be mistaken for tested commands.
 - **Alternatives rejected:** Deriving it in the UI (no file text); one big "guide" string (no per-item confidence or
   links); ticking items in IndexedDB (a per-viewer convenience doesn't need the analysis store).
+
+## D42: The help manual lives on Home only, and its content is data checked against the app
+- **Date / phase:** 2026-11-20 · U4
+- **Status:** Accepted
+- **Context:** A first-time visitor needs to learn what each page is for, how to read it and how far to trust it, and the
+  app's vocabulary. Help text written inside each view is spread over thirteen files, drifts as the views change, and
+  clutters the working pages. The owner asked for one complete manual on the introductory page (U4 plan).
+- **Decision:** One scrolling section on Home (no separate Guide view, no help panels inside project views; the logo brings
+  you back). Its content is typed data in `src/ui/help/content.ts` (sections, a quick start, routes by goal, one entry per
+  page with the same shape, terminology, shortcuts, privacy and limits) and `HelpManual.tsx` only renders it. Drift guards:
+  a unit test fails if a tab has no entry, an entry names a page that is gone, a documented control's `data-testid` is not
+  in the UI code, a quoted threshold (god module, complexity colours) differs from the code, or the confidence levels have
+  a second wording (`ConfBadge` tooltips import `CONFIDENCE_HELP` from the manual). Every page entry ends with a worked
+  example on the bundled sample project, written as test-id actions plus checks and replayed in Playwright.
+- **Why:** Prose that is not tested goes stale silently. As data it can be searched (terms), reused (tooltips) and verified;
+  the worked examples double as end-to-end walks of each page on a project with planted truth.
+- **Alternatives rejected:** Per-view help panels (more files to keep true, noisy in a dense tool); a separate Guide tab
+  (the first-run question is answered before a project exists, so it belongs on the first page); screenshots (stale after
+  every restyle; drawn SVG schematics use the tokens and follow light/dark); Markdown files rendered at runtime (no types,
+  nothing to hang the drift guards on).

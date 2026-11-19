@@ -7,9 +7,9 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 **M10 is done and waiting for owner review** (2026-11-20; dev server at http://localhost:5173). The owner accepted the
 typeface (Google Sans for text, Geist Mono for paths and code, confirmed).
-**Next, before M11: phase U4**, planned only (nothing built yet, 2026-11-20): a complete, plain-English **help manual on
+**Next, before M11: phase U4**, in progress (started 2026-11-20): a complete, plain-English **help manual on
 the introductory (Home) page**, together with the **U3 slice 4** items (illustrations, logo, performance check,
-polish). M11 starts only after U4 is reviewed and approved.
+polish). Slice 1 (the content as data + drift guards) is done. M11 starts only after U4 is reviewed and approved.
 
 ---
 
@@ -30,7 +30,7 @@ polish). M11 starts only after U4 is reviewed and approved.
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
 | U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | ✅ slices 1–3 (slice 4 moved to U4) |
 | M10 | Decisions view + onboarding guide + generated docs | ✅ 2026-11-20 (review pending) |
-| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 📝 planned, not started |
+| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 🔨 in progress (slice 1 of 4 done) |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
 | U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
@@ -182,8 +182,8 @@ Engine: `decisionsStage` fills `Analysis.decisions` (ADRs as `resolved` + 16 det
 
 ## U4: Help manual on the Home page + U3 slice 4 (planned)
 
-Added 2026-11-20 at the owner's request, **before M11**. **Nothing in this section is implemented yet**; it is the plan
-to review and approve first. Two parts, built and reviewed as one phase.
+Added 2026-11-20 at the owner's request, **before M11**. Two parts, built and reviewed as one phase. Progress is
+ticked below; slice numbers refer to "Proposed order".
 
 ### Part A: the help manual (lives on the introductory page only)
 
@@ -227,12 +227,13 @@ from an open project). Plain English, no jargon without a definition.
   heuristic, no history, big repos).
 
 **How it is built (to keep it correct)**
-- [ ] Content is **data, not JSX**: one typed module (`src/ui/help/content.ts`: sections, page entries, terms) rendered
-      by `src/ui/help/HelpManual.tsx`, so it can be tested, searched and kept in one place
-- [ ] A term is defined once; the same wording backs the in-app confidence tooltips where they exist (a test compares them)
-- [ ] **Drift guards**: a test fails if a page in `TABS` has no manual entry, a manual entry names a page that no longer
-      exists, or a documented control's `data-testid` is missing from the app; CONVENTIONS and the Definition of Done get
-      one line: "new page, control or term → add it to the Home manual"
+- [x] Content is **data, not JSX**: one typed module (`src/ui/help/content.ts`: sections, page entries, terms) rendered
+      by `src/ui/help/HelpManual.tsx` (renderer: slice 2), so it can be tested, searched and kept in one place (D42)
+- [x] A term is defined once; the same wording backs the in-app confidence tooltips (`CONFIDENCE_HELP`, a test compares them)
+- [x] **Drift guards** (`tests/unit/u4-manual.test.ts`, 12 tests): a page in `TABS` with no manual entry, an entry for a page
+      that no longer exists, a documented control or example `data-testid` missing from the UI code, a quoted threshold that
+      differs from the code, a second wording of the confidence levels, placeholder text or em dashes
+- [ ] CONVENTIONS and the Definition of Done get one line: "new page, control or term → add it to the Home manual"
 - [ ] Every claim in the manual is checked by walking the real app with a fixture (owner sees the walkthrough in the review)
 - [ ] Each page entry ends with a short worked example on the sample project; a test opens the sample, follows each
       example's click path via `data-testid`s and checks the stated result is on screen
