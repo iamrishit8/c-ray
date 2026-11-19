@@ -8,7 +8,8 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 **U2: Visual redesign + rename to imex is done, waiting for owner review** (2026-11-19; owner approved going
 straight through all slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first
 (see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
-Next, after approval: M10.
+Owner approved U2 on 2026-11-19 and asked for one more visual phase first: **U3 (motion + codebase
+visualisations) is planned below and waiting for plan approval.** M10 starts after U3.
 
 ---
 
@@ -27,10 +28,11 @@ Next, after approval: M10.
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
+| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 📝 planned, awaiting approval |
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
-| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 (awaiting owner review) |
+| U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
 
 ---
 
@@ -68,6 +70,80 @@ Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, 
       Fastify: 25 → 7. Planted truth: `tests/fixtures/git-moves`
 - [x] Rename detection: exact + similarity renames (D32), history merged under the current name, "Renamed and
       moved files" card in History and table in the export
+
+## U3: Motion + codebase visualisations (planned, awaiting approval)
+
+Goal: make the codebase easier to *see*. Motion only where it explains something (what changed, where to look, how
+things connect), and new pictures of the code that the tables and the node graph can't give. Everything stays local,
+uses the U2 tokens, and has a plain fallback.
+
+**Ground rules (become a DECISIONS entry on approval)**
+- Motion has a job: show a transition, draw the eye, or play back a sequence. No decorative looping animation.
+- `prefers-reduced-motion` turns every non-essential animation off, and the app stays fully usable without motion.
+- Only `transform` / `opacity` / SVG dash offsets are animated. Graph animations switch off above 200 visible nodes.
+- No animation library. CSS + Web Animations API + View Transitions API (with a no-op fallback). For layouts, either
+  `d3-hierarchy` (≈ 10 KB, tree-shaken) or a hand-written squarified treemap (decided in slice 2).
+- Layout maths (treemap, matrix ordering, buckets) lives in `src/core/viz/*` as pure, bounded, Node-tested
+  functions. Rendering stays in `src/ui`. Every visual links back to files, and inferred values show their confidence.
+- Each new picture has a table or list fallback, an accessible name/summary, and `data-testid`s.
+
+**Slice 1: Motion foundation** (makes the whole app feel alive, little risk)
+- [ ] Motion tokens in `index.css`: `--dur-1/2/3` (120 / 200 / 320 ms), `--ease-out`, `--ease-spring`, plus a global reduced-motion rule
+- [ ] View changes: View Transitions API cross-fade + slight rise between tabs; the nav highlight slides to the selected item
+- [ ] Enter motion: cards fade up in a short stagger on first render of a view (once, not on every re-render)
+- [ ] `Stat` numbers count up; `Sparkline` draws in; `RiskBar` / language bars grow from 0
+- [ ] Skeleton → content cross-fade; source panel slides in/out; chips/buttons press feedback; focus-ring transition
+- [ ] **Analysis progress, redesigned**: a stepper (Read files → Parse → Graph → Detect → Schema → Health → History) that
+      advances with the real pipeline stages, plus a live "file wall": one tile per file, coloured by language as it is parsed
+- [ ] Unit: none (pure CSS/UI). E2E: reduced-motion emulation leaves no running animations; tab switch still works
+
+**Slice 2: New codebase visualisations** (the "graphics" part)
+- [ ] **Codebase treemap** (new hero card on Orientation): directories → files sized by lines. Colour modes: role, language,
+      complexity, churn (with history). Click to drill into a folder with an animated zoom, breadcrumb to go back,
+      hover card with path, size, role and confidence, double-click opens the source
+- [ ] **Dependency matrix (DSM)** on Dependencies: module × module heat-map of import counts, ordered so layers read
+      top-down; cycles outlined in `--bad`, layering violations in `--warn`; click a cell to list the imports behind it
+- [ ] **Hotspot map** on Health: scatter of complexity (y) × churn (x), bubble size = lines, role colour, the
+      "risky" top-right quadrant shaded. Without `.git`: complexity × fan-in, with a note
+- [ ] **Commit activity heat-map** on History: GitHub-style calendar of commits per day, plus a per-author timeline strip
+- [ ] **Language / role breakdown**: stacked bar or donut on Orientation, replacing the plain language bars
+- [ ] `src/core/viz/`: `treemap.ts` (squarified, ≤ 5 000 cells, rest grouped as "other"), `matrix.ts` (module
+      ordering + cell aggregation), `calendar.ts` (day buckets, time zone safe), `scatter.ts` (quadrant thresholds).
+      Unit tests `u3-viz.test.ts` with planted truth on the fixtures (e.g. express-mongoose: the cycle shows as a
+      symmetric pair of cells; the git-history calendar has 12 commit days)
+
+**Slice 3: Diagrams that move**
+- [ ] System map: animated expand/collapse (nodes glide from the cluster's position), "marching ants" on the edges of
+      the focused node, pulse when a search result is located on the map
+- [ ] System map: **size by** (lines / fan-in) and **colour by** (role / language / complexity / churn) controls
+- [ ] System map: **path finder**: pick two files to highlight the shortest import path between them, step by step
+- [ ] Flows: **playback**: ▶ steps through the trace, highlighting each step in the list and the graph in sync, with a
+      dot travelling along the edge (the mockup's dashed "flow" line); pause / step / speed
+- [ ] Impact: **blast radius** picture: radial rings by distance from the target, animated outward ripple, rings
+      labelled "direct", "2 steps", …; tests and entry points marked
+- [ ] History time-travel: **play through snapshots**: module graph and numbers morph from one snapshot to the next
+- [ ] Data: in-app **interactive ER diagram** (entity cards with fields, relation lines with cardinality, click to
+      focus); Mermaid stays for exports and print
+- [ ] Export the current graph view as SVG/PNG (Cytoscape `png()`; SVG through the existing Mermaid path where possible)
+
+**Slice 4: Illustration and polish**
+- [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
+      reduced motion)
+- [ ] Empty-state illustrations (no history, no data model, no entry points, no findings): one small inline SVG each
+- [ ] Logo micro-interaction (arrows swap on hover / while analysing)
+- [ ] Performance check: frame times while panning and focusing on a 500-node map, and while the treemap drills on
+      the 10k-file synthetic project. Numbers go in QUALITY.md; anything over budget is turned off above a size cap
+- [ ] E2E `u3-visuals.spec.ts`: treemap drill + breadcrumb, matrix cell → import list, hotspot point → file, calendar
+      tooltip, flow playback reaches the last step, blast radius rings, ER focus, graph export downloads a file
+- [ ] Docs: CONVENTIONS (motion tokens + rules, viz components), ARCHITECTURE (`src/core/viz`), DECISIONS (motion
+      policy, layout library), QUALITY (frame-time numbers, limits), screenshots of each new picture in the phase review
+
+**Out of scope:** 3D views (e.g. "code city" in WebGL), sound, and any animation that loops while idle.
+
+**Open questions for the owner** (defaults in brackets)
+1. Review cadence: one review at the end, or one per slice? [one per slice: this phase is more about taste]
+2. 3D "code city" view: skip, or add as an optional experimental tab? [skip]
+3. Is `d3-hierarchy` OK as a small new dependency? [yes, if the hand-written treemap gets fiddly]
 
 ## M10: Decisions view + onboarding guide + generated docs
 
