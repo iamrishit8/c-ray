@@ -5,11 +5,11 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**M10: Decisions + onboarding + generated docs is done, waiting for owner review** (2026-11-20; dev server at
-http://localhost:5173). Also done first, on the owner's request: the interface font is now Google Sans (D39, bundled,
-not the Google Fonts link: see the decision). Open since before: U3 slice 4 (illustrations, performance check,
-polish) was left for after the owner's U3 review; the owner started M10 instead, so it is still open and listed
-under U3. M11 starts only after the M10 review.
+**M10 is done and waiting for owner review** (2026-11-20; dev server at http://localhost:5173). The owner accepted the
+typeface (Google Sans for text, a mono face for paths and code; see open question 1 under U4).
+**Next, before M11: phase U4**, planned only (nothing built yet, 2026-11-20): a complete, plain-English **help manual on
+the introductory (Home) page**, together with the **U3 slice 4** items (illustrations, logo, performance check,
+polish). M11 starts only after U4 is reviewed and approved.
 
 ---
 
@@ -28,8 +28,9 @@ under U3. M11 starts only after the M10 review.
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
-| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 🚧 slices 1–3 done, review pending; slice 4 open |
+| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | ✅ slices 1–3 (slice 4 moved to U4) |
 | M10 | Decisions view + onboarding guide + generated docs | ✅ 2026-11-20 (review pending) |
+| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 📝 planned, not started |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
 | U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
@@ -71,7 +72,7 @@ Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, 
 - [x] Rename detection: exact + similarity renames (D32), history merged under the current name, "Renamed and
       moved files" card in History and table in the export
 
-## U3: Motion + codebase visualisations (slices 1–3 done)
+## U3: Motion + codebase visualisations ✅ (slices 1–3; slice 4 moved to U4)
 
 Goal: make the codebase easier to *see*. Motion only where it explains something (what changed, where to look, how
 things connect), and new pictures of the code that the tables and the node graph can't give. Everything stays local,
@@ -139,17 +140,8 @@ uses the U2 tokens, and has a plain fallback.
 - Design notes: marching ants run 1.6 s, then edges return to their confidence style; collapse has no animation
   (only expand glides); playback works under reduced motion, just without the travelling dot (D38)
 
-**Slice 4: Illustration and polish**
-- [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
-      reduced motion)
-- [ ] Empty-state illustrations (no history, no data model, no entry points, no findings): one small inline SVG each
-- [ ] Logo micro-interaction (arrows swap on hover / while analysing)
-- [ ] Performance check: frame times while panning and focusing on a 500-node map, and while the treemap drills on
-      the 10k-file synthetic project. Numbers go in QUALITY.md; anything over budget is turned off above a size cap
-- [x] ~~E2E `u3-visuals.spec.ts`~~ done early (see slice 3); extend it for the slice-4 items. Was: treemap drill + breadcrumb, matrix cell → import list, hotspot point → file, calendar
-      tooltip, flow playback reaches the last step, blast radius rings, ER focus, graph export downloads a file
-- [ ] Docs: CONVENTIONS (motion tokens + rules, viz components), ARCHITECTURE (`src/core/viz`), DECISIONS (motion
-      policy, layout library), QUALITY (frame-time numbers, limits), screenshots of each new picture in the phase review
+**Slice 4: Illustration and polish** → moved to phase U4 (2026-11-20, owner request), where it is built together with the
+Home help manual because the Home hero illustration and the manual share one layout. The checklist lives there.
 
 **Out of scope:** 3D views (e.g. "code city" in WebGL), sound, and any animation that loops while idle.
 
@@ -187,6 +179,89 @@ Engine: `decisionsStage` fills `Analysis.decisions` (ADRs as `resolved` + 16 det
 - [ ] Decisions over time from git (when a framework/ORM first appeared, via the snapshots)
 - [ ] Mark an ADR whose technology is no longer in the code ("documented but not found") instead of the generic "not checked" note
 - [ ] Let the owner add notes to a decision (would need user-written data in IndexedDB; M11/M12 question)
+
+## U4: Help manual on the Home page + U3 slice 4 (planned)
+
+Added 2026-11-20 at the owner's request, **before M11**. **Nothing in this section is implemented yet**; it is the plan
+to review and approve first. Two parts, built and reviewed as one phase.
+
+### Part A: the help manual (lives on the introductory page only)
+
+**Goal.** Someone who has never used imex can learn, from the first page alone: what each page is for, how to use it
+to understand a codebase, how to read what it shows and how far to trust it, and what every term in the app means.
+The manual is **only on Home**: no help links or panels inside project views (the logo/Home link brings you back to it
+from an open project). Plain English, no jargon without a definition.
+
+**Home layout, rearranged (top to bottom)**
+1. Hero (text left; the animated graph illustration from Part B on the right) → drop zone → "Try a sample project".
+   Unchanged in purpose: a first-time visitor can start analysing without scrolling.
+2. Stored projects (returning users want these next), then settings.
+3. A slim **in-page navigation bar** (sticky while the manual is on screen): *Quick start · Reading a codebase ·
+   Pages · Terms · Shortcuts · Privacy & limits*. Anchor links, smooth scroll only when motion is allowed.
+4. **The manual**, two columns from 1100 px up (sticky table of contents with scroll-spy on the left, content on the
+   right), one column below with each page entry collapsible (`<details>`, keyboard-friendly). Same Page/Card kit,
+   tokens and type as the rest of the app, light and dark.
+
+**Manual content (outline)**
+- **Quick start**: what to drop (folder, ZIP, one file → File Mode; include `.git` for history), what the progress
+  stepper means, where to look first (Orientation, then Onboarding), how to open source from any file link.
+- **Reading a codebase with imex**: short routes by goal. *I just joined the team* → Onboarding → Orientation → Flows →
+  Data → Decisions. *Can I change this safely?* → Impact → Dependencies → History. *What is risky here?* → Health →
+  hotspot map → History. *Hand it over / write it up* → Export.
+- **Page by page** (all 13 pages plus File Mode). Each entry has the same shape: *what it shows · the question it
+  answers · how to use it (click paths, filters, controls) · how to read it (what a healthy vs worrying picture looks
+  like) · how sure it is (which confidence levels appear) · limits*. Pages: Orientation, Onboarding, System map, Flows,
+  Data, Decisions, Dependencies, Health, Impact, History, Symbols, Search, Export. Small inline SVG schematics (token
+  colours, no screenshots, which go stale) show what a treemap, matrix, hotspot map, blast radius or ER card looks like.
+- **Terminology** (searchable A–Z, each term: plain definition, where it appears, why it matters): confidence
+  (`resolved` / `heuristic` / `unresolved`), analysis levels L0 / L1 / L2, File Mode, coverage, notice, entry point,
+  route, handler, middleware, role, symbol, import, fan-in / fan-out / instability, circular dependency, god module,
+  layering violation, dead export, clone, hotspot (churn × complexity), churn, co-change, hidden coupling, bus factor,
+  snapshot / time-travel, blast radius (affected files, entries, tests), dependency matrix, ER diagram, decision record
+  (ADR), decision category, glossary term, reading path.
+- **Controls and shortcuts**: `/` focus filter or open Search, ↑/↓ in lists, graph controls (zoom, fit, focus, path
+  finder, colour/size by, export), source panel, theme toggle, reduced motion, export formats, settings (ignore
+  patterns, retention).
+- **Privacy and limits**: what stays in the browser, what is stored (IndexedDB, retention), how to delete it; why a
+  result can be wrong (static analysis, heuristics) and when to doubt it; troubleshooting (nothing found, everything
+  heuristic, no history, big repos).
+
+**How it is built (to keep it correct)**
+- [ ] Content is **data, not JSX**: one typed module (`src/ui/help/content.ts`: sections, page entries, terms) rendered
+      by `src/ui/help/HelpManual.tsx`, so it can be tested, searched and kept in one place
+- [ ] A term is defined once; the same wording backs the in-app confidence tooltips where they exist (a test compares them)
+- [ ] **Drift guards**: a test fails if a page in `TABS` has no manual entry, a manual entry names a page that no longer
+      exists, or a documented control's `data-testid` is missing from the app; CONVENTIONS and the Definition of Done get
+      one line: "new page, control or term → add it to the Home manual"
+- [ ] Every claim in the manual is checked by walking the real app with a fixture (owner sees the walkthrough in the review)
+- [ ] Manual works offline (no external assets, no network requests), in light and dark, at 820 px, keyboard-only, and
+      with reduced motion; the in-page navigation and entries have accessible names and `data-testid`s
+
+### Part B: U3 slice 4 (moved here, unchanged scope)
+- [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
+      reduced motion); placed in the new hero layout above
+- [ ] Empty-state illustrations (no history, no data model, no entry points, no findings): one small inline SVG each
+- [ ] Logo micro-interaction (arrows swap on hover / while analysing)
+- [ ] Performance check: frame times while panning and focusing on a 500-node map, and while the treemap drills on
+      the 10k-file synthetic project. Numbers go in QUALITY.md; anything over budget is turned off above a size cap.
+      (`gen:synthetic` / `bench:scale` are referenced in `package.json` but the scripts do not exist yet; write them first, shared with M12)
+- [ ] E2E: extend `u3-visuals.spec.ts` for the slice-4 items
+- [ ] Docs: CONVENTIONS (motion tokens + rules, viz components), ARCHITECTURE (`src/core/viz`, `src/ui/help`), DECISIONS
+      (motion policy done in D36–D38; add: manual lives on Home only, content as data), QUALITY (frame-time numbers,
+      limits), screenshots of each new picture in the phase review
+
+### Proposed order (one commit + push per slice, one owner review at the end)
+1. **Content first**: outline and full draft text of the manual as `content.ts`, reviewed by the owner as text before any layout work
+2. **Home layout + manual rendering** (in-page nav, sticky TOC, collapsible entries, terminology search, schematics)
+3. **U3 slice 4** (hero illustration, empty states, logo, performance numbers and caps)
+4. **Tests, drift guards, docs, phase review** (walkthrough at http://localhost:5173)
+
+### Open questions for the owner (defaults in brackets)
+1. **Mono face.** "Google Sans combined with jsmon for path and code": I read this as the current **Geist Mono**. If you meant
+   **JetBrains Mono**, say so and I will swap it (a small D39 update, about 60 KB bundled). [keep Geist Mono]
+2. **Manual shape.** One long scrolling section on Home with a sticky contents list, or a separate full-screen "Guide" view that Home opens? [scrolling section on Home, because you asked for it on the introductory page]
+3. **Illustrations in the manual.** Small drawn schematics, or real screenshots of the app? [schematics: they stay in sync with the theme and never go stale]
+4. **Depth of the page entries.** Short (what / how / how sure) or also a worked example per page on the sample project? [include one short worked example per page using the bundled sample project]
 
 ## M11: AI Q&A (BYO key) + AI-enhanced summaries
 
