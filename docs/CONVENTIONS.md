@@ -90,6 +90,14 @@ headers, stat labels, nav groups). Big numbers in `Stat` 28 px. Use `.tnum` for 
 
 **Icons.** `lucide-react` only (bundled). Nav icons live in `src/ui/icons.ts`. Icon-only buttons need `aria-label`.
 
+**Motion (D36).** Tokens `--dur-1` 120 ms (hover, press), `--dur-2` 200 ms (panels, view change), `--dur-3` 320 ms
+(enter, zoom, morph); easing `--ease-out` (default) or `--ease-spring` (small pops). Rules: motion needs a job (a
+transition, drawing the eye, a playback); nothing loops while idle; animate only `transform`, `opacity` and SVG dash
+offsets; enter animations use `fill-mode: backwards`. Classes: `.stagger` (Page body: cards fade up once),
+`.fade-in`, `.pop`, `.ripple`, `.morph` (transform/opacity transitions), `.draw` (SVG path with `pathLength=1`),
+`.slide-in` / `.slide-out`. JS: `reducedMotion()`, `dur(1|2|3)` (0 under reduced motion), `useCountUp` / `CountUp`,
+`withViewTransition()` in `src/ui/motion.ts`. The app must work the same with `prefers-reduced-motion: reduce`.
+
 ### Components (`src/ui/kit.tsx`), so use these before writing new markup
 
 | Component / class | Use for |
@@ -103,6 +111,7 @@ headers, stat labels, nav groups). Big numbers in `Stat` 28 px. Use `.tnum` for 
 | `FileLink` / `PathText` | Every file / file:line reference (opens the source panel); directory part dimmed |
 | `Chip` | Filter toggles (fill dark when on, `aria-pressed`) |
 | `RiskBar` | A 0..1 share or score with a coloured bar |
+| `Stat` value | A plain number or `fmtNum` string counts up (`CountUp`); pass a node to opt out |
 | `Empty`, `Pending`, `Skeleton` | Empty states (say what would make content appear) / not computed yet / loading placeholders |
 | `.btn`, `.btn-primary` (dark), `.btn-accent` (terracotta CTA), `.btn-danger`, `.btn-icon`, `.btn-round` | Buttons. At most one primary or accent action per area |
 | `.is-selected` | Selected state: soft accent for list rows; raised white for `.nav-item`; dark fill for `.chip` |

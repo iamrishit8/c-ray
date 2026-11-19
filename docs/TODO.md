@@ -9,7 +9,8 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 straight through all slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first
 (see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
 Owner approved U2 on 2026-11-19 and asked for one more visual phase first: **U3 (motion + codebase
-visualisations) is planned below and waiting for plan approval.** M10 starts after U3.
+visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed to GitHub after each slice.
+**U3 slice 1 is done**; slices 2–3 in progress. M10 starts after U3.
 
 ---
 
@@ -28,7 +29,7 @@ visualisations) is planned below and waiting for plan approval.** M10 starts aft
 | U1 | UI review + refresh (grouped nav, unified selected state, tinted badges, icon toggle) | ✅ 2026-11-18 |
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
-| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 📝 planned, awaiting approval |
+| U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 🚧 slices 1–3 in progress |
 | M10 | Decisions view + onboarding guide + generated docs | ⬜ |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
@@ -71,13 +72,13 @@ Engine: `analyzeGit` produces `GitResult` (commits, churn, authors, bus factor, 
 - [x] Rename detection: exact + similarity renames (D32), history merged under the current name, "Renamed and
       moved files" card in History and table in the export
 
-## U3: Motion + codebase visualisations (planned, awaiting approval)
+## U3: Motion + codebase visualisations (in progress)
 
 Goal: make the codebase easier to *see*. Motion only where it explains something (what changed, where to look, how
 things connect), and new pictures of the code that the tables and the node graph can't give. Everything stays local,
 uses the U2 tokens, and has a plain fallback.
 
-**Ground rules (become a DECISIONS entry on approval)**
+**Ground rules (now D36)**
 - Motion has a job: show a transition, draw the eye, or play back a sequence. No decorative looping animation.
 - `prefers-reduced-motion` turns every non-essential animation off, and the app stays fully usable without motion.
 - Only `transform` / `opacity` / SVG dash offsets are animated. Graph animations switch off above 200 visible nodes.
@@ -88,14 +89,17 @@ uses the U2 tokens, and has a plain fallback.
 - Each new picture has a table or list fallback, an accessible name/summary, and `data-testid`s.
 
 **Slice 1: Motion foundation** (makes the whole app feel alive, little risk)
-- [ ] Motion tokens in `index.css`: `--dur-1/2/3` (120 / 200 / 320 ms), `--ease-out`, `--ease-spring`, plus a global reduced-motion rule
-- [ ] View changes: View Transitions API cross-fade + slight rise between tabs; the nav highlight slides to the selected item
-- [ ] Enter motion: cards fade up in a short stagger on first render of a view (once, not on every re-render)
-- [ ] `Stat` numbers count up; `Sparkline` draws in; `RiskBar` / language bars grow from 0
-- [ ] Skeleton → content cross-fade; source panel slides in/out; chips/buttons press feedback; focus-ring transition
-- [ ] **Analysis progress, redesigned**: a stepper (Read files → Parse → Graph → Detect → Schema → Health → History) that
+- [x] Motion tokens in `index.css`: `--dur-1/2/3` (120 / 200 / 320 ms), `--ease-out`, `--ease-spring`, plus a global reduced-motion rule
+- [x] View changes: View Transitions API cross-fade + slight rise between tabs; the nav highlight slides to the selected item
+- [x] Enter motion: cards fade up in a short stagger on first render of a view (once, not on every re-render)
+- [x] `Stat` numbers count up; `Sparkline` draws in; `RiskBar` / language bars grow from 0
+- [x] Skeleton → content cross-fade; source panel slides in/out; chips/buttons press feedback; focus-ring transition
+- [x] **Analysis progress, redesigned**: a stepper (Read files → Parse → Graph → Detect → Schema → Health → History) that
       advances with the real pipeline stages, plus a live "file wall": one tile per file, coloured by language as it is parsed
-- [ ] Unit: none (pure CSS/UI). E2E: reduced-motion emulation leaves no running animations; tab switch still works
+- [x] Unit: none (pure CSS/UI). E2E: reduced-motion emulation leaves no running animations; tab switch still works
+      (in `tests/e2e/u3-visuals.spec.ts`, committed with slice 3; the stepper's phase mapping is unit-tested in slice 2)
+- Found on the way: enter animations with `fill-mode: both` kept a stacking context and covered the Impact
+  suggestions dropdown; now `backwards` (D36)
 
 **Slice 2: New codebase visualisations** (the "graphics" part)
 - [ ] **Codebase treemap** (new hero card on Orientation): directories → files sized by lines. Colour modes: role, language,

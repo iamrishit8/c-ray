@@ -3,12 +3,29 @@ import { X } from 'lucide-react';
 import { useStore } from '../store/store';
 import { PathText, Skeleton } from './kit';
 import { worker } from '../workers/client';
+import { dur } from './motion';
 
 const WINDOW = 400;
 
 /** Right-hand source preview. Renders a window of lines around the target so huge files stay cheap. */
 export function SourcePanel() {
-  const { source, closeSource, analysis } = useStore();
+  const { source: live, closeSource, analysis } = useStore();
+  // keep the last source on screen while the panel slides out
+  const [source, setShown] = useState(live);
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => {
+    if (live) {
+      setShown(live);
+      setLeaving(false);
+      return;
+    }
+    setLeaving(true);
+    const t = setTimeout(() => {
+      setShown(null);
+      setLeaving(false);
+    }, dur(2));
+    return () => clearTimeout(t);
+  }, [live]);
   const [text, setText] = useState<string | null | undefined>(undefined);
   const [range, setRange] = useState<[number, number]>([1, WINDOW]);
   const target = useRef<HTMLDivElement>(null);
@@ -39,7 +56,7 @@ export function SourcePanel() {
   const hlEnd = source.endLine ?? source.line;
   return (
     // On narrow screens the panel floats over the view instead of squeezing it.
-    <aside className="no-print flex w-[46%] min-w-[340px] max-w-[760px] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg2)] max-[1100px]:absolute max-[1100px]:inset-y-0 max-[1100px]:right-0 max-[1100px]:z-20 max-[1100px]:w-[min(560px,94%)] max-[1100px]:min-w-0 max-[1100px]:shadow-[var(--shadow-md)]" data-testid="source-panel" aria-label="Source preview">
+    <aside className={`no-print flex w-[46%] min-w-[340px] max-w-[760px] shrink-0 flex-col border-l border-[var(--line)] bg-[var(--bg2)] max-[1100px]:absolute max-[1100px]:inset-y-0 max-[1100px]:right-0 max-[1100px]:z-20 max-[1100px]:w-[min(560px,94%)] max-[1100px]:min-w-0 max-[1100px]:shadow-[var(--shadow-md)] ${leaving ? 'slide-out' : 'slide-in'}`} data-testid={leaving ? 'source-panel-leaving' : 'source-panel'} aria-label="Source preview">
       <header className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2">
         <div className="mono min-w-0 flex-1 truncate text-[12px]" title={source.path}><PathText path={source.path} line={source.line} /></div>
         {info && <span className="label whitespace-nowrap">{info.lang} · {info.loc} lines</span>}

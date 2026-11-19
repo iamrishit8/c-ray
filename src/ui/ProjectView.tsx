@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ComponentType } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import type { Analysis } from '../core/types';
 import { useStore } from '../store/store';
 import { TAB_ICON } from './icons';
@@ -47,6 +47,8 @@ const GROUPS: TabDef['group'][] = ['Understand', 'Assess', 'Explore', 'Share'];
 export function ProjectView() {
   const { analysis, tab, setTab, status } = useStore();
   const contentRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   // "/" focuses the current view's search/filter field, or opens Search when the view has none.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,13 +63,24 @@ export function ProjectView() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [setTab]);
-  if (!analysis) return null;
-  const tabs = TABS.filter((t) => !(t.projectOnly && analysis.mode === 'file'));
+  const tabs = analysis ? TABS.filter((t) => !(t.projectOnly && analysis.mode === 'file')) : [];
   const current = tabs.find((t) => t.id === tab) ?? tabs[0];
+  // One highlight element slides to the current nav item (instead of each item lighting up on its own).
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+      setPill(el ? { top: el.offsetTop, left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight } : null);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [current?.id, tabs.length]);
+  if (!analysis || !current) return null;
   const View = current.view;
   return (
     <div className="relative flex h-full">
-      <nav className="no-print flex w-[236px] shrink-0 flex-col overflow-auto border-r border-[var(--line)] px-3 py-4 max-[900px]:w-[60px] max-[900px]:px-2" aria-label="Views">
+      <nav ref={navRef} className={`no-print relative flex w-[236px] shrink-0 flex-col overflow-auto border-r border-[var(--line)] px-3 py-4 max-[900px]:w-[60px] max-[900px]:px-2 ${pill ? 'has-pill' : ''}`} aria-label="Views">
+        {pill && <span aria-hidden="true" className="nav-pill" data-testid="nav-pill" style={{ transform: `translateY(${pill.top}px)`, left: pill.left, width: pill.width, right: 'auto', height: pill.height }} />}
         {GROUPS.map((g, gi) => {
           const items = tabs.filter((t) => t.group === g);
           if (items.length === 0) return null;
@@ -110,9 +123,11 @@ export function ProjectView() {
         {status === 'analyzing' && (
           <div className="no-print flex justify-center border-b border-[var(--line)] p-3"><ProgressPanel /></div>
         )}
-        <PageGroup.Provider value={current.group}>
-          <View />
-        </PageGroup.Provider>
+        <div style={{ viewTransitionName: 'view' }} className="h-full">
+          <PageGroup.Provider value={current.group}>
+            <View />
+          </PageGroup.Provider>
+        </div>
       </div>
       <SourcePanel />
     </div>

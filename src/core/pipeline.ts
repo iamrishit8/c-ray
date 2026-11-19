@@ -122,6 +122,12 @@ export function buildL0(units: FileUnit[], files: FileInfo[]): L0Result {
   return l0;
 }
 
+/** One language per file for the progress file wall, evenly sampled down to `max` tiles. */
+export function sampleTiles(units: { lang: string }[], max = 400): string[] {
+  if (units.length <= max) return units.map((u) => u.lang);
+  return Array.from({ length: max }, (_, i) => units[Math.floor((i * units.length) / max)].lang);
+}
+
 function inlineProcess(units: FileUnit[]): FileResult[] {
   return units.map((u) => ({ scan: scanFile(u.text, u.lang, u.path), parse: null }));
 }
@@ -165,6 +171,7 @@ export async function runPipeline(
   if (ing.limited) a.notices.push(ing.limited);
   a.mode = units.length === 1 && ing.discovered <= 1 ? 'file' : 'project';
   progress({ phase: 'Scanning', discovered: ing.discovered, skipped: ing.discovered - units.length, total: units.length, parsed: 0 }, true);
+  emit({ type: 'progress', progress: { ...prog, tiles: sampleTiles(units) } });
 
   // ---- 2. per-file scan + L1 parse, reusing cached results for unchanged files ----
   const results: FileResult[] = new Array(units.length);

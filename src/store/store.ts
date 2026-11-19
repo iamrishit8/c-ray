@@ -4,6 +4,7 @@ import { DEFAULT_IGNORE, DEFAULT_OPTIONS, type Analysis, type AnalysisOptions, t
 import * as db from '../db/db';
 import type { ProjectMeta, Retention } from '../db/db';
 import { fromDirectoryHandle, type Picked } from '../ui/input';
+import { withViewTransition } from '../ui/motion';
 import { worker, WorkerError } from '../workers/client';
 
 export interface Settings {
@@ -72,7 +73,7 @@ export const useStore = create<State>((set, get) => {
     set({ status: 'analyzing', error: null, notice: null, analysis: null, progress: { phase: 'Starting', discovered: 0, parsed: 0, skipped: 0, total: 0 }, tab: 'orientation', source: null, focus: null });
     try {
       const res = await start((e) => {
-        if (e.type === 'progress') set({ progress: e.progress });
+        if (e.type === 'progress') set({ progress: e.progress.tiles ? e.progress : { ...e.progress, tiles: get().progress?.tiles } });
         else set({ analysis: e.analysis });
       });
       const a = get().analysis;
@@ -207,7 +208,9 @@ export const useStore = create<State>((set, get) => {
     },
 
     setTab(tab, focus) {
-      set({ tab, focus: focus ?? null });
+      // same tab (e.g. a new focus inside the view): no page transition
+      if (tab === get().tab) set({ focus: focus ?? null });
+      else withViewTransition(() => set({ tab, focus: focus ?? null }));
     },
     openSource(path, line = 1, endLine) {
       set({ source: { path, line, endLine } });

@@ -22,7 +22,7 @@ sequenceDiagram
   C->>C: ingest (filters, .gitignore, budgets, collect .git files)
   C->>P: scan + L1 parse changed files (unchanged reused from cache)
   P-->>C: FileResult[]
-  C-->>S: progress events (throttled ~80ms)
+  C-->>S: progress events (throttled ~80ms; one carries file-wall tiles)
   C->>C: L0 + orientation
   C-->>S: snapshot (stage=l0)
   C->>L2: TS/JS program (lazy chunk)

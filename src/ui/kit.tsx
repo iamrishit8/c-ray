@@ -2,6 +2,7 @@
 import { createContext, useContext, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import type { Confidence, Role } from '../core/types';
 import { useStore } from '../store/store';
+import { CountUp } from './motion';
 
 const CONF_TITLE: Record<Confidence, string> = {
   resolved: 'Resolved: derived exactly (compiler API, manifest or explicit declaration).',
@@ -100,7 +101,7 @@ export function Sparkline({ values, color = 'var(--fg3)', width = 64, height = 2
   const min = Math.min(...values);
   const span = Math.max(...values) - min || 1;
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * width).toFixed(1)} ${(height - 2 - ((v - min) / span) * (height - 4)).toFixed(1)}`).join(' ');
-  return <svg aria-hidden="true" width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0"><path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" /></svg>;
+  return <svg aria-hidden="true" width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0"><path className="draw" pathLength={1} d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" /></svg>;
 }
 
 export function Stat({ label, value, sub, spark, sparkColor }: { label: string; value: ReactNode; sub?: ReactNode; spark?: number[]; sparkColor?: string }) {
@@ -110,7 +111,7 @@ export function Stat({ label, value, sub, spark, sparkColor }: { label: string; 
         <div className="label">{label}</div>
         {spark && <Sparkline values={spark} color={sparkColor} />}
       </div>
-      <div className="tnum mt-1.5 text-[28px] font-medium leading-[1.15] tracking-[-0.04em]">{value}</div>
+      <div className="tnum mt-1.5 text-[28px] font-medium leading-[1.15] tracking-[-0.04em]">{typeof value === 'string' || typeof value === 'number' ? <CountUp text={String(value)} /> : value}</div>
       {sub && <div className="mt-0.5 text-[12.5px] muted">{sub}</div>}
     </div>
   );
@@ -147,7 +148,7 @@ export function Page({ title, intro, children, actions }: { title: string; intro
   return (
     <div className="mx-auto max-w-[1180px] px-5 pb-14 pt-8 md:px-10 md:pt-9">
       <PageHeader title={title} intro={intro} actions={actions} />
-      <div className="mt-7 space-y-5">{children}</div>
+      <div className="stagger mt-7 space-y-5">{children}</div>
     </div>
   );
 }
@@ -205,4 +206,48 @@ export function listKeys<K extends string>(keys: K[], current: K | null, select:
     el?.focus();
     el?.scrollIntoView({ block: 'nearest' });
   };
+}
+
+/** Colour tokens for categorical series that are not roles (languages, authors): the role hues, then accent. */
+export const SERIES = ['var(--r-service)', 'var(--accent)', 'var(--r-int)', 'var(--r-route)', 'var(--r-model)', 'var(--r-test)', 'var(--warn)'];
+/** The rest of a categorical series ("other"). */
+export const SERIES_OTHER = 'var(--r-config)';
+
+/** Stable colour per language: the project's languages by size get SERIES in order; the rest share SERIES_OTHER. */
+export function langColors(langs: { lang: string; loc: number }[]): (lang: string) => string {
+  const ranked = [...langs].sort((x, y) => y.loc - x.loc).map((l) => l.lang);
+  const m = new Map(ranked.slice(0, SERIES.length).map((l, i) => [l, SERIES[i]]));
+  return (lang) => m.get(lang) ?? SERIES_OTHER;
+}
+
+/** Sequential colour for a 0..1 value: from a faint track to the accent, then to `--bad` at the top. */
+export function heat(t: number): string {
+  const v = Math.max(0, Math.min(1, t));
+  if (v < 0.7) return `color-mix(in srgb, var(--accent) ${Math.round(18 + (v / 0.7) * 72)}%, var(--bg3))`;
+  return `color-mix(in srgb, var(--bad) ${Math.round(((v - 0.7) / 0.3) * 100)}%, var(--accent))`;
+}
+
+/** A colour swatch with a label (chart legends). */
+export function Swatch({ color, children, square = true }: { color: string; children: ReactNode; square?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12px] muted">
+      <i aria-hidden="true" className={`inline-block h-[9px] w-[9px] ${square ? 'rounded-[3px]' : 'rounded-full'}`} style={{ background: color }} />
+      {children}
+    </span>
+  );
+}
+
+/** Picture / table switch for a visualisation; every picture has a plain fallback. */
+export function ViewSwitch({ table, onChange, testId }: { table: boolean; onChange: (table: boolean) => void; testId?: string }) {
+  return (
+    <div className="flex gap-1" role="group" aria-label="Show as" data-testid={testId}>
+      <Chip on={!table} onClick={() => onChange(false)}>picture</Chip>
+      <Chip on={table} onClick={() => onChange(true)}>table</Chip>
+    </div>
+  );
+}
+
+/** Floating tooltip positioned inside a `relative` container. */
+export function VizTip({ x, y, children, testId, width = 260 }: { x: number; y: number; children: ReactNode; testId?: string; width?: number }) {
+  return <div className="viz-tip" role="tooltip" data-testid={testId} style={{ left: x, top: y, width }}>{children}</div>;
 }

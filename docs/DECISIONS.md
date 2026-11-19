@@ -310,3 +310,19 @@ D18–D24 record choices that were already in the code but never written down.
   and would add another styling system.
 - **Alternatives rejected:** Two hard-coded palettes in `Graph.tsx` (what U1 had; drifted from the tokens);
   `cytoscape-navigator` (old, DOM-thumbnail based, slow on 500 nodes).
+
+## D36: Motion policy: purposeful, CSS-first, off under reduced motion; no animation library
+- **Date / phase:** 2026-11-19 · U3 slice 1 · **Status:** Accepted
+- **Context:** U3 adds motion to make the codebase easier to see. Motion can also make a dense tool tiring, slow
+  on big graphs, and inaccessible for people who get motion sick.
+- **Decision:** Motion must have a job: show a transition, draw the eye, or play back a sequence. Nothing loops
+  while idle (the graph's "marching ants" stop after 1.6 s). Tokens `--dur-1/2/3` (120/200/320 ms), `--ease-out`,
+  `--ease-spring`. Only `transform`, `opacity` and SVG dash offsets are animated. Tools: CSS keyframes, the Web
+  Animations API and the View Transitions API (tab changes, via `setTab` in the store; plain state change where it
+  is unsupported). `prefers-reduced-motion: reduce` turns every animation and transition off with one global rule,
+  and JS-driven motion checks `reducedMotion()` (`src/ui/motion.ts`). Graph animations switch off above 200 nodes
+  (`ANIMATE_MAX_NODES`). Enter animations use `fill-mode: backwards`, never `both`: a filled transform keeps a
+  stacking context and lets later cards cover dropdowns (found in the Impact suggestions list).
+- **Why:** No new dependency, nothing to load, and the browser runs these on the compositor.
+- **Alternatives rejected:** Framer Motion / GSAP (≈ 30–60 KB for effects CSS already does); per-component
+  reduced-motion handling (easy to forget one).

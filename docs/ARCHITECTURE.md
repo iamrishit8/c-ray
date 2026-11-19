@@ -56,7 +56,7 @@ flowchart LR
 | `src/workers/` | `analysis.worker.ts` (coordinator), `pool.ts` + `parse.worker.ts` (parsing), `l2.worker.ts`, `protocol.ts`, `client.ts`. | |
 | `src/db/db.ts` | IndexedDB stores: `projects`, `analyses`, `sources`, `cache`, `settings`, `handles`. | Retention + quota handling. |
 | `src/store/store.ts` | Single Zustand store: app status, settings, current analysis, tab, source panel, cross-view focus. | |
-| `src/ui/` | React views (one per tab), `kit.tsx` (shared components, `PageGroup` context, `listKeys`), `Graph.tsx` (Cytoscape + zoom/legend/minimap overlays, colours from tokens, D35), `Mermaid.tsx` (base theme from tokens), `SourcePanel.tsx`, `icons.ts` (lucide icon per tab), `Logo.tsx`, `sample.ts` (bundled sample project, lazy chunk), `markdown.ts` (report Markdown → HTML: raw HTML escaped, unsafe URL schemes dropped; DOM-free, unit-tested). | |
+| `src/ui/` | React views (one per tab), `kit.tsx` (shared components, `PageGroup` context, `listKeys`), `Graph.tsx` (Cytoscape + zoom/legend/minimap overlays, colours from tokens, D35), `Mermaid.tsx` (base theme from tokens), `SourcePanel.tsx`, `motion.ts` (reduced-motion check, View Transitions, count-up; D36), `icons.ts` (lucide icon per tab), `Logo.tsx`, `sample.ts` (bundled sample project, lazy chunk), `markdown.ts` (report Markdown → HTML: raw HTML escaped, unsafe URL schemes dropped; DOM-free, unit-tested). | |
 | `scripts/copy-assets.mjs` | Copies grammar WASMs + TS lib `.d.ts` into `public/` (pre-dev/build/install). | Generated, git-ignored. |
 | `scripts/contrast-audit.mjs` | `npm run audit:contrast`: WCAG ratios of the token pairs in `src/index.css`, both themes (D34). | Exits 1 below AA. |
 | `vite.config.ts` | Build + `offlinePlugin` that generates `sw.js` precaching all assets. | |
@@ -92,7 +92,9 @@ it in `defaultStages`; it gets timing, error isolation and progress for free.
 ## Worker protocol (`protocol.ts`)
 
 Requests: `analyze`, `reanalyze`, `open`, `source`, `search`, `occurrences`, `exportJson`, `close`.
-Events streamed back during a request: `progress`, `snapshot`. Errors carry `userFacing` so the UI can show them as-is.
+Events streamed back during a request: `progress`, `snapshot`. One `progress` event right after scanning carries
+`tiles` (one language per file, sampled to ≤ 400) for the progress file wall; later events omit it and the store
+keeps the last `tiles`. Errors carry `userFacing` so the UI can show them as-is.
 Cancel = terminate the coordinator worker (the client re-creates it).
 
 ## UI shell
@@ -102,7 +104,9 @@ feature strip, settings, stored projects) or `ProjectView` (grouped side nav wit
 current view wrapped in `PageGroup` so `Page` shows the group as its eyebrow; `SourcePanel`, an overlay below
 1100 px). `ProjectView` also owns the `/` shortcut (focus `[data-search-focus]` or open Search). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share; History
 sits in Assess after Impact);
-`projectOnly` tabs are hidden in File Mode. Views read `analysis` from the store; cross-view navigation uses
+`projectOnly` tabs are hidden in File Mode. A single `.nav-pill` element slides behind the current nav item;
+the view area is the View Transition target (`view-transition-name: view`, D36). `ProgressPanel` shows a stepper
+mapped from pipeline phase names (`src/core/viz/progress.ts`) and, before the first snapshot, the file wall. Views read `analysis` from the store; cross-view navigation uses
 `setTab(tab, focus)`.
 
 ## Persistence

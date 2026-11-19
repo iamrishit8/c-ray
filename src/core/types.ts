@@ -542,4 +542,6 @@ export interface Progress {
   skipped: number;
   total: number;
   detail?: string;
+  /** Language of each file to parse (sampled to ≤ 400), sent once when scanning starts; drives the progress file wall. */
+  tiles?: string[];
 }
