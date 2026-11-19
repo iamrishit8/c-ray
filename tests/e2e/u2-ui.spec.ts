@@ -30,10 +30,14 @@ test('theme: toggle persists under the new key and the pre-rename key is still h
 test('keyboard: "/" focuses the view filter (or opens Search); arrows move through flows and entities', async ({ page }) => {
   await analyzeFixture(page, 'express-mongoose');
   await openTab(page, 'health');
+  // the view swaps inside a View Transition; pressing "/" before it lands would hit the previous page
+  await expect(page.getByTestId('tab-health')).toHaveAttribute('aria-current', 'page');
   await page.locator('body').press('/');
   await expect(page.locator('[data-search-focus]')).toBeFocused();
 
   await openTab(page, 'orientation');
+  await expect(page.getByTestId('tab-orientation')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('[data-search-focus]')).toHaveCount(0);
   await page.locator('body').press('/');
   await expect(page.getByTestId('search-input')).toBeFocused();
 

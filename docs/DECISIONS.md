@@ -443,3 +443,24 @@ D18–D24 record choices that were already in the code but never written down.
   (the first-run question is answered before a project exists, so it belongs on the first page); screenshots (stale after
   every restyle; drawn SVG schematics use the tokens and follow light/dark); Markdown files rendered at runtime (no types,
   nothing to hang the drift guards on).
+
+## D43: Large graphs trade polish for frame time above 200 nodes; the hero, empty-state art and logo are CSS-only decoration
+- **Date / phase:** 2026-11-20 · U4 (U3 slice 4)
+- **Status:** Accepted
+- **Context:** The first frame-time measurement on a 10 000-file project (498 nodes, 1 979 edges on the System map,
+  `u3-perf.spec.ts`) showed a 250 ms worst frame while zooming and 1.4 s when focusing a node. A profile showed little
+  JavaScript: Cytoscape repainted the whole canvas on every wheel step, and the 120 ms opacity transition on nodes
+  repainted it on every frame of every class change (D36 capped graph animation at 200 nodes but missed this one).
+- **Decision:** `LARGE_GRAPH_NODES` (= `ANIMATE_MAX_NODES`, 200). Above it: Cytoscape `textureOnViewport` and
+  `hideEdgesOnViewport` (a texture is drawn, and edges are hidden, while panning or zooming), node `transition-duration`
+  0, and focusing a node adds `far` (`display: none`) to every unrelated edge instead of only fading it. The measured
+  result and what is still slow (focus: 0.8–1 s worst frame in headless software painting) are in QUALITY.md. Budget: no frame over 100 ms in
+  steady state (D22). The harness is opt-in (`PERF=1`), repeats each interaction 3 times and keeps the median run.
+  Decoration added in the same phase follows D36: the Home hero graph assembles once and then stops, empty states get a
+  small outline illustration (`Empty art=…`, decorative, `aria-hidden`), and the logo arrows swap rows on hover and keep
+  swapping only while an analysis runs (progress, not idle looping). All of it is CSS and is off under reduced motion.
+- **Why:** Panning and zooming are the interactions a user repeats most; a blurry texture for 200 ms is a better trade than
+  a 250 ms stall. Dropping edges on focus keeps the neighbourhood readable and saves the repaint of ~2 000 faded lines.
+- **Alternatives rejected:** Lowering the 500-node cap (a bigger product change; owner's call, left as an M12 option);
+  switching to a WebGL renderer (a new dependency and styling path, D35); turning focus off for big graphs (it is the main
+  way to read a graph); `pixelRatio: 1` (blurry text on high-DPI screens).

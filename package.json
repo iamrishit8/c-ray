@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "bench:l1l2": "vitest run tests/bench/l1-vs-l2.test.ts",
-    "bench:scale": "vitest run --config vitest.scale.config.ts",
+    "bench:scale": "SCALE=1 vitest run tests/bench/scale.test.ts",
     "gen:synthetic": "node scripts/gen-synthetic.mjs",
     "postinstall": "node scripts/copy-assets.mjs",
     "predev": "node scripts/copy-assets.mjs",

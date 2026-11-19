@@ -5,11 +5,10 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**M10 is done and waiting for owner review** (2026-11-20; dev server at http://localhost:5173). The owner accepted the
-typeface (Google Sans for text, Geist Mono for paths and code, confirmed).
-**Next, before M11: phase U4**, in progress (started 2026-11-20): a complete, plain-English **help manual on
+**M10 is done** (2026-11-20); the owner accepted the typeface (Google Sans for text, Geist Mono for paths and code).
+**Phase U4 is built and waiting for owner review** (2026-11-20; dev server at http://localhost:5173): a complete, plain-English **help manual on
 the introductory (Home) page**, together with the **U3 slice 4** items (illustrations, logo, performance check,
-polish). Slices 1 (content as data + drift guards) and 2 (Home layout + manual rendering) are done. M11 starts only after U4 is reviewed and approved.
+polish). All four slices are done (content as data + drift guards, Home layout + manual, illustrations + logo + performance numbers and caps, tests + docs). Suites: 273 unit (+3 opt-in benches) and 52 e2e (+1 opt-in perf), all passing. **M11 starts only after U4 is reviewed and approved.**
 
 ---
 
@@ -30,7 +29,7 @@ polish). Slices 1 (content as data + drift guards) and 2 (Home layout + manual r
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
 | U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | ✅ slices 1–3 (slice 4 moved to U4) |
 | M10 | Decisions view + onboarding guide + generated docs | ✅ 2026-11-20 (review pending) |
-| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | 🔨 in progress (slices 1–2 of 4 done) |
+| U4 | Help manual on the Home page (every page, how to read it, terminology) + U3 slice 4 (illustrations, logo, performance, polish) | ✅ built 2026-11-20 (review pending) |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
 | U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
@@ -237,31 +236,42 @@ from an open project). Plain English, no jargon without a definition.
 - [x] Each page entry ends with a short worked example on the sample project; `u4-manual.spec.ts` opens the sample, follows
       each example's actions via `data-testid`s and checks the stated result is on screen (the File Mode one drops a single file).
       Writing them found one wrong claim in the text (`npm install` is heuristic, only `npm start` is copied from the manifest)
-- [ ] Every other claim in the manual is checked by walking the real app (owner sees the walkthrough in the review)
+- [x] Every other claim in the manual was checked against the code or the running app (controls, categories, thresholds,
+      keyboard, settings, storage). One more mismatch found that way: the Decisions category order. Still judgement, not tested:
+      the "healthy / worth a closer look" guidance on each page (QUALITY.md)
+- Found on the way (slice 2/4): the scroll-spy first used IntersectionObserver and highlighted the section *above* the
+  one you had jumped to (an edge-touching element counts as intersecting); now "last element whose top passed a reading
+  line", asserted exactly in e2e. The U2 keyboard test was flaky (pressing `/` before the View Transition swapped the
+  page hit the previous page's filter); it now waits for the tab to be current
 - [x] Manual works with no external requests, in light and dark, at 820 px (section bar instead of the contents column,
       no horizontal scroll) and keyboard-only (entries are `<details>`); the navigation and entries have accessible names
       and `data-testid`s. Reduced motion: smooth scrolling is switched off (`reducedMotion()`)
 
-### Part B: U3 slice 4 (moved here, unchanged scope)
-- [ ] Home hero illustration: a small animated graph that assembles itself (inline SVG, token colours, static under
-      reduced motion); placed in the new hero layout above
-- [ ] Empty-state illustrations (no history, no data model, no entry points, no findings): one small inline SVG each
-- [ ] Logo micro-interaction (arrows swap on hover / while analysing)
-- [ ] Performance check: frame times while panning and focusing on a 500-node map, and while the treemap drills on
-      the 10k-file synthetic project. Numbers go in QUALITY.md; anything over budget is turned off above a size cap.
-      (`gen:synthetic` / `bench:scale` are referenced in `package.json` but the scripts do not exist yet; write them first, shared with M12)
-- [ ] E2E: extend `u3-visuals.spec.ts` for the slice-4 items
-- [ ] Docs: CONVENTIONS (motion tokens + rules, viz components), ARCHITECTURE (`src/core/viz`, `src/ui/help`), DECISIONS
-      (motion policy done in D36–D38; add: manual lives on Home only, content as data), QUALITY (frame-time numbers,
-      limits), screenshots of each new picture in the phase review
+### Part B: U3 slice 4 (moved here, unchanged scope) ✅
+- [x] Home hero illustration (`HeroGraph.tsx`): a small graph that assembles itself once (nodes pop, solid edges draw,
+      dashed/dotted edges fade in, same confidence encoding as the real map); inline SVG, token colours, static under
+      reduced motion, hidden below `md`
+- [x] Empty-state illustrations (`illustrations.tsx`, `Empty art=…`): no history, no data model, no entry points, no findings
+- [x] Logo micro-interaction: the arrows swap rows on hover and keep swapping while an analysis runs (CSS only)
+- [x] Performance check: `scripts/synthetic.mjs` + `npm run gen:synthetic` + `npm run bench:scale` (Node, per phase) and
+      `u3-perf.spec.ts` (opt-in, Chromium frame times on 10 000 files). Over budget at first: zoom (250 ms) and focus
+      (1.4 s). Fixed with caps above 200 nodes (texture + hidden edges while panning, no opacity transition, unrelated
+      edges dropped on focus, D43): zoom/pan/treemap drill now 16.8 ms steady state. **Still over budget: focus a node on a
+      500-node map (0.8–1 s worst frame in software painting)**, listed under M12. Numbers in QUALITY.md
+- [x] E2E: `u3-visuals.spec.ts` extended (hero, empty art, logo, reduced motion); unit `u4-art.test.ts`
+- [x] Docs: CONVENTIONS (decoration + large-graph rule), ARCHITECTURE (`src/ui/help`, hero, illustrations, scripts),
+      DECISIONS D42 (manual on Home, content as data) and D43 (large graphs, decoration), QUALITY (scale, frame times, limits)
+- Found on the way: **a ZIP with thousands of small entries was rejected** ("Maximum call stack size exceeded"; fflate's
+  streaming unzipper recurses once per entry inside one chunk). Fixed by feeding it 16 KB slices, with a regression test
+- [x] The new pictures were checked in light and dark (hero, schematics, empty-state art); the owner sees them in the running app
 
 ### Proposed order (one commit + push per slice, one owner review at the end)
 1. ✅ **Content first**: the full text of the manual as `content.ts`. The text is one data file, so the owner's edits stay cheap
    at the final review (it was not held back for a separate text review)
 2. ✅ **Home layout + manual rendering** (section bar / sticky contents with scroll-spy, collapsible entries, terminology
    search, schematics). On wide screens the contents column replaces the section bar (D42 note: showing both was redundant)
-3. **U3 slice 4** (hero illustration, empty states, logo, performance numbers and caps)
-4. **Tests, drift guards, docs, phase review** (walkthrough at http://localhost:5173)
+3. ✅ **U3 slice 4** (hero illustration, empty states, logo, performance numbers and caps)
+4. ✅ **Tests, drift guards, docs, phase review** (walkthrough at http://localhost:5173; owner review pending)
 
 ### Decisions (owner answered 2026-11-20)
 1. **Mono face: Geist Mono**, as it is now. No font change in U4.
@@ -286,7 +296,8 @@ Needs an explicit privacy design first. This is the only feature that may send d
 
 ## M12: Scale hardening, robustness, performance, polish
 
-- [ ] Scale benchmark: `gen:synthetic` 10k / 50k / 100k files → time per phase, peak memory, IndexedDB size → QUALITY.md
+- [ ] Scale benchmark: 10k is done in Node and Chromium (U4, QUALITY.md); extend to 50k / 100k files and add IndexedDB size (`gen:synthetic`, `bench:scale`, `u3-perf` exist)
+- [ ] Focusing a node on a 500-node System map takes 0.8–1 s (worst frame, software paint). Options: render faded nodes as one layer, a smaller per-view node cap, or a cheaper focus style (D43, QUALITY.md)
 - [ ] Robustness tests: malformed ZIP, zip bomb guard, binary disguised as text, deeply nested dirs, huge single file,
       invalid UTF-8, storage quota exceeded, worker crash mid-run, cancel mid-run
 - [ ] Git stage memory (see M9 follow-ups) and time on 5k+ file repos with long histories

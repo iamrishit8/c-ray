@@ -6,6 +6,7 @@ import type { Retention } from '../db/db';
 import { useStore } from '../store/store';
 import { canPickDirectory, fromDirectoryHandle, fromDrop, fromFileList } from './input';
 import { HelpManual } from './help/HelpManual';
+import { HeroGraph } from './HeroGraph';
 import { SkippedList } from './Orientation';
 
 const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
@@ -57,13 +58,16 @@ export function Home() {
   };
   return (
     <div className="mx-auto max-w-[1080px] space-y-6 px-5 pb-20 pt-10 md:px-10 md:pt-14" data-testid="home">
-      <div className="max-w-[760px]">
-        <div className="label">Codebase explainer · runs in your browser</div>
-        <h1 className="mt-2 text-[34px] font-medium leading-[1.1] tracking-[-0.04em] md:text-[40px]">Understand an unfamiliar codebase.</h1>
-        <p className="mt-3 text-[14px] muted">
-          Drop a file, a folder or a ZIP. imex maps the structure, traces request flows, reconstructs the data model, reads the git history and flags risky spots,
-          with a confidence level and a source location for every inferred fact. Your code never leaves this tab.
-        </p>
+      <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="max-w-[760px]">
+          <div className="label">Codebase explainer · runs in your browser</div>
+          <h1 className="mt-2 text-[34px] font-medium leading-[1.1] tracking-[-0.04em] md:text-[40px]">Understand an unfamiliar codebase.</h1>
+          <p className="mt-3 text-[14px] muted">
+            Drop a file, a folder or a ZIP. imex maps the structure, traces request flows, reconstructs the data model, reads the git history and flags risky spots,
+            with a confidence level and a source location for every inferred fact. Your code never leaves this tab.
+          </p>
+        </div>
+        <div className="hidden md:block"><HeroGraph /></div>
       </div>
 
       <div

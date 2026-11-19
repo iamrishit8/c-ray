@@ -25,23 +25,36 @@ function goTo(id: string) {
   };
 }
 
-/** Which manual element is at the top of the reading area: the section bar and contents highlight it. */
+/** Below this many px from the top of the screen an element counts as "reached": app header (56) + the 64 px
+ *  `scroll-mt-16` that anchor jumps leave + a few px. */
+const READING_LINE = 130;
+
+/** Which manual element is current: the last one (in document order) whose top has passed the reading line.
+ *  Listens to scrolling of any container (the page scrolls inside `<main>`, not the window). */
 function useScrollSpy(ids: string[]): string {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
-    const els = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => !!el);
-    if (els.length === 0 || typeof IntersectionObserver === 'undefined') return;
-    const seen = new Set<string>();
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) seen.add(e.target.id);
-        else seen.delete(e.target.id);
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let current = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= READING_LINE) current = id;
       }
-      const first = ids.find((id) => seen.has(id));
-      if (first) setActive(first);
-    }, { rootMargin: '-72px 0px -55% 0px' });
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+      setActive(current);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    document.addEventListener('scroll', schedule, { capture: true, passive: true });
+    window.addEventListener('resize', schedule);
+    update();
+    return () => {
+      document.removeEventListener('scroll', schedule, { capture: true });
+      window.removeEventListener('resize', schedule);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [ids]);
   return active;
 }
@@ -254,7 +267,8 @@ function Limits() {
 const BODY: Record<string, () => ReactNode> = { 'quick-start': QuickStart, routes: Routes, pages: Pages, terms: Terms, shortcuts: Shortcuts, limits: Limits };
 
 export function HelpManual() {
-  const ids = useMemo(() => [...SECTIONS.map((s) => sectionId(s.id)), ...PAGES.map((p) => pageId(p.id))], []);
+  // document order: each section, with the page entries right after the "pages" section's heading
+  const ids = useMemo(() => SECTIONS.flatMap((s) => [sectionId(s.id), ...(s.id === 'pages' ? PAGES.map((p) => pageId(p.id)) : [])]), []);
   const active = useScrollSpy(ids);
   const activeSection = active.startsWith('help-page-') ? sectionId('pages') : active;
   return (

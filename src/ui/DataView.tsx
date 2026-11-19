@@ -26,7 +26,7 @@ export function DataView() {
   return (
     <Page title="Data model" intro="Entities, fields, relations and indexes reconstructed from ORM models, migrations and SQL, and which code reads or writes each entity. Reconstruction is syntactic: check the linked source before relying on a detail.">
       {entities.length === 0 ? (
-        <Empty title="No data model found">No schema definitions were found (Prisma, Mongoose, TypeORM, Sequelize, SQLAlchemy, Django, JPA, ActiveRecord, Eloquent, EF Core, GORM, migrations or SQL DDL).</Empty>
+        <Empty art="data" title="No data model found">No schema definitions were found (Prisma, Mongoose, TypeORM, Sequelize, SQLAlchemy, Django, JPA, ActiveRecord, Eloquent, EF Core, GORM, migrations or SQL DDL).</Empty>
       ) : (
         <>
           <Card

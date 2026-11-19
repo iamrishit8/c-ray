@@ -19,7 +19,7 @@ sequenceDiagram
   H->>S: analyze(picked)
   S->>C: rpc analyze {source, name, options, retention}
   C->>DB: loadCache(projectId)
-  C->>C: ingest (filters, .gitignore, budgets, collect .git files)
+  C->>C: ingest (filters, .gitignore, budgets, collect .git files; a ZIP is streamed in 16 KB slices so thousands of entries cannot overflow the unzipper's stack)
   C->>P: scan + L1 parse changed files (unchanged reused from cache)
   P-->>C: FileResult[]
   C-->>S: progress events (throttled ~80ms; one carries file-wall tiles)

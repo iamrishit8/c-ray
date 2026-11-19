@@ -1,0 +1,63 @@
+[
+  {
+    "files": 10000,
+    "date": "2026-11-19",
+    "analysisSeconds": 5.4,
+    "map": "498 nodes · 1979 edges shown (max 500)",
+    "mapPan": {
+      "frames": 172,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 16.8,
+      "over50": 0,
+      "over100": 0,
+      "runsMaxMs": [
+        816.6,
+        16.8,
+        16.8
+      ]
+    },
+    "mapZoom": {
+      "frames": 67,
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "maxMs": 16.8,
+      "over50": 0,
+      "over100": 0,
+      "runsMaxMs": [
+        183.3,
+        16.8,
+        16.8
+      ]
+    },
+    "mapFocus": {
+      "frames": 35,
+      "medianMs": 16.7,
+      "p95Ms": 683.4,
+      "maxMs": 866.5,
+      "over50": 4,
+      "over100": 4,
+      "runsMaxMs": [
+        966.7,
+        800,
+        866.5
+      ]
+    },
+    "treemapCells": 1197,
+    "treemapCellsAfterReturn": 1197,
+    "treemapDrill": {
+      "frames": 123,
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "maxMs": 16.8,
+      "over50": 0,
+      "over100": 0,
+      "runsMaxMs": [
+        33.4,
+        16.8,
+        16.8
+      ]
+    },
+    "browser": "headless Chromium, software paint"
+  }
+]

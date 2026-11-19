@@ -1,0 +1,60 @@
+[
+  {
+    "files": 1000,
+    "date": "2026-11-19",
+    "totalMs": 1589,
+    "timingsMs": {
+      "ingest": 25,
+      "parse": 349,
+      "l0": 52,
+      "Resolving imports and calls (L1)": 9,
+      "Resolving TypeScript/JavaScript (L2)": 1096,
+      "Measuring L1 accuracy": 3,
+      "Building the graph": 3,
+      "Detecting frameworks and entry points": 21,
+      "orientation": 7,
+      "Reconstructing the data model": 3,
+      "Analysing dependencies": 2,
+      "Checking health signals": 11,
+      "Reading git history": 0,
+      "Inferring decisions": 3,
+      "Building the onboarding guide": 3,
+      "total": 1587
+    },
+    "peakRssMB": 469,
+    "peakHeapMB": 36,
+    "imports": 1925,
+    "symbols": 1200,
+    "entries": 1,
+    "notices": 0
+  },
+  {
+    "files": 10000,
+    "date": "2026-11-19",
+    "totalMs": 6881,
+    "timingsMs": {
+      "ingest": 173,
+      "parse": 2765,
+      "l0": 73,
+      "Resolving imports and calls (L1)": 89,
+      "Resolving TypeScript/JavaScript (L2)": 3438,
+      "Measuring L1 accuracy": 7,
+      "Building the graph": 28,
+      "Detecting frameworks and entry points": 170,
+      "orientation": 51,
+      "Reconstructing the data model": 21,
+      "Analysing dependencies": 13,
+      "Checking health signals": 26,
+      "Reading git history": 0,
+      "Inferring decisions": 8,
+      "Building the onboarding guide": 14,
+      "total": 6878
+    },
+    "peakRssMB": 298,
+    "peakHeapMB": 98,
+    "imports": 19089,
+    "symbols": 12000,
+    "entries": 1,
+    "notices": 1
+  }
+]

@@ -179,3 +179,51 @@ test('system map: path finder, colour/size controls, locate from search, export'
   await expect(page.getByTestId('tab-map')).toHaveAttribute('aria-current', 'page');
   await expect(page.getByTestId('locate-pulse')).toHaveCount(1);
 });
+
+// ── U4 slice 3 (the old U3 slice 4): hero picture, empty-state art, logo ──
+
+test('home hero: the graph assembles on wide screens, is static under reduced motion, hidden on phones', async ({ page }) => {
+  await page.goto('/');
+  const hero = page.getByTestId('hero-graph');
+  await expect(hero).toBeVisible();
+  await expect(hero.locator('circle.assemble')).toHaveCount(9);
+  // it settles: after a few seconds nothing on Home is still animating (no idle looping, D36)
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length), { timeout: 8000 }).toBe(0);
+  await page.setViewportSize({ width: 600, height: 900 });
+  await expect(hero).toBeHidden();
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.reload();
+  await expect(page.getByTestId('hero-graph')).toBeVisible();
+  expect(await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length)).toBe(0);
+  // the finished picture is shown: every node is fully opaque
+  const opaque = await page.getByTestId('hero-graph').locator('circle').evaluateAll((els) => els.every((e) => getComputedStyle(e).opacity === '1'));
+  expect(opaque).toBe(true);
+});
+
+test('empty states carry an illustration (History without .git)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('sample-project').click();
+  await expect(page.getByTestId('progress')).toHaveCount(0, { timeout: 90_000 });
+  await openTab(page, 'history');
+  const art = page.getByTestId('history-empty').getByTestId('empty-art');
+  await expect(art).toHaveAttribute('data-art', 'history');
+  await expect(art).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.getByTestId('history-empty')).toContainText('No git history');
+});
+
+test('logo: the arrows swap on hover, and keep swapping while an analysis runs', async ({ page }) => {
+  await page.goto('/');
+  const arrow = page.getByTestId('home-link').locator('.logo-a');
+  const at = () => arrow.evaluate((e) => getComputedStyle(e).transform);
+  expect(await at()).toBe('none');
+  await page.getByTestId('home-link').hover();
+  await expect.poll(at).not.toBe('none');
+  await page.mouse.move(700, 500);
+  await expect.poll(at).toBe('none');
+  await page.getByTestId('sample-project').click();
+  await expect(page.locator('[data-testid="logo-mark"][data-busy]')).toBeVisible();
+  await expect(page.getByTestId('progress')).toHaveCount(0, { timeout: 90_000 });
+  await expect(page.locator('[data-testid="logo-mark"][data-busy]')).toHaveCount(0);
+});

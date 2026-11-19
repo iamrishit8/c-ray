@@ -83,6 +83,16 @@ describe('ingestion', () => {
     expect(res.skipped[0].reason).toBe('ignored');
   });
 
+  it('reads a ZIP with thousands of small entries delivered as one big chunk (no stack overflow)', async () => {
+    // Regression (found by the U4 scale check): fflate's Unzip recurses once per entry inside a push(), so 4 000
+    // entries in one chunk threw "Maximum call stack size exceeded" and the whole ZIP was rejected.
+    const entries: Record<string, Uint8Array> = {};
+    for (let i = 0; i < 4000; i++) entries[`big/src/d${i % 40}/f${i}.js`] = strToU8(`module.exports = ${i};\n`);
+    const res = await ingest({ kind: 'zip', file: new Blob([zipSync(entries, { level: 1 }) as BlobPart]), name: 'big.zip' }, DEFAULT_OPTIONS);
+    expect(res.units).toHaveLength(4000);
+    expect(res.units[0].path.startsWith('src/')).toBe(true);
+  });
+
   it('rejects a corrupted ZIP with a clear error', async () => {
     const junk = new Uint8Array(2000).map((_, i) => (i * 7) % 251);
     await expect(ingest({ kind: 'zip', file: new Blob([junk]), name: 'bad.zip' }, DEFAULT_OPTIONS)).rejects.toBeInstanceOf(IngestError);

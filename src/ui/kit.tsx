@@ -3,6 +3,7 @@ import { createContext, useContext, type KeyboardEvent as ReactKeyboardEvent, ty
 import type { Confidence, Role } from '../core/types';
 import { useStore } from '../store/store';
 import { CONFIDENCE_HELP } from './help/content';
+import { Art, type ArtKind } from './illustrations';
 import { CountUp } from './motion';
 
 const CONF_STYLE: Record<Confidence, string> = {
@@ -113,9 +114,10 @@ export function Stat({ label, value, sub, spark, sparkColor }: { label: string; 
   );
 }
 
-export function Empty({ children, title }: { children: ReactNode; title?: ReactNode }) {
+export function Empty({ children, title, art }: { children: ReactNode; title?: ReactNode; art?: ArtKind }) {
   return (
     <div className="rounded-[var(--r-lg)] border border-dashed border-[var(--line2)] bg-[var(--bg2)] px-8 py-10 text-center muted">
+      {art && <Art kind={art} />}
       {title && <p className="mb-1 font-medium text-[var(--fg)]">{title}</p>}
       {children}
     </div>

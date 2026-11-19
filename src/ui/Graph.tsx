@@ -42,6 +42,9 @@ export interface GraphProps {
 
 /** Above this many nodes graph animations are switched off (D36). */
 export const ANIMATE_MAX_NODES = 200;
+/** Above this many nodes the canvas is too slow to repaint everything on every interaction (measured, QUALITY.md):
+ *  it draws a texture while panning/zooming, hides edges meanwhile, and focusing drops unrelated edges instead of fading them. */
+export const LARGE_GRAPH_NODES = ANIMATE_MAX_NODES;
 
 let registered = false;
 async function load() {
@@ -100,12 +103,12 @@ function heatHex(c: Tokens, t: number): string {
 
 const dot = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="3.5" fill="${color}"/></svg>`)}`;
 
-function stylesheet(c: Tokens, elk: boolean): StylesheetJson {
+function stylesheet(c: Tokens, elk: boolean, big = false): StylesheetJson {
   return [
     { selector: 'node', style: {
       label: 'data(label)', 'font-family': FONT, 'font-size': 11.5, 'font-weight': 500, color: c.fg, 'text-valign': 'center', 'text-halign': 'center',
       'background-color': c.bg2, 'border-width': 1, 'border-color': c.line2, shape: 'round-rectangle', width: 'label', height: 'label', padding: '9px',
-      'text-wrap': 'ellipsis', 'text-max-width': '200px', 'min-zoomed-font-size': 6, 'transition-property': 'opacity', 'transition-duration': 120,
+      'text-wrap': 'ellipsis', 'text-max-width': '200px', 'min-zoomed-font-size': 6, 'transition-property': 'opacity', 'transition-duration': big ? 0 : 120, // an opacity transition repaints the whole canvas every frame
     } },
     { selector: 'node[sub]', style: { label: (n: { data: (k: string) => string }) => `${n.data('label')}\n${n.data('sub')}`, 'text-wrap': 'wrap', 'line-height': 1.45, 'text-justify': 'left' } },
     // role dot on the left; the label is nudged right to make room
@@ -147,6 +150,7 @@ function stylesheet(c: Tokens, elk: boolean): StylesheetJson {
     // focus mode: the selected node, its neighbours and their edges stand out; everything else fades
     { selector: '.faded', style: { opacity: 0.28 } },
     { selector: 'edge.faded', style: { opacity: 0.12 } },
+    { selector: 'edge.far', style: { display: 'none' } },
     { selector: 'node.nb', style: { 'border-color': c.accent, 'border-opacity': 0.55 } },
     { selector: 'node.focus', style: { 'border-color': c.accent, 'border-width': 2, 'border-opacity': 1 } },
     { selector: 'edge.hot', style: { 'line-color': c.accent, 'target-arrow-color': c.accent, 'line-opacity': 1, width: 'mapData(count, 1, 20, 1.7, 4)', color: c.accent, 'text-border-color': c.accent, 'z-index': 10 } },
@@ -185,7 +189,7 @@ function ants(cy: Core, edges: EdgeCollection) {
 function focus(cy: Core, id: string | null) {
   stopAnts?.();
   cy.batch(() => {
-    cy.elements().removeClass('faded nb focus hot');
+    cy.elements().removeClass('faded nb focus hot far');
     if (!id) return;
     const el = cy.getElementById(id);
     if (!el.nonempty() || !el.isNode()) return;
@@ -193,6 +197,7 @@ function focus(cy: Core, id: string | null) {
     // keep the folder boxes around the neighbourhood visible
     const keep = hood.union(hood.ancestors());
     cy.elements().not(keep).addClass('faded');
+    if (cy.nodes().length > LARGE_GRAPH_NODES) cy.edges().not(keep).addClass('far');
     hood.nodes().not(el).addClass('nb');
     el.addClass('focus');
     el.connectedEdges().addClass('hot');
@@ -335,7 +340,8 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
       prev?.nodes().forEach((n) => void oldPos.set(n.id(), { ...n.position() }));
       const hadView = prev ? { zoom: prev.zoom(), pan: { ...prev.pan() } } : null;
       prev?.destroy();
-      const inst = cytoscape({ container: ref.current, elements: withFamily, minZoom: 0.05, maxZoom: 4, wheelSensitivity: 0.3, style: stylesheet(tokens(), layout === 'elk') });
+      const big = elements.filter((e) => !e.data.source).length > LARGE_GRAPH_NODES;
+      const inst = cytoscape({ container: ref.current, elements: withFamily, minZoom: 0.05, maxZoom: 4, wheelSensitivity: 0.3, style: stylesheet(tokens(), layout === 'elk', big), ...(big ? { textureOnViewport: true, hideEdgesOnViewport: true } : {}) });
       cyRef.current = inst;
       const keep = oldPos.size > 0 && inst.nodes().toArray().some((n) => oldPos.has(n.id()));
       if (keep) inst.nodes().forEach((n) => { const p = oldPos.get(n.id()); if (p && !n.isParent()) n.position(p); });
@@ -383,7 +389,8 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
 
   // theme change: restyle in place (keeps layout, zoom and focus)
   useEffect(() => {
-    cyRef.current?.style(stylesheet(tokens(), layout === 'elk'));
+    const inst = cyRef.current;
+    if (inst) inst.style(stylesheet(tokens(), layout === 'elk', inst.nodes().length > LARGE_GRAPH_NODES));
   }, [theme, layout]);
 
   useEffect(() => () => cyRef.current?.destroy(), []);
@@ -394,10 +401,10 @@ export function Graph({ elements, layout = 'fcose', onSelect, onOpen, onZoom, cl
     cy.batch(() => {
       cy.elements().removeClass('on-path step');
       if (!highlight) {
-        if (cy.$('.focus').empty()) cy.elements().removeClass('faded');
+        if (cy.$('.focus').empty()) cy.elements().removeClass('faded far');
         return;
       }
-      cy.elements().removeClass('faded nb focus hot');
+      cy.elements().removeClass('faded nb focus hot far');
       const on = cy.collection();
       for (const id of [...highlight.nodes, ...highlight.edges]) on.merge(cy.getElementById(id));
       on.addClass('on-path');

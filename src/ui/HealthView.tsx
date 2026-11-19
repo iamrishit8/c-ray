@@ -44,7 +44,7 @@ export function HealthView() {
       </div>
       {!a.git && <p className="text-[13px] muted">Churn × complexity hotspots need history: {a.gitMessage ?? 'no .git folder was provided.'}</p>}
       {a.mode === 'project' && a.stage !== 'l0' && <HotspotMap a={a} />}
-      {a.findings.length === 0 && <Empty title="Nothing to flag">No health signals were raised for this project.</Empty>}
+      {a.findings.length === 0 && <Empty art="findings" title="Nothing to flag">No health signals were raised for this project.</Empty>}
       {shown.map((c) => {
         const items = filtered.filter((f) => f.cat === c);
         if (items.length === 0) return null;

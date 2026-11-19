@@ -255,6 +255,9 @@ export async function ingest(
   return { units: kept, skipped: skip.list, gitFiles, notices, discovered, totalBytes, analyzedBytes, limited };
 }
 
+/** Bytes handed to the streaming unzipper at once; keeps its per-entry recursion shallow. */
+const ZIP_SLICE = 16 * 1024;
+
 async function readZip(
   blob: Blob,
   consider: (path: string, size: number) => 'git' | 'skip' | 'read',
@@ -301,10 +304,14 @@ async function readZip(
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      unzip.push(value, false);
-      if (++n % 16 === 0) {
-        progress();
-        await tick();
+      // fflate's Unzip recurses once per entry inside a single push(), so a big chunk holding thousands of
+      // small entries overflows the stack ("Maximum call stack size exceeded"). Feed it small slices.
+      for (let off = 0; off < value.length; off += ZIP_SLICE) {
+        unzip.push(value.subarray(off, Math.min(value.length, off + ZIP_SLICE)), false);
+        if (++n % 64 === 0) {
+          progress();
+          await tick();
+        }
       }
     }
     unzip.push(new Uint8Array(0), true);

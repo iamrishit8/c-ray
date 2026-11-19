@@ -93,7 +93,7 @@ export function FlowView() {
   }, [flow]);
 
   if (a.entries.length === 0) {
-    return <Page title="Flows" intro="Request and execution flows traced from each entry point."><Empty title="No entry points yet">{a.stage === 'l0' ? 'Entry points are still being detected…' : 'No entry points (routes, mains, jobs, event handlers) were detected in this project.'}</Empty></Page>;
+    return <Page title="Flows" intro="Request and execution flows traced from each entry point."><Empty art="entries" title="No entry points yet">{a.stage === 'l0' ? 'Entry points are still being detected…' : 'No entry points (routes, mains, jobs, event handlers) were detected in this project.'}</Empty></Page>;
   }
   const kindOrder: EntryPoint['kind'][] = ['route', 'page', 'main', 'cli', 'job', 'event'];
   const visibleIds = kindOrder.filter((k) => groups.has(k)).flatMap((k) => groups.get(k)!.slice(0, 400).map((e) => e.id));

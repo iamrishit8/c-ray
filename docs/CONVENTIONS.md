@@ -97,6 +97,7 @@ offsets; enter animations use `fill-mode: backwards`. Classes: `.stagger` (Page 
 `.fade-in`, `.pop`, `.ripple`, `.morph` (transform/opacity transitions), `.draw` (SVG path with `pathLength=1`),
 `.slide-in` / `.slide-out`. JS: `reducedMotion()`, `dur(1|2|3)` (0 under reduced motion), `useCountUp` / `CountUp`,
 `withViewTransition()` in `src/ui/motion.ts`. The app must work the same with `prefers-reduced-motion: reduce`.
+Decoration that moves: the Home hero graph (`.assemble` + `.draw`, plays once), the logo arrows (hover, and `busy` while analysing) and empty-state art (`Empty art=…`, static) are all decorative: `aria-hidden`, token colours, no looping while idle. Above `LARGE_GRAPH_NODES` (200) a graph may not run any transition or animation, and expensive restyles must be measured (`PERF=1`, QUALITY.md) before they ship.
 
 ### Components (`src/ui/kit.tsx`), so use these before writing new markup
 

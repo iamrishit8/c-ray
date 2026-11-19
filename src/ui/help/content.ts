@@ -285,7 +285,7 @@ export const PAGES: PageEntry[] = [
     shows: 'The architectural choices the code appears to embody (framework, data access, authentication, tests, deployment…) plus any decision records the team wrote. Each has evidence, the reason if the project states one, counted observations, and typical trade-offs.',
     question: 'Why is it built this way, and how well does that hold up?',
     use: [
-      'Filter by category (Architecture, Stack, Data, API, Security, Operations, Quality, Documented).',
+      'Filter by category (Documented, Architecture, Stack, Data, API, Security, Operations, Quality).',
       'Select a decision. “Evidence” links to the files behind it. “Why it appears built this way” quotes the project’s own docs; if there are none it says so.',
       '“How it holds up in this project” counts things like layering violations or routes without authentication. “Typical trade-offs” is general knowledge, labelled as such.',
     ],
@@ -556,7 +556,7 @@ export const TERMS: Term[] = [
   { id: 'er', term: 'ER diagram', aliases: ['entity relationship', 'data model'], def: 'A drawing of data entities (tables, models), their fields and how they relate.', where: 'Data.', why: 'The shape of the data usually explains the shape of the code.' },
   { id: 'entity', term: 'entity', aliases: ['model', 'table'], def: 'One kind of record the system stores, such as User or Order.', where: 'Data.', why: 'The nouns of the system.' },
   { id: 'adr', term: 'decision record (ADR)', aliases: ['architecture decision record', 'ADR'], def: 'A short document in the repository where the team wrote down a decision, its context and its consequences.', where: 'Decisions, category “Documented”.', why: 'The only place where the reason comes straight from the team. Always resolved.' },
-  { id: 'decision-category', term: 'decision category', def: 'The kind of choice: Architecture, Stack, Data, API, Security, Operations, Quality, or Documented.', where: 'Decisions filters.', why: 'Lets you read one area at a time.' },
+  { id: 'decision-category', term: 'decision category', def: 'The kind of choice: Documented (the team’s own records), Architecture, Stack, Data, API, Security, Operations or Quality.', where: 'Decisions filters.', why: 'Lets you read one area at a time.' },
   { id: 'glossary-term', term: 'glossary term', def: 'A word that matters in this project (an entity, a route noun or something used across several files), with where it appears.', where: 'Onboarding → Glossary.', why: 'The project’s own vocabulary, for newcomers.' },
   { id: 'reading-path', term: 'reading path', def: 'A suggested order for reading the code, from documentation and the entry point through routes and data to rough edges.', where: 'Onboarding.', why: 'Saves choosing where to start.' },
   { id: 'source-panel', term: 'source panel', def: 'The code preview that slides in from the right when you click a file or file:line.', where: 'Any page with a file link.', why: 'Lets you check any claim against the real code.' },

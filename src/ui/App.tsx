@@ -19,8 +19,8 @@ export function App() {
   return (
     <div className="flex h-full flex-col">
       <header className="no-print sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] px-4 backdrop-blur md:px-5">
-        <button className="flex items-center gap-2.5 text-[18px] font-semibold tracking-[-0.03em] text-[var(--fg)]" onClick={goHome} title="Home" data-testid="home-link">
-          <LogoMark />
+        <button className="logo-link flex items-center gap-2.5 text-[18px] font-semibold tracking-[-0.03em] text-[var(--fg)]" onClick={goHome} title="Home" data-testid="home-link">
+          <LogoMark busy={status === 'analyzing'} />
           imex
         </button>
         {showProject && (

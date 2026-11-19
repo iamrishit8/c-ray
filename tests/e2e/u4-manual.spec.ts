@@ -47,8 +47,8 @@ test('manual: contents column on wide screens, section bar on narrow ones; links
   const impact = page.locator('[data-testid="help-page"][data-page="impact"]');
   await expect(impact).toHaveJSProperty('open', true);
   await expect(impact).toBeInViewport();
-  // scroll-spy marks it as the current location
-  await expect(page.getByTestId('help-toc').locator('[aria-current="location"]').first()).toBeVisible();
+  // scroll-spy marks exactly that entry (not the one above it) as the current location
+  await expect(page.getByTestId('help-toc').locator('[aria-current="location"]')).toHaveText('Impact');
   await page.getByTestId('help-toc').getByRole('link', { name: 'Terms' }).click();
   await expect(page.getByTestId('help-section-terms')).toBeInViewport();
 

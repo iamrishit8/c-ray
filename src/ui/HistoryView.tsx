@@ -284,7 +284,7 @@ export function HistoryView() {
     return (
       <Page title="History" intro="How the code got here: what changes often, what changes together, who knows which parts, and how the architecture evolved.">
         <div data-testid="history-empty">
-          <Empty>
+          <Empty art="history">
             <p className="font-medium text-[var(--fg)]">No git history for this project.</p>
             <p className="mt-1">{a.gitMessage ?? 'No .git folder was provided.'}</p>
             <p className="mt-2 text-[13px]">To enable it, drop the project folder itself (the <code className="mono">.git</code> folder is read automatically) or a ZIP that includes <code className="mono">.git</code>. It is read in this browser; nothing is uploaded.</p>

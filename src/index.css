@@ -233,6 +233,16 @@ table.tbl th.num, table.tbl td.num { text-align: right; font-variant-numeric: ta
 .morph { transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-3) var(--ease-out); }
 .pop { animation: pop var(--dur-3) var(--ease-spring) both; }
 .ripple { transform-box: fill-box; transform-origin: center; animation: ripple 520ms var(--ease-out) both; }
+/* Hero picture: a node pops in from its own centre (SVG needs transform-box for that) */
+.assemble { transform-box: fill-box; transform-origin: center; animation: pop var(--dur-3) var(--ease-spring) both; }
+/* Logo: on hover the two arrows swap rows; while analysing they keep swapping (progress, not idle looping) */
+.logo-a, .logo-b { transition: transform var(--dur-3) var(--ease-out); }
+.logo-link:hover .logo-a { transform: translateY(8px); }
+.logo-link:hover .logo-b { transform: translateY(-8px); }
+.logo-busy .logo-a, .logo-busy .logo-b { animation: logo-swap 1.4s var(--ease-out) infinite alternate; }
+.logo-busy .logo-b { animation-name: logo-swap-up; }
+@keyframes logo-swap { 0%, 25% { transform: none; } 75%, 100% { transform: translateY(8px); } }
+@keyframes logo-swap-up { 0%, 25% { transform: none; } 75%, 100% { transform: translateY(-8px); } }
 
 /* Reduced motion: every animation and transition finishes immediately; the app works the same. */
 @media (prefers-reduced-motion: reduce) {

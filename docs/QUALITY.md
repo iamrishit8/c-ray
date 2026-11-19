@@ -74,9 +74,43 @@ All pairs pass WCAG AA. Lowest margins: light `--fg3` on the page 4.58:1 (tertia
 `--r-config` badge text on its tint 4.67:1; light `--r-int` graph dot 4.48:1 (non-text, needs 3:1). The mockup's
 white-on-terracotta button text (3.1:1) and raw role colours as badge text (down to 3.3:1) failed and were changed (D34).
 
-### Scale
+### Scale (first numbers, U4, 2026-11-20; the full 50k/100k run is M12)
 
-Not measured yet (M12). Harness exists: `npm run gen:synthetic` + `npm run bench:scale`.
+Synthetic JavaScript projects from `scripts/synthetic.mjs` (folders of 50 files, route → controller → service → model/util,
+2 in-module imports per file plus a few across modules; same N gives the same files). `npm run bench:scale`
+(`SCALE_SIZES=1000,10000`) writes `tests/bench/scale.results.json`. Node, one process, this laptop (shared with other apps):
+
+| Files | Total | Parse | L2 (TS/JS compiler) | Other stages | Peak RSS | Imports found | Notices |
+|---|---|---|---|---|---|---|---|
+| 1 000 | 1.6 s | 0.35 s | 1.1 s | < 0.2 s | 469 MB | 1 925 | 0 |
+| 10 000 | 6.9 s | 2.8 s | 3.4 s | 0.7 s | 298 MB | 19 089 | 1 (L2 capped at 4 000 files) |
+
+RSS is mostly the Node + tree-sitter baseline and is noisy (the 10 000 run reads lower than the 1 000 one); treat it as an
+upper bound, not a trend. In the browser (headless Chromium, nested parse workers) the same 10 000-file ZIP was ready in
+4–5 s, from file selection to the end of the progress panel. IndexedDB size and 50k/100k files are not measured yet (M12).
+
+### Frame times on a 10 000-file project (U4, 2026-11-20)
+
+`PERF=1 PERF_FILES=10000 npx playwright test u3-perf` (`tests/e2e/u3-perf.spec.ts`, results in
+`tests/bench/u3-frames.results.json`). Headless Chromium paints in software and this machine was shared with other apps, so
+treat the figures as pessimistic and noisy: each interaction runs 3 times and the median run is kept (all three worst frames
+are in the JSON). Budget: in steady state no frame over 100 ms (D22). The map had 498 nodes and 1 979 edges (the 500-node
+cap), the treemap 1 197 cells at the root.
+
+| Interaction | Before the caps (worst frame, frames > 100 ms) | After (steady state: median 16.7 ms, p95 ≤ 16.8 ms; worst frame) |
+|---|---|---|
+| Pan the map (80 moves, there and back) | 16.8 ms, 0 | 16.8 ms, 0 (the first pan after load: 0.8 s once) |
+| Zoom the map (12 wheel steps) | 250 ms, 5 | 16.8 ms, 0 (first zoom after load: 183 ms once) |
+| Focus a node (4 clicks) | 1 433 ms, 3 | 800–970 ms, 4 of 35: **still over budget** |
+| Treemap drill 3 levels and back | 200 ms, 3 | 16.8 ms, 0 (first run 33 ms) |
+
+What changed (D43): above 200 nodes (`LARGE_GRAPH_NODES`) Cytoscape draws a texture and hides edges while you pan or
+zoom, the 120 ms opacity transition on nodes is off (every transition frame repainted the whole canvas), and focusing
+a node drops the unrelated edges instead of fading ~2 000 of them. What is left: a class change on 500 nodes costs
+100–230 ms of Cytoscape restyle + repaint in this setup, and a focus does several. A profile showed < 300 ms of JavaScript;
+the rest is native canvas painting. Follow-up in M12 (ideas: fewer nodes per view, render faded nodes as one layer, move
+focus state into a second stylesheet-free overlay). On a machine with GPU canvas this is likely better, but it was not
+measured here.
 
 ### Test suite (2026-11-18)
 
@@ -85,6 +119,9 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 ## Known limitations
 
 ### Parsing (M1–M3)
+- ZIP reading: the streaming unzipper gets 16 KB slices. Before U4, a ZIP whose chunk held thousands of small entries
+  failed with "Maximum call stack size exceeded" (found by the 1 500-file synthetic ZIP in Chromium; 4 000 entries in
+  Node). Regression test in `m1-ingest-l0.test.ts`.
 - TypeScript is pinned to 5.9 because TS 7 has no JS compiler API (D1). L2 covers TS/JS only and at most 4000 files
   (`maxL2Files`) within its time budget; the remaining files keep L1.
 - SQL is handled by a hand-written tokenizer: DDL only (tables, columns, FKs, indexes), no queries or procedural SQL (D3).
@@ -153,8 +190,11 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
   out far enough that node labels hide (`min-zoomed-font-size`), as before U3; zoom in or use the legend/hover.
 - SVG export of the map is a Mermaid redraw of the current nodes and edges (layout differs from the canvas);
   PNG is exactly what is on screen.
-- Not measured yet: frame times on a 500-node map and the 10k-file treemap (U3 slice 4).
+- Large graphs (above 200 nodes): edges are hidden while panning/zooming and the canvas shows a texture, so very small
+  details blink back in when you stop; focusing a node removes the unrelated edges (the nodes still fade). Focus on a
+  500-node map is still slow in software painting (0.8–1 s worst frame, see Frame times above).
 - Tests after U3 slices 1–3 (2026-11-19): 181 unit (+1 opt-in bench) and 34 e2e, all passing.
+- Home manual and illustrations (U4): see "Help manual (U4)" below.
 
 ### Decisions and onboarding (M10)
 - **Decisions are inferred, not recovered.** Each detector reads facts earlier stages found, so it inherits their
@@ -205,3 +245,14 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 - Tests after M10 (2026-11-20): 255 unit (+1 opt-in bench) and 40 e2e, all passing; planted truth for decisions and
   onboarding is in each fixture's `ground-truth.json` (written by hand from the fixture files). Writing it found two
   real gaps (databases declared only in config, and the git stage running after onboarding), both fixed.
+
+### Help manual (U4)
+- The manual is hand-written plain English, checked by tests only where it can be: every page has an entry, documented
+  controls exist in the UI code, quoted thresholds match the code, and each worked example is replayed on the sample
+  project (`u4-manual.spec.ts`). Prose about *how to read* a page ("healthy looks like…") is judgement, not tested.
+- The History example on the sample shows the empty state, because the bundled sample has no `.git` folder. The
+  History page's content is documented but not demonstrated by an example; its e2e is in `m9-history.spec.ts`.
+- Drawn schematics illustrate the idea of each picture and carry no data; they are not kept in step with restyles
+  except through the shared tokens.
+- English only. The Terms filter matches the term, its aliases and its definition as plain substrings (no stemming).
+- Tests after U4 (2026-11-20): 273 unit (+3 opt-in benches: l1-vs-l2, git-real, scale) and 52 e2e (+1 opt-in perf), all passing.
