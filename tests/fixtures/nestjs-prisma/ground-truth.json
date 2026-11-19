@@ -64,5 +64,167 @@
     { "entity": "Post", "file": "src/posts/posts.service.ts", "op": "write" },
     { "entity": "Comment", "file": "src/posts/posts.controller.ts", "op": "read" }
   ],
-  "todos": [{ "file": "src/auth/constants.ts", "tag": "HACK" }]
+  "todos": [{ "file": "src/auth/constants.ts", "tag": "HACK" }],
+    "decisions": {
+      "ids": [
+        "architecture",
+        "languages",
+        "framework",
+        "tooling",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "testing"
+      ],
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "TypeScript (100%)"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Monolith",
+            "Layered"
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "resolved",
+          "text": [
+            "NestJS"
+          ],
+          "evidenceFiles": [
+            "package.json"
+          ]
+        },
+        {
+          "id": "tooling",
+          "conf": "resolved",
+          "text": [
+            "TypeScript",
+            "nest build"
+          ]
+        },
+        {
+          "id": "datastores",
+          "conf": "resolved",
+          "text": [
+            "PostgreSQL"
+          ],
+          "evidenceFiles": [
+            "prisma/schema.prisma"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "resolved",
+          "text": [
+            "Prisma"
+          ],
+          "observed": [
+            "3 entities defined (prisma)",
+            "Direct database access outside the data layer in 1 place"
+          ],
+          "observedAt": [
+            {
+              "file": "src/posts/posts.controller.ts",
+              "line": 21
+            }
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "(7)"
+          ],
+          "observed": [
+            "GET 4, POST 2, DELETE 1"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "heuristic",
+          "text": [
+            "`AuthGuard`"
+          ],
+          "evidenceFiles": [
+            "src/auth/auth.guard.ts"
+          ],
+          "observed": [
+            "3 of 7 routes",
+            "GET /posts"
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "resolved",
+          "text": [
+            "Jest"
+          ],
+          "observed": [
+            "No test files were found"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "start",
+        "requests",
+        "core",
+        "data",
+        "rough"
+      ],
+      "pathContains": [
+        "src/main.ts",
+        "src/posts/posts.controller.ts",
+        "prisma/schema.prisma"
+      ],
+      "commands": [
+        {
+          "command": "npm install",
+          "conf": "heuristic"
+        },
+        {
+          "command": "npm start",
+          "conf": "resolved"
+        },
+        {
+          "command": "npm run build",
+          "conf": "resolved"
+        },
+        {
+          "command": "npm test",
+          "conf": "resolved"
+        }
+      ],
+      "env": {},
+      "ports": [],
+      "prerequisites": [
+        "Node.js",
+        "PostgreSQL"
+      ],
+      "glossary": [
+        "User",
+        "Post",
+        "Comment"
+      ],
+      "checklist": [
+        "run",
+        "services",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

@@ -36,5 +36,126 @@
     { "entity": "orders", "file": "lib/Report.php", "op": "read" },
     { "entity": "users", "file": "pages/users.php", "op": "read" }
   ],
-  "todos": [{ "file": "admin/export.php", "tag": "FIXME" }, { "file": "includes/db.php", "tag": "XXX" }]
+  "todos": [{ "file": "admin/export.php", "tag": "FIXME" }, { "file": "includes/db.php", "tag": "XXX" }],
+    "decisions": {
+      "ids": [
+        "architecture",
+        "languages",
+        "framework",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "testing"
+      ],
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "PHP",
+            "SQL"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Monolith"
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "heuristic",
+          "text": [
+            "No web framework"
+          ]
+        },
+        {
+          "id": "datastores",
+          "conf": "heuristic",
+          "text": [
+            "MySQL"
+          ],
+          "evidenceFiles": [
+            "includes/db.php"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "heuristic",
+          "text": [
+            "hand-written SQL"
+          ],
+          "observed": [
+            "2 entities defined (sql)"
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "(4)"
+          ],
+          "observed": [
+            "any method 4"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "unresolved",
+          "text": [
+            "No authentication mechanism"
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "heuristic",
+          "text": [
+            "No automated tests"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "start",
+        "requests",
+        "core",
+        "data",
+        "rough"
+      ],
+      "pathContains": [
+        "index.php",
+        "admin/export.php",
+        "schema.sql"
+      ],
+      "commands": [
+        {
+          "command": "php -S localhost:8000",
+          "conf": "heuristic",
+          "file": "index.php"
+        }
+      ],
+      "env": {},
+      "ports": [],
+      "prerequisites": [
+        "PHP",
+        "MySQL"
+      ],
+      "glossary": [
+        "users",
+        "orders"
+      ],
+      "checklist": [
+        "run",
+        "services",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

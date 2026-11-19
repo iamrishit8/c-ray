@@ -366,14 +366,113 @@ export interface GitResult {
 
 // ---------- Decisions / orientation ----------
 
+export type DecisionCategory = 'Documented' | 'Architecture' | 'Stack' | 'Data' | 'API' | 'Security' | 'Operations' | 'Quality';
+/** Display order of the categories (the team's own records first). */
+export const CATEGORY_ORDER: DecisionCategory[] = ['Documented', 'Architecture', 'Stack', 'Data', 'API', 'Security', 'Operations', 'Quality'];
+
+/** A statement plus how sure we are about it and where it comes from (used for "why" and "observed"). */
+export interface Claim {
+  text: string;
+  conf: Confidence;
+  file?: string;
+  line?: number;
+}
+
+/** An architectural decision the codebase appears to embody, or one the team wrote down (M10). */
 export interface Decision {
+  /** Stable per kind: `framework`, `auth`, `adr:docs/adr/0001-x.md`. */
   id: string;
   title: string;
+  /** What was chosen, in one sentence. */
   decision: string;
-  category: string;
+  category: DecisionCategory;
   evidence: Evidence[];
+  /** Confidence that the decision itself holds (resolved = declared in a manifest/config/ADR). */
   conf: Confidence;
+  /** `inferred`: general knowledge about this kind of choice. `adr`: the ADR's own consequences. */
   tradeoffs: string[];
+  source: 'inferred' | 'adr';
+  /** Why it appears built this way: the project's own words when there are any, else structural inference. */
+  why?: Claim;
+  /** What this project's own analysis says about how the decision holds up (counted, linked facts). */
+  observed: Claim[];
+  adr?: { status?: string; date?: string; number?: number };
+}
+
+// ---------- Onboarding (M10) ----------
+
+export interface OnboardingFile {
+  file: string;
+  line: number;
+  note: string;
+  conf: Confidence;
+}
+
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  /** Why this stop is on the path. */
+  why: string;
+  files: OnboardingFile[];
+}
+
+export interface GlossaryTerm {
+  term: string;
+  kind: 'entity' | 'route' | 'symbol';
+  meaning: string;
+  file: string;
+  line: number;
+  /** How many files (symbols/routes) use the word. */
+  count: number;
+  conf: Confidence;
+}
+
+export interface RunCommand {
+  kind: 'install' | 'run' | 'test' | 'build' | 'docker' | 'other';
+  label: string;
+  command: string;
+  /** Directory to run it in, when not the project root. */
+  cwd?: string;
+  file: string;
+  line: number;
+  /** `resolved`: taken verbatim from a file in the repo. `heuristic`: derived from conventions. */
+  conf: Confidence;
+}
+
+export interface EnvVar {
+  name: string;
+  file: string;
+  line: number;
+  /** Only filled from template files (`.env.example`); real `.env` values are never copied. */
+  example?: string;
+}
+
+export interface RunInfo {
+  prerequisites: Claim[];
+  commands: RunCommand[];
+  env: EnvVar[];
+  ports: { port: number; file: string; line: number }[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  /** Rough pacing: `Day 1`, `Days 2–3`, `Days 4–5`. */
+  when: string;
+  text: string;
+  detail?: string;
+  /** Where in the app to do it. */
+  tab?: string;
+  focus?: { file?: string; entry?: string };
+  file?: string;
+  line?: number;
+  conf: Confidence;
+}
+
+export interface Onboarding {
+  path: OnboardingStep[];
+  glossary: GlossaryTerm[];
+  run: RunInfo;
+  checklist: ChecklistItem[];
 }
 
 export interface Orientation {
@@ -435,6 +534,8 @@ export interface Analysis {
   git: GitResult | null;
   gitMessage?: string;
   decisions: Decision[];
+  /** Reading path, glossary, how to run it, first-week checklist. Absent in analyses stored before M10. */
+  onboarding?: Onboarding;
   orientation: Orientation;
   /** L1-vs-L2 accuracy measured on this project's TS/JS files, when both ran. */
   l1Accuracy?: { imports: PR; calls: PR };
@@ -450,7 +551,8 @@ export interface PR {
   fn: number;
 }
 
-export const ANALYSIS_VERSION = 1;
+/** 2 = M10: `decisions` is filled and `onboarding` exists. Version 1 analyses show a "re-analyse" hint in those views. */
+export const ANALYSIS_VERSION = 2;
 
 export const DEFAULT_IGNORE: string[] = [
   'node_modules/', 'vendor/', 'dist/', 'build/', '.next/', 'target/', 'out/',

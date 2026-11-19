@@ -115,7 +115,7 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 - Folder labels in graphs sit centred above the box: Cytoscape can't place a compound node's label inside its top-left
   corner (the mockup's position).
 - Graph labels are one font size: the subtitle line (role · size) can't be smaller or dimmer than the name.
-- Canvas waits at most 1.5 s for Geist Mono; on a very slow first load a graph may draw in the fallback monospace
+- Canvas waits at most 1.5 s for Google Sans (Geist Mono before D39); on a very slow first load a graph may draw in the fallback monospace
   until it is rebuilt (e.g. filter change).
 - Below 900 px the side nav is an icon rail (labels in tooltips); below 1100 px the source panel overlays the view.
   Phone widths are usable but not designed for (dense tables scroll).
@@ -156,3 +156,52 @@ See the latest count in TODO.md "Now"; all suites pass at every commit.
 - Not measured yet: frame times on a 500-node map and the 10k-file treemap (U3 slice 4).
 - Tests after U3 slices 1–3 (2026-11-19): 181 unit (+1 opt-in bench) and 34 e2e, all passing.
 
+### Decisions and onboarding (M10)
+- **Decisions are inferred, not recovered.** Each detector reads facts earlier stages found, so it inherits their
+  limits (L1 routes are `heuristic`, dynamic route paths are listed as `unresolved`). "REST-style" is a judgement about
+  HTTP routes, so that decision is `heuristic` even when every route is exact.
+- **"Why" is only what the repo says.** An ADR's context, or the first README/docs sentence that mentions the
+  technology *and* contains a cue such as "chose", "decided", "because", "instead of". A rationale written in other
+  words, in a wiki, or in another language is missed, and the view then says the repository doesn't state why. A
+  sentence can be a coincidence (a "because" sentence that happens to name the technology); it is quoted with its
+  file and line so it can be checked. Docs scanned: README + up to 12 prose docs, each ≤ 200 KB.
+- **Trade-offs are general knowledge** from the tech table (`src/core/l0/tech.ts`), shown as such; only ADR
+  consequences are the team's words. imex does not check that code still follows an ADR; a superseded or deprecated
+  status is surfaced as a warning.
+- **Auth is the weakest detector.** It recognises auth-like middleware/guard names, auth dependencies (JWT, Passport,
+  Spring Security, Devise, NextAuth) and Django's `django.contrib.auth`. Custom checks inside handlers, gateways and
+  proxies are invisible, hence the `unresolved` "either open or not recognised" result; the "N of M routes pass
+  through auth middleware" count only appears when at least one route has it (frameworks that don't expose per-route
+  middleware would otherwise read as "0 of M").
+- **Databases declared in config**: Prisma datasource, JDBC URLs in `application.*`, Django `ENGINE`, `mysqli_*`/PDO-mysql.
+  The PHP match is `heuristic` (a MySQL driver, not proof of the server). Other config styles (Rails `database.yml`,
+  `DATABASE_URL` strings, Docker Compose images) are not read yet.
+- **Test strategy counts files by path convention** (`isTestPath`), so "no test files found" can be wrong when tests
+  are excluded by ignore rules or live outside the analysed files; the text says so.
+- **Run commands are copied or conventional, never executed.** Verbatim sources: manifest scripts, Makefile targets
+  (`install|setup|run|dev|start|serve|test|build|lint|migrate`), README fenced blocks under headings containing
+  install/setup/getting started/run/usage/development/build/test whose line starts with a known tool (npm, pip,
+  docker, make, mvn, go, cargo, …). Conventional commands (`mvn spring-boot:run`, `python manage.py runserver`,
+  `php -S localhost:8000`) are `heuristic`. The package manager comes from the lockfile the ingest step skipped, or
+  `pnpm-workspace.yaml`; with neither it says `npm`. Not read: `.nvmrc`/`.tool-versions`, CI workflow steps,
+  compose `environment:` blocks, `package.json` `engines` beyond `node`.
+- **Environment variables**: names from every `.env*` file, example values from template files only (`example`,
+  `sample`, `template`, `dist` in the name); a real `.env` is never copied (tested). Ports: Dockerfile `EXPOSE`,
+  compose `ports:`, a numeric `PORT` in a template.
+- **Glossary** is lexical: words in entity names, route paths, class/interface/type names and file names, split on case
+  and punctuation, crudely singularised ("status", "address" kept), minus a stop list of plumbing words. It cannot tell
+  that two words are synonyms and has no definitions beyond where the word is used; non-Latin identifiers pass through
+  unsplit.
+- **Reading path ranking** reuses the orientation "read first" score (centrality 45%, hops from an entry 35%, size 20%);
+  it favours the middle of the import graph, so leaf utilities and generated code rank low on purpose.
+- **Cost**: the two stages took 6 ms (decisions) and 28 ms (onboarding) on a synthetic 3 000-file project and
+  < 5 ms on every fixture (total analysis 1.2 s for the 3 000 files), so they are not worth moving off the worker's
+  critical path. Not measured on a large real repo with hundreds of docs.
+- **Stale analyses**: a project stored before M10 (`version` 1) has no onboarding and no decisions until re-analysed;
+  both views say so.
+- **Typeface (D39)**: Google Sans is bundled (latin + latin-ext, 87 KB); text in other scripts falls back to the
+  system font. The font is loaded with `font-display: swap`, so the first paint on a cold cache can use the fallback
+  for a moment; canvas text (System map) waits up to 1.5 s for it. Geist Mono is still used for paths, code and labels.
+- Tests after M10 (2026-11-20): 255 unit (+1 opt-in bench) and 40 e2e, all passing; planted truth for decisions and
+  onboarding is in each fixture's `ground-truth.json` (written by hand from the fixture files). Writing it found two
+  real gaps (databases declared only in config, and the git stage running after onboarding), both fixed.

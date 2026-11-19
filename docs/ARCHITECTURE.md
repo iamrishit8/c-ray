@@ -51,6 +51,8 @@ flowchart LR
 | `src/core/git/` | `analyze.ts`: history from an uploaded `.git` via isomorphic-git over an in-memory FS (`memfs.ts`): churn, authors, bus factor, co-change (+ `linked`, D29/D31), renames (D32, history merged under the current name), message types, snapshots (D30), hotspot findings. `diff.ts`: `diffSnapshots` for time-travel (no isomorphic-git import, so the UI and report can use it). | Loaded lazily by `gitStage`. |
 | `src/core/orientation.ts`, `roles.ts` | Summary, architecture-style guesses, "read these first", file roles. | Re-run after each phase. |
 | `src/core/viz/` | Pure layout maths for the U3 pictures: `treemap.ts` (file tree + squarified layout), `matrix.ts` (DSM grouping, SCCs, ordering, cycle/violation cells), `calendar.ts` (commit days + author weeks), `scatter.ts` (hotspot map), `path.ts` (shortest import path), `radial.ts` (rings, circle), `er.ts` (ER card grid + clipped lines), `progress.ts` (pipeline phase → stepper step). | D37. Called by the UI on demand; bounded. |
+| `src/core/decisions/` | `catalogue.ts`: one detector per decision kind (D40) over the finished analysis; `docs.ts`: ADR parser (Nygard + MADR) and README rationale finder; `index.ts`: `decisionsStage`. | `deep` stage after deps, health and git. |
+| `src/core/onboarding/` | `index.ts`: reading path, first-week checklist, `onboardingStage`; `run.ts`: commands, env, ports, prerequisites from manifests/Dockerfile/Makefile/README; `glossary.ts`: domain terms. | D41. Needs file text, so it runs in the worker and is stored. |
 | `src/core/report.ts` | Markdown / Notion pages / diagrams for export. | |
 | `src/core/search.ts` | Symbol + full-text search index. | Built lazily in the coordinator. |
 | `src/core/node-env.ts` | Node implementation of the pipeline environment (tests/bench). | |
@@ -61,13 +63,14 @@ flowchart LR
 | `scripts/copy-assets.mjs` | Copies grammar WASMs + TS lib `.d.ts` into `public/` (pre-dev/build/install). | Generated, git-ignored. |
 | `scripts/contrast-audit.mjs` | `npm run audit:contrast`: WCAG ratios of the token pairs in `src/index.css`, both themes (D34). | Exits 1 below AA. |
 | `vite.config.ts` | Build + `offlinePlugin` that generates `sw.js` precaching all assets. | |
+| `src/ui/DecisionsView.tsx`, `OnboardingView.tsx` | Decisions (list + detail: evidence, why, how it holds up, trade-offs) and Onboarding (checklist with local ticks, reading path, how to run, glossary). | M10 |
 | `tests/` | `unit/` (Vitest, Node), `e2e/` (Playwright), `bench/`, `fixtures/` (6 planted-truth projects + `git-history` + `git-moves` ground truth), `git-fixture.ts` (builds the git-history and git-moves repos at test time, D28). | |
 
 ## Analysis model
 
 `Analysis` (in `types.ts`) is one serialisable object per project. Key fields:
 `files`, `skipped`, `coverage`, `l0`, `symbols`, `imports`, `refs`, `frameworks`, `routes`, `entries`, `facts`,
-`schema`, `deps`, `findings`, `git` (`GitResult` or `null`; `gitMessage` says why it is null), `decisions` (M10, empty today), `orientation`, `notices`, `timings`, `stage`.
+`schema`, `deps`, `findings`, `git` (`GitResult` or `null`; `gitMessage` says why it is null), `decisions` (M10), `onboarding` (M10, optional: absent before `ANALYSIS_VERSION` 2), `orientation`, `notices`, `timings`, `stage`.
 
 `stage` moves `l0 → graph → done`; the UI renders whatever is available (progressive snapshots).
 
@@ -85,7 +88,7 @@ Anything that cannot be determined statically is recorded as `unresolved`, never
 ## Stage order (`defaultStages`)
 
 `graph` phase: `l1Stage` → `l2Stage` + `accuracyStage` (browser/with L2) → `assembleStage` → `detectStage` → `schemaStage` → `depsStage` → `healthStage`
-`deep` phase: `gitStage`
+`deep` phase: `schemaStage` → `depsStage` → `healthStage` → `gitStage` → `decisionsStage` → `onboardingStage` (decisions and onboarding cite what the earlier ones found, so they come last)
 
 (The `phase` field decides which snapshot a stage's output appears in.) Adding a stage = implement `Stage` and insert
 it in `defaultStages`; it gets timing, error isolation and progress for free.
@@ -103,7 +106,7 @@ Cancel = terminate the coordinator worker (the client re-creates it).
 `App` (56 px top bar: logo, project crumb, privacy pill, theme; banners) → `Home` (hero, drop zone, sample project,
 feature strip, settings, stored projects) or `ProjectView` (grouped side nav with icons, an icon rail below 900 px;
 current view wrapped in `PageGroup` so `Page` shows the group as its eyebrow; `SourcePanel`, an overlay below
-1100 px). `ProjectView` also owns the `/` shortcut (focus `[data-search-focus]` or open Search). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand / Assess / Explore / Share; History
+1100 px). `ProjectView` also owns the `/` shortcut (focus `[data-search-focus]` or open Search). Tabs are declared in `TABS` in `ProjectView.tsx` with a `group` (Understand: Orientation, Onboarding, System map, Flows, Data, Decisions · Assess · Explore · Share; History
 sits in Assess after Impact);
 `projectOnly` tabs are hidden in File Mode. A single `.nav-pill` element slides behind the current nav item;
 the view area is the View Transition target (`view-transition-name: view`, D36). `ProgressPanel` shows a stepper

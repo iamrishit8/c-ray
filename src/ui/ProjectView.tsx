@@ -16,6 +16,8 @@ import { ImpactView } from './ImpactView';
 import { DataView } from './DataView';
 import { ExportView } from './ExportView';
 import { HistoryView } from './HistoryView';
+import { DecisionsView } from './DecisionsView';
+import { OnboardingView } from './OnboardingView';
 
 export interface TabDef {
   id: string;
@@ -31,9 +33,11 @@ export interface TabDef {
 
 export const TABS: TabDef[] = [
   { id: 'orientation', label: 'Orientation', view: Orientation, group: 'Understand' },
+  { id: 'onboarding', label: 'Onboarding', view: OnboardingView, projectOnly: true, group: 'Understand' },
   { id: 'map', label: 'System map', view: SystemMap, projectOnly: true, group: 'Understand' },
   { id: 'flows', label: 'Flows', view: FlowView, projectOnly: true, group: 'Understand', badge: (a) => a.entries.length, badgeTitle: 'entry points' },
   { id: 'data', label: 'Data', view: DataView, projectOnly: true, group: 'Understand', badge: (a) => a.schema.entities.length, badgeTitle: 'data entities' },
+  { id: 'decisions', label: 'Decisions', view: DecisionsView, projectOnly: true, group: 'Understand', badge: (a) => a.decisions.length, badgeTitle: 'architectural decisions' },
   { id: 'deps', label: 'Dependencies', view: DepsView, projectOnly: true, group: 'Assess', badge: (a) => a.deps.cycles.length + a.deps.violations.length, badgeTitle: 'cycles + layering violations' },
   { id: 'health', label: 'Health', view: HealthView, group: 'Assess', badge: (a) => a.findings.filter((f) => f.sev === 'high' || f.sev === 'medium').length, badgeTitle: 'high/medium findings' },
   { id: 'impact', label: 'Impact', view: ImpactView, projectOnly: true, group: 'Assess' },

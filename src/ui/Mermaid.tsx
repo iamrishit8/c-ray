@@ -6,7 +6,7 @@ import { cssVar } from './Graph';
 function themeVariables() {
   const v = (n: string) => cssVar(`--${n}`);
   return {
-    fontFamily: '"Geist Mono", monospace', fontSize: '12.5px',
+    fontFamily: '"Google Sans Variable", "Google Sans", sans-serif', fontSize: '12.5px',
     background: v('bg2'), mainBkg: v('bg2'), primaryColor: v('bg2'), primaryTextColor: v('fg'), primaryBorderColor: v('line2'),
     secondaryColor: v('bg3'), secondaryTextColor: v('fg'), secondaryBorderColor: v('line2'),
     tertiaryColor: v('bg3'), tertiaryTextColor: v('fg2'), tertiaryBorderColor: v('line2'),

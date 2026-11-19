@@ -5,13 +5,11 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 
 ## Now
 
-**U2: Visual redesign + rename to imex is done, waiting for owner review** (2026-11-19; owner approved going
-straight through all slices with one review at the end). M9 follow-ups and the `marked` link check were fixed first
-(see M9, Known issues). To confirm in review: D34 (dark text on terracotta buttons instead of the mockup's white).
-Owner approved U2 on 2026-11-19 and asked for one more visual phase first: **U3 (motion + codebase
-visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed to GitHub after each slice.
-**U3 slices 1–3 are done and waiting for owner review** (dev server at http://localhost:5173). Slice 4
-(illustrations, performance check, polish) is next after the review; M10 starts after U3.
+**M10: Decisions + onboarding + generated docs is done, waiting for owner review** (2026-11-20; dev server at
+http://localhost:5173). Also done first, on the owner's request: the interface font is now Google Sans (D39, bundled,
+not the Google Fonts link: see the decision). Open since before: U3 slice 4 (illustrations, performance check,
+polish) was left for after the owner's U3 review; the owner started M10 instead, so it is still open and listed
+under U3. M11 starts only after the M10 review.
 
 ---
 
@@ -31,7 +29,7 @@ visualisations)**. Owner asked for slices 1–3 in one go (2026-11-19), pushed t
 | D1 | Documentation system (CLAUDE.md, docs/, Definition of Done, docs Stop hook) | ✅ 2026-11-18 |
 | M9 | Git layer: churn, co-change, bus factor, time-travel | ✅ 2026-11-18 |
 | U3 | Motion + codebase visualisations (treemap, dependency matrix, hotspot map, activity heatmap, animated flows) | 🚧 slices 1–3 done, review pending; slice 4 open |
-| M10 | Decisions view + onboarding guide + generated docs | ⬜ |
+| M10 | Decisions view + onboarding guide + generated docs | ✅ 2026-11-20 (review pending) |
 | M11 | AI Q&A (bring-your-own key) + AI-enhanced summaries | ⬜ |
 | M12 | Scale hardening, robustness tests, performance pass, polish | ⬜ |
 | U2 | Visual redesign (warm palette, mono type, new diagrams) + rename to **imex** | ✅ 2026-11-19 |
@@ -161,21 +159,34 @@ slices 1–3 as asked, no 3D view, no d3: hand-written layouts, D37)
 2. 3D "code city" view: skip, or add as an optional experimental tab? [skip]
 3. Is `d3-hierarchy` OK as a small new dependency? [yes, if the hand-written treemap gets fiddly]
 
-## M10: Decisions view + onboarding guide + generated docs
+## M10: Decisions view + onboarding guide + generated docs ✅
 
-`Analysis.decisions: Decision[]` exists in the model but nothing fills it yet.
+Engine: `decisionsStage` fills `Analysis.decisions` (ADRs as `resolved` + 16 detectors); `onboardingStage` fills
+`Analysis.onboarding`. Both `deep` stages after deps, health and git. `ANALYSIS_VERSION` is 2.
 
-- [ ] Design the decision catalogue (DECISIONS.md entry): which architectural decisions we infer, e.g. framework, ORM,
-      auth mechanism, monorepo/workspaces, layering style, API style (REST/GraphQL/RPC), state management, test strategy,
-      deployment (Docker/serverless), config/secrets approach
-- [ ] `decisionsStage`: each decision gets evidence (file:line), confidence and trade-offs. Read ADRs in the repo
-      (`docs/adr/*`, fixture `monorepo` has one) as `resolved` decisions
-- [ ] Planted truth for decisions in each fixture's `ground-truth.json` + unit tests `m10-decisions.test.ts`
-- [ ] **Decisions view** (group *Understand*): list with evidence, confidence, trade-offs, "why it appears built this way"
-- [ ] **Onboarding guide**: generated reading path (entry → routes → core domain → data), glossary of domain terms
-      (from entity/route/symbol names), "how to run it" from manifests/README/Dockerfile, first-week checklist
-- [ ] Generated docs: add Decisions + Onboarding sections to exports
-- [ ] E2E `m10-decisions.spec.ts`; QUALITY.md limitations
+- [x] Design the decision catalogue: DECISIONS D40 (what we infer, the three kinds of "why", no invented absences) and D41 (onboarding)
+- [x] `decisionsStage`: evidence (file:line), confidence, trade-offs; ADRs (Nygard + MADR, `docs/adr`, `docs/decisions`,
+      `adr-NNN`) read as `resolved` with status/date/number; README rationale quoted with its line
+- [x] Planted truth for decisions and onboarding in the six fixtures' `ground-truth.json` + unit tests
+      `m10-decisions.test.ts` (34) and `m10-onboarding.test.ts` (40): exact decision ids per fixture, confidence, wording,
+      evidence files, counted observations with lines, honesty invariants (every file/line exists, a resolved "why" always
+      quotes a file), edge cases (no signal, no auth, no HTTP, File Mode, malformed ADR, superseded ADR, XSS in an ADR)
+- [x] **Decisions view** (*Understand*): category filter, list + detail (evidence, why it appears built this way, how it
+      holds up here, trade-offs), keyboard, "re-analyse" hint for pre-M10 projects
+- [x] **Onboarding view** (*Understand*): first-week checklist (Day 1 / Days 2–3 / Days 4–5, ticks kept locally, "Open in imex"
+      jumps to Flows/Data/Decisions/Health/Impact/History), reading path, how to run it (prerequisites, commands with
+      confidence + copy button, env example values from templates only, ports), glossary
+- [x] Export: "Onboarding guide" and "Decisions" sections in Markdown, Notion ZIP and print (task-list checklist, tables)
+- [x] E2E `m10-decisions.spec.ts` (6); QUALITY.md limitations
+- [x] Docs: ARCHITECTURE, FLOWS §9, CONVENTIONS (`InlineCode`, type), DECISIONS D39–D41
+- Found on the way: Prisma / JDBC / Django `ENGINE` / `mysqli` databases were invisible (now `datastores`); the git stage
+  ran after onboarding (so ownership never showed up; stage order fixed); the progress stepper gained a "Decisions" step
+
+**Follow-ups**
+- [ ] Read more config for databases and runtimes: Rails `database.yml`, `DATABASE_URL`, compose images, `.nvmrc` / `.tool-versions`, CI steps
+- [ ] Decisions over time from git (when a framework/ORM first appeared, via the snapshots)
+- [ ] Mark an ADR whose technology is no longer in the code ("documented but not found") instead of the generic "not checked" note
+- [ ] Let the owner add notes to a decision (would need user-written data in IndexedDB; M11/M12 question)
 
 ## M11: AI Q&A (BYO key) + AI-enhanced summaries
 

@@ -53,5 +53,179 @@
     { "entity": "Order", "file": "orders/services.py", "op": "write" },
     { "entity": "Order", "file": "orders/views.py", "op": "read" }
   ],
-  "todos": [{ "file": "orders/views.py", "tag": "TODO" }]
+  "todos": [{ "file": "orders/views.py", "tag": "TODO" }],
+    "decisions": {
+      "ids": [
+        "architecture",
+        "languages",
+        "framework",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "configuration",
+        "jobs",
+        "testing"
+      ],
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "Python (100%)"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Layered"
+          ],
+          "observed": [
+            "layering violation",
+            "1 circular dependency"
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "resolved",
+          "text": [
+            "Django"
+          ],
+          "evidenceFiles": [
+            "requirements.txt"
+          ]
+        },
+        {
+          "id": "datastores",
+          "conf": "resolved",
+          "text": [
+            "PostgreSQL"
+          ],
+          "evidenceFiles": [
+            "requirements.txt"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "heuristic",
+          "text": [
+            "Django ORM"
+          ],
+          "observed": [
+            "4 entities defined (django)",
+            "Direct database access outside the data layer"
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "Django REST Framework"
+          ],
+          "observed": [
+            "any method 5"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "resolved",
+          "text": [
+            "built-in auth"
+          ],
+          "evidenceFiles": [
+            "shop/settings.py"
+          ]
+        },
+        {
+          "id": "configuration",
+          "conf": "resolved",
+          "text": [
+            "settings.py"
+          ],
+          "observed": [
+            "1 possible hardcoded secret"
+          ],
+          "observedAt": [
+            {
+              "file": "shop/settings.py",
+              "line": 6
+            }
+          ]
+        },
+        {
+          "id": "jobs",
+          "conf": "resolved",
+          "text": [
+            "Celery"
+          ],
+          "evidenceFiles": [
+            "orders/tasks.py"
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "heuristic",
+          "text": [
+            "No automated tests"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "start",
+        "requests",
+        "core",
+        "data",
+        "ops",
+        "rough"
+      ],
+      "pathContains": [
+        "manage.py",
+        "catalog/urls.py",
+        "catalog/models.py",
+        "shop/settings.py"
+      ],
+      "commands": [
+        {
+          "command": "pip install -r requirements.txt",
+          "conf": "heuristic"
+        },
+        {
+          "command": "python manage.py migrate",
+          "conf": "heuristic"
+        },
+        {
+          "command": "python manage.py runserver",
+          "conf": "heuristic"
+        },
+        {
+          "command": "python manage.py test",
+          "conf": "heuristic"
+        }
+      ],
+      "env": {},
+      "ports": [],
+      "prerequisites": [
+        "Python",
+        "PostgreSQL"
+      ],
+      "glossary": [
+        "Category",
+        "Product",
+        "Order",
+        "OrderLine"
+      ],
+      "checklist": [
+        "run",
+        "services",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

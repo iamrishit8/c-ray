@@ -67,11 +67,11 @@ export function cssVar(name: string): string {
 }
 
 const FAMILIES: RoleFamily[] = ['route', 'service', 'model', 'test', 'int', 'config'];
-// Canvas font strings reject some CSS generics (ui-monospace), so keep this list plain.
-const FONT = '"Geist Mono", monospace';
+// Canvas font strings reject some CSS generics (ui-monospace, system-ui), so keep this list plain.
+const FONT = '"Google Sans Variable", "Google Sans", sans-serif';
 /** Canvas text only uses a webfont that is already loaded; wait for it (bounded) before drawing. */
 const fontsReady = typeof document !== 'undefined' && document.fonts
-  ? Promise.race([Promise.all(['500 11px "Geist Mono"', '600 11px "Geist Mono"'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 1500))])
+  ? Promise.race([Promise.all(['500 11px "Google Sans Variable"', '600 11px "Google Sans Variable"'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 1500))])
   : Promise.resolve();
 
 function tokens() {

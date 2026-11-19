@@ -72,5 +72,227 @@
     "reversePath": { "from": "src/models/User.js", "to": "src/routes/users.js" },
     "noPath": ["src/utils/format.js", "src/models/User.js"],
     "erRelated": ["Order", "User"]
-  }
+  },
+    "decisions": {
+      "ids": [
+        "architecture",
+        "languages",
+        "framework",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "deployment",
+        "configuration",
+        "jobs",
+        "testing"
+      ],
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "JavaScript (100%)"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Layered"
+          ],
+          "observed": [
+            "1 layering violation",
+            "1 circular dependency"
+          ],
+          "observedAt": [
+            {
+              "file": "src/controllers/orderController.js",
+              "line": 7
+            }
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "resolved",
+          "text": [
+            "Express"
+          ],
+          "evidenceFiles": [
+            "package.json"
+          ],
+          "why": {
+            "conf": "resolved",
+            "file": "README.md",
+            "line": 7,
+            "contains": "We chose Express because the team already knew it"
+          }
+        },
+        {
+          "id": "datastores",
+          "conf": "resolved",
+          "text": [
+            "MongoDB"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "resolved",
+          "text": [
+            "Mongoose"
+          ],
+          "observed": [
+            "2 entities defined (mongoose)",
+            "Direct database access outside the data layer in 1 place"
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "(7)"
+          ],
+          "observed": [
+            "GET 4, POST 2, DELETE 1"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "resolved",
+          "text": [
+            "JWT",
+            "`auth`"
+          ],
+          "evidenceFiles": [
+            "package.json",
+            "src/middleware/auth.js"
+          ],
+          "observed": [
+            "5 of 7 routes",
+            "GET /health",
+            "POST /api/users"
+          ]
+        },
+        {
+          "id": "deployment",
+          "conf": "resolved",
+          "text": [
+            "Docker",
+            "node:20-alpine"
+          ],
+          "observed": [
+            "no USER instruction",
+            "No CI configuration"
+          ],
+          "observedAt": [
+            {
+              "file": "Dockerfile",
+              "line": 1
+            }
+          ]
+        },
+        {
+          "id": "configuration",
+          "conf": "resolved",
+          "text": [
+            "MONGO_URL",
+            "PORT",
+            "PAYMENT_URL"
+          ],
+          "observed": [
+            "1 possible hardcoded secret"
+          ],
+          "observedAt": [
+            {
+              "file": "src/config.js",
+              "line": 7
+            }
+          ]
+        },
+        {
+          "id": "jobs",
+          "conf": "resolved",
+          "text": [
+            "cron"
+          ],
+          "evidenceFiles": [
+            "src/jobs/cleanup.js"
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "resolved",
+          "text": [
+            "Jest"
+          ],
+          "observed": [
+            "No test files were found"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "docs",
+        "start",
+        "requests",
+        "core",
+        "data",
+        "ops",
+        "rough"
+      ],
+      "pathContains": [
+        "README.md",
+        "src/server.js",
+        "src/routes/orders.js",
+        "src/models/Order.js",
+        "src/models/User.js",
+        ".env.example",
+        "Dockerfile"
+      ],
+      "commands": [
+        {
+          "command": "npm install",
+          "conf": "heuristic"
+        },
+        {
+          "command": "npm start",
+          "conf": "resolved",
+          "file": "package.json"
+        },
+        {
+          "command": "npm test",
+          "conf": "resolved",
+          "file": "package.json"
+        }
+      ],
+      "env": {
+        "MONGO_URL": "mongodb://localhost:27017/shop",
+        "PORT": "3000",
+        "PAYMENT_URL": "https://payments.example.com"
+      },
+      "ports": [
+        3000
+      ],
+      "prerequisites": [
+        "Node.js 20",
+        "MongoDB"
+      ],
+      "glossary": [
+        "Order",
+        "User"
+      ],
+      "checklist": [
+        "run",
+        "env",
+        "services",
+        "docs",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

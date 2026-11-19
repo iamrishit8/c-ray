@@ -208,6 +208,11 @@ export function listKeys<K extends string>(keys: K[], current: K | null, select:
   };
 }
 
+/** Text with `backtick` spans shown as inline code (decision and onboarding text carries commands and paths). */
+export function InlineCode({ text }: { text: string }) {
+  return <>{text.split(/`([^`]+)`/).map((part, i) => (i % 2 ? <code key={i} className="mono rounded bg-[var(--bg3)] px-1">{part}</code> : part))}</>;
+}
+
 /** Colour tokens for categorical series that are not roles (languages, authors): the role hues, then accent. */
 export const SERIES = ['var(--r-service)', 'var(--accent)', 'var(--r-int)', 'var(--r-route)', 'var(--r-model)', 'var(--r-test)', 'var(--warn)'];
 /** The rest of a categorical series ("other"). */

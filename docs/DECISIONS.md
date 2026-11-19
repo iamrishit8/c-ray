@@ -201,7 +201,7 @@ D18–D24 record choices that were already in the code but never written down.
 
 ## D27: U2 visual direction: warm palette, all-mono type; app renamed to imex
 - **Date / phase:** 2026-11-18 · U2 (planning)
-- **Status:** Accepted (supersedes the "revisit in U2" note in D25)
+- **Status:** Accepted (supersedes the "revisit in U2" note in D25; the all-mono typeface was superseded by D39)
 - **Context:** The U1 UI is clean but generic: system fonts, stock Tailwind blue, a graph palette hard-coded apart
   from the app tokens, Mermaid's stock themes, identical graph nodes. Two mockups were compared: a dark "X-ray" look
   (navy + cyan) and a warm, editorial light look modelled on claude.com/features/artifacts.
@@ -356,3 +356,68 @@ D18–D24 record choices that were already in the code but never written down.
   interactive, while the exported diagrams must stay text so they travel into Markdown and Notion.
 - **Alternatives rejected:** Continuous edge animation while a node is focused (loops while idle, hides the
   confidence encoding); `cytoscape-svg` for SVG export (another extension with its own styling path, D35).
+
+## D39: Google Sans for the interface, bundled; Geist Mono kept for code, paths and labels
+- **Date / phase:** 2026-11-20 · font change (owner request, before M10)
+- **Status:** Accepted (supersedes the "Geist Mono as the only typeface" part of D27; the palette, tokens and layout of D27 stand)
+- **Context:** The owner asked for Google Sans and supplied the Google Fonts embed (`family=Google+Sans:ital,opsz,wght@0,17..18,400..700;…`).
+  That embed loads the font from `fonts.googleapis.com` / `fonts.gstatic.com` on every visit. The service worker never
+  touches cross-origin requests (D10), so the font would be missing offline, and every visit would tell Google that
+  someone opened imex, which contradicts the "100% local · nothing leaves this browser" pill (CLAUDE.md privacy rule).
+- **Decision:** Self-host the same typeface: `@fontsource-variable/google-sans` (OFL, the Google Fonts files, variable
+  weight 400–700 and optical size). `src/index.css` declares only its `latin` and `latin-ext` faces with the package's
+  own unicode ranges, because the service worker precaches every emitted file. `--font-sans` is Google Sans
+  (`system-ui` fallback); `--font-mono` stays Geist Mono for code, file paths, the source panel, table headers and the
+  uppercase `.label` style. Cytoscape and Mermaid text use Google Sans (canvas font preload updated). No italic face is
+  shipped: nothing in the UI is italic.
+- **Why:** Same look the owner asked for, zero network requests, works offline, no cookie/IP exposure. Paths and code
+  need fixed-width alignment, and mono labels are part of the U2 identity, so only the reading text changes.
+- **Alternatives rejected:** The Google Fonts `<link>` as supplied (breaks the privacy promise and offline use; one line
+  to switch back if the owner prefers it, but then the pill text must change); Google Sans for everything including
+  code (paths and the source viewer would lose alignment); shipping every script of the package (≈ 1.5 MB more precached).
+
+## D40: Decision catalogue: detectors over finished analysis, three kinds of "why", no invented absences
+- **Date / phase:** 2026-11-20 · M10
+- **Status:** Accepted
+- **Context:** `Analysis.decisions` existed since M1 but nothing filled it. A "decision" a tool infers can easily become
+  fiction (why was Express chosen?), which would break the rule that every fact carries a confidence and a source.
+- **Decision:** `decisionsStage` (`src/core/decisions/`) runs as a `deep` stage after deps, health and git, and builds:
+  (1) one `Documented` decision per ADR (Nygard and MADR layouts, `docs/adr`, `docs/decisions`, `adr-NNN`), always
+  `resolved`, with status/date/number, the record's context as its "why" and its consequences as trade-offs; (2) up to
+  16 inferred decisions from detectors: architecture style (top two, since layered and monolith are both true),
+  repository layout, messaging, languages, application framework, UI framework, state, build tooling, datastores
+  (dependencies and databases named in config: Prisma datasource, JDBC URL, Django ENGINE, `mysqli_*`), data access,
+  API style, authentication, deployment, configuration/secrets, background jobs, test strategy. Each has evidence
+  (`file:line`), a confidence that is the weakest part of what it claims, and three separate text fields:
+  **why** (the project's own words only: an ADR context or a README sentence containing a "why" cue such as "chose …
+  because …", `resolved` with its location; architecture also gets a `heuristic` structural sentence; otherwise empty
+  and the UI says the repo doesn't say), **observed** (counted facts about how the decision holds up here: layering
+  violations, routes without auth middleware, hardcoded secrets, no tests; each with its own confidence), and
+  **tradeoffs** (general knowledge from the tech table, labelled as such; for ADRs, the record's own consequences).
+  Absences are reported only where exact and useful: no recognised auth on an HTTP API is `unresolved` ("either open or
+  not recognised"), never "none"; no test files is a counted fact; nothing is said about auth for projects without HTTP.
+- **Why:** Reasoning about intent is where tools lie. Separating quotes, counts and general knowledge keeps each claim
+  checkable. Detectors read already-established facts, so they are cheap (6 ms on 3 000 files) and degrade one by one
+  (a throwing detector adds a notice and the rest continue).
+- **Alternatives rejected:** Free-text "rationale" generated from templates (plausible but unverifiable); an LLM (M11,
+  opt-in only); one detector per technology (the TECH table already carries those facts).
+
+## D41: Onboarding is computed in the worker and stored; commands are verbatim or labelled as conventional; env values only from templates
+- **Date / phase:** 2026-11-20 · M10
+- **Status:** Accepted
+- **Context:** "How do I run it?" needs the text of README, Dockerfile, Makefile, manifests and `.env` files, which the
+  UI never holds (D22 covers only what can be derived from the stored `Analysis`).
+- **Decision:** `onboardingStage` (`src/core/onboarding/`) stores `Analysis.onboarding` (reading path, glossary,
+  how-to-run, first-week checklist); `ANALYSIS_VERSION` is now 2, and a version-1 analysis shows a "re-analyse" hint
+  instead of an empty page. Commands copied from a file (manifest scripts, Makefile targets, README fenced blocks under
+  setup/run headings) are `resolved`; conventional ones derived from a manifest (`pip install -r`, `mvn spring-boot:run`,
+  `php -S`) are `heuristic`, and a verbatim copy replaces a derived one. imex never runs anything. Example values come
+  from template files only (`.env.example`, `.sample`, `.template`, `.dist`); a real `.env` contributes names, never
+  values. The reading path lets specialised steps (docs, entry, routes, data, config, rough edges) repeat a file but
+  fills the generic "core logic" step last and without repeats. The glossary drops plumbing words (service, controller,
+  util …) and needs an entity, a route noun or use in ≥ 2 files. Checklist ticks are per-viewer, kept in `localStorage`
+  (works without it). Stage order is `deps → health → git → decisions → onboarding` so ownership and hotspots are known.
+- **Why:** Everything shown has a source line a newcomer can open, and nothing is executed or leaked: a real `.env`
+  can hold live secrets, and "run this" suggestions from a tool must not be mistaken for tested commands.
+- **Alternatives rejected:** Deriving it in the UI (no file text); one big "guide" string (no per-item confidence or
+  links); ticking items in IndexedDB (a per-viewer convenience doesn't need the analysis store).

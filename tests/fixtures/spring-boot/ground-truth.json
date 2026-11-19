@@ -65,5 +65,167 @@
     { "entity": "Order", "file": "src/main/java/com/acme/shop/service/OrderService.java", "op": "write" },
     { "entity": "Order", "file": "src/main/java/com/acme/shop/controller/OrderController.java", "op": "read" }
   ],
-  "todos": [{ "file": "src/main/java/com/acme/shop/controller/OrderController.java", "tag": "TODO" }]
+  "todos": [{ "file": "src/main/java/com/acme/shop/controller/OrderController.java", "tag": "TODO" }],
+    "decisions": {
+      "ids": [
+        "architecture",
+        "messaging",
+        "languages",
+        "framework",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "configuration",
+        "testing"
+      ],
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "Java (100%)"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Layered"
+          ],
+          "observed": [
+            "layering violation",
+            "circular dependenc"
+          ]
+        },
+        {
+          "id": "messaging",
+          "conf": "resolved",
+          "text": [
+            "Kafka"
+          ],
+          "observed": [
+            "orders.placed",
+            "orders.cancelled"
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "resolved",
+          "text": [
+            "Spring Boot"
+          ],
+          "evidenceFiles": [
+            "pom.xml"
+          ]
+        },
+        {
+          "id": "datastores",
+          "conf": "resolved",
+          "text": [
+            "PostgreSQL"
+          ],
+          "evidenceFiles": [
+            "pom.xml"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "resolved",
+          "text": [
+            "JPA"
+          ],
+          "observed": [
+            "3 entities defined (jpa)"
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "(4)"
+          ],
+          "observed": [
+            "GET 3, POST 1"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "unresolved",
+          "text": [
+            "No authentication mechanism"
+          ]
+        },
+        {
+          "id": "configuration",
+          "conf": "resolved",
+          "text": [
+            "application.properties"
+          ],
+          "observed": [
+            "1 possible hardcoded secret"
+          ],
+          "observedAt": [
+            {
+              "file": "src/main/resources/application.properties",
+              "line": 3
+            }
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "heuristic",
+          "text": [
+            "No automated tests"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "start",
+        "requests",
+        "core",
+        "data",
+        "ops",
+        "rough"
+      ],
+      "pathContains": [
+        "src/main/java/com/acme/shop/ShopApplication.java",
+        "src/main/java/com/acme/shop/controller/OrderController.java",
+        "src/main/resources/application.properties"
+      ],
+      "commands": [
+        {
+          "command": "mvn spring-boot:run",
+          "conf": "heuristic"
+        },
+        {
+          "command": "mvn test",
+          "conf": "heuristic"
+        }
+      ],
+      "env": {},
+      "ports": [],
+      "prerequisites": [
+        "JDK",
+        "PostgreSQL",
+        "Kafka"
+      ],
+      "glossary": [
+        "Product",
+        "Order",
+        "OrderItem"
+      ],
+      "checklist": [
+        "run",
+        "services",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

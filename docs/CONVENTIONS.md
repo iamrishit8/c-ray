@@ -62,7 +62,7 @@ core ──► core            (never ui, store, workers, db, DOM)
 
 ### Design tokens (`src/index.css`)
 
-Look and feel: D27 (warm palette, Geist Mono only, terracotta accent). Reference: `docs/design/u2-mockup.html`.
+Look and feel: D27 (warm palette, terracotta accent) with the typeface from D39 (Google Sans + Geist Mono). Reference: `docs/design/u2-mockup.html`.
 Use tokens through Tailwind arbitrary values (`text-[var(--fg2)]`) or the classes below. **Never hard-code colours**:
 dark mode swaps these variables under `.dark`, and `Graph.tsx` / `Mermaid.tsx` read them at runtime.
 
@@ -84,7 +84,7 @@ dark mode swaps these variables under `.dark`, and `Graph.tsx` / `Mermaid.tsx` r
 | `--r-sm` / `--r-md` / `--r-lg` | radius 8 (buttons, inputs) / 12 (overlays) / 16 (cards) |
 | `--shadow-sm`, `--shadow-md` | card elevation / floating overlays |
 
-**Type.** Geist Mono everywhere (bundled via `@fontsource`, no network). Page title 30 px / 500 / −0.04em; card title
+**Type (D39).** Google Sans (`--font-sans`, variable 400–700 + optical size) for reading text, Geist Mono (`--font-mono`) for code, file paths (`.mono`, `.file`), the source panel, table headers and `.label`. Both are bundled via `@fontsource`; never add a font CDN link. Only latin + latin-ext faces are declared (the service worker precaches every emitted file). Page title 30 px / 500 / −0.04em; card title
 15.5 px / 500; body 13.5 px; meta 12–12.5 px; `.label` = 11 px mono uppercase, +0.05em, `--fg3` (eyebrows, table
 headers, stat labels, nav groups). Big numbers in `Stat` 28 px. Use `.tnum` for numbers that line up or change.
 
@@ -112,6 +112,7 @@ offsets; enter animations use `fill-mode: backwards`. Classes: `.stagger` (Page 
 | `Chip` | Filter toggles (fill dark when on, `aria-pressed`) |
 | `RiskBar` | A 0..1 share or score with a coloured bar |
 | `Stat` value | A plain number or `fmtNum` string counts up (`CountUp`); pass a node to opt out |
+| `InlineCode` | Text with `backtick` spans shown as inline code (decision and onboarding text carries commands and paths) |
 | `Empty`, `Pending`, `Skeleton` | Empty states (say what would make content appear) / not computed yet / loading placeholders |
 | `.btn`, `.btn-primary` (dark), `.btn-accent` (terracotta CTA), `.btn-danger`, `.btn-icon`, `.btn-round` | Buttons. At most one primary or accent action per area |
 | `.is-selected` | Selected state: soft accent for list rows; raised white for `.nav-item`; dark fill for `.chip` |

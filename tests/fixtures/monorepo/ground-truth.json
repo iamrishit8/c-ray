@@ -93,5 +93,219 @@
     ]
   },
   "adr": "docs/adr/0001-use-a-monorepo.md",
-  "todos": [{ "file": "packages/web/src/components/InvoiceTotal.tsx", "tag": "TODO" }]
+  "todos": [{ "file": "packages/web/src/components/InvoiceTotal.tsx", "tag": "TODO" }],
+    "decisions": {
+      "ids": [
+        "adr:docs/adr/0001-use-a-monorepo.md",
+        "architecture",
+        "repo-layout",
+        "messaging",
+        "languages",
+        "framework",
+        "ui",
+        "tooling",
+        "datastores",
+        "data-access",
+        "api-style",
+        "auth",
+        "testing"
+      ],
+      "adr": {
+        "id": "adr:docs/adr/0001-use-a-monorepo.md",
+        "title": "Use a monorepo with shared types",
+        "number": 1,
+        "status": "Accepted",
+        "date": "2023-03-14",
+        "decision": "one repository",
+        "why": {
+          "file": "docs/adr/0001-use-a-monorepo.md",
+          "line": 9,
+          "contains": "drifting apart"
+        },
+        "consequence": "compile errors"
+      },
+      "checks": [
+        {
+          "id": "languages",
+          "conf": "resolved",
+          "text": [
+            "TypeScript (100%)"
+          ]
+        },
+        {
+          "id": "architecture",
+          "conf": "heuristic",
+          "text": [
+            "Layered"
+          ]
+        },
+        {
+          "id": "repo-layout",
+          "conf": "resolved",
+          "text": [
+            "monorepo"
+          ],
+          "observed": [
+            "3 packages",
+            "@acme/api",
+            "@acme/shared",
+            "@acme/web"
+          ]
+        },
+        {
+          "id": "messaging",
+          "conf": "heuristic",
+          "text": [
+            "message queue"
+          ],
+          "observed": [
+            "invoice.created"
+          ],
+          "observedAt": [
+            {
+              "file": "packages/api/src/events/publisher.ts",
+              "line": 7
+            }
+          ]
+        },
+        {
+          "id": "framework",
+          "conf": "resolved",
+          "text": [
+            "Fastify"
+          ],
+          "evidenceFiles": [
+            "packages/api/package.json"
+          ]
+        },
+        {
+          "id": "ui",
+          "conf": "resolved",
+          "text": [
+            "React"
+          ],
+          "evidenceFiles": [
+            "packages/web/package.json"
+          ]
+        },
+        {
+          "id": "tooling",
+          "conf": "resolved",
+          "text": [
+            "TypeScript",
+            "Vite",
+            "tsc -b"
+          ]
+        },
+        {
+          "id": "datastores",
+          "conf": "resolved",
+          "text": [
+            "PostgreSQL",
+            "Redis"
+          ]
+        },
+        {
+          "id": "data-access",
+          "conf": "resolved",
+          "text": [
+            "TypeORM"
+          ],
+          "observed": [
+            "2 entities defined (typeorm)"
+          ]
+        },
+        {
+          "id": "api-style",
+          "conf": "heuristic",
+          "text": [
+            "REST-style",
+            "(4)"
+          ],
+          "observed": [
+            "GET 3, POST 1"
+          ]
+        },
+        {
+          "id": "auth",
+          "conf": "heuristic",
+          "text": [
+            "`requireAdmin`"
+          ],
+          "observed": [
+            "1 of 4 routes"
+          ]
+        },
+        {
+          "id": "testing",
+          "conf": "resolved",
+          "text": [
+            "Vitest"
+          ],
+          "observed": [
+            "No test files were found"
+          ]
+        }
+      ]
+    },
+    "onboarding": {
+      "steps": [
+        "docs",
+        "start",
+        "requests",
+        "core",
+        "data",
+        "rough"
+      ],
+      "pathContains": [
+        "docs/adr/0001-use-a-monorepo.md",
+        "packages/api/src/index.ts",
+        "packages/web/src/main.tsx",
+        "packages/api/src/routes/invoices.ts",
+        "packages/api/src/entities/Invoice.ts"
+      ],
+      "commands": [
+        {
+          "command": "pnpm install",
+          "conf": "heuristic"
+        },
+        {
+          "command": "pnpm test",
+          "conf": "resolved",
+          "file": "package.json"
+        },
+        {
+          "command": "pnpm run build",
+          "conf": "resolved",
+          "file": "package.json"
+        },
+        {
+          "command": "pnpm start",
+          "cwd": "packages/api",
+          "conf": "resolved",
+          "file": "packages/api/package.json"
+        }
+      ],
+      "env": {},
+      "ports": [],
+      "prerequisites": [
+        "Node.js",
+        "PostgreSQL",
+        "Redis"
+      ],
+      "glossary": [
+        "Customer",
+        "Invoice"
+      ],
+      "checklist": [
+        "run",
+        "services",
+        "docs",
+        "trace",
+        "tests",
+        "data",
+        "decisions",
+        "risk"
+      ]
+    }
 }

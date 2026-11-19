@@ -105,3 +105,26 @@ chunks (grammars, TS compiler, Mermaid). Same-origin GETs are cache-first; cross
 
 `cancel()` terminates the coordinator worker (and with it the pool and L2 worker). The client creates a fresh worker
 on the next request. Nothing partial is persisted.
+
+## 9. Decisions and onboarding (M10)
+
+Both are `deep` stages that run in the coordinator after the graph, deps, health and git stages, from the in-memory
+`Analysis` plus the text of the project's own files (`ctx.unitByPath`).
+
+```mermaid
+flowchart LR
+  A["finished analysis<br/>tech · frameworks · routes · schema · deps · findings · git"] --> D["decisionsStage<br/>ADRs → resolved<br/>16 detectors → inferred"]
+  T["README · ADRs · Dockerfile<br/>Makefile · manifests · .env*"] --> D
+  T --> O["onboardingStage<br/>path · glossary · run · checklist"]
+  A --> O
+  D --> O
+  D --> S[("Analysis.decisions")]
+  O --> S2[("Analysis.onboarding")]
+  S --> V["Decisions view · export section"]
+  S2 --> W["Onboarding view · export section"]
+```
+
+The Decisions and Onboarding views only read the stored analysis (nothing is recomputed in the UI, nothing is
+fetched). A version-1 analysis stored before M10 has no `onboarding` and empty `decisions`; both views tell the user to
+re-analyse. Checklist ticks are written to `localStorage` under `imex-onboarding-<projectId>` and are not part of the
+analysis or its export.
