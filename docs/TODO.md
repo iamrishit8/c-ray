@@ -6,7 +6,7 @@ Statuses: `[ ]` open · `[~]` in progress · `[x]` done. Each milestone is done 
 ## Now
 
 **M10 is done and waiting for owner review** (2026-11-20; dev server at http://localhost:5173). The owner accepted the
-typeface (Google Sans for text, a mono face for paths and code; see open question 1 under U4).
+typeface (Google Sans for text, Geist Mono for paths and code, confirmed).
 **Next, before M11: phase U4**, planned only (nothing built yet, 2026-11-20): a complete, plain-English **help manual on
 the introductory (Home) page**, together with the **U3 slice 4** items (illustrations, logo, performance check,
 polish). M11 starts only after U4 is reviewed and approved.
@@ -234,6 +234,8 @@ from an open project). Plain English, no jargon without a definition.
       exists, or a documented control's `data-testid` is missing from the app; CONVENTIONS and the Definition of Done get
       one line: "new page, control or term → add it to the Home manual"
 - [ ] Every claim in the manual is checked by walking the real app with a fixture (owner sees the walkthrough in the review)
+- [ ] Each page entry ends with a short worked example on the sample project; a test opens the sample, follows each
+      example's click path via `data-testid`s and checks the stated result is on screen
 - [ ] Manual works offline (no external assets, no network requests), in light and dark, at 820 px, keyboard-only, and
       with reduced motion; the in-page navigation and entries have accessible names and `data-testid`s
 
@@ -256,12 +258,12 @@ from an open project). Plain English, no jargon without a definition.
 3. **U3 slice 4** (hero illustration, empty states, logo, performance numbers and caps)
 4. **Tests, drift guards, docs, phase review** (walkthrough at http://localhost:5173)
 
-### Open questions for the owner (defaults in brackets)
-1. **Mono face.** "Google Sans combined with jsmon for path and code": I read this as the current **Geist Mono**. If you meant
-   **JetBrains Mono**, say so and I will swap it (a small D39 update, about 60 KB bundled). [keep Geist Mono]
-2. **Manual shape.** One long scrolling section on Home with a sticky contents list, or a separate full-screen "Guide" view that Home opens? [scrolling section on Home, because you asked for it on the introductory page]
-3. **Illustrations in the manual.** Small drawn schematics, or real screenshots of the app? [schematics: they stay in sync with the theme and never go stale]
-4. **Depth of the page entries.** Short (what / how / how sure) or also a worked example per page on the sample project? [include one short worked example per page using the bundled sample project]
+### Decisions (owner answered 2026-11-20)
+1. **Mono face: Geist Mono**, as it is now. No font change in U4.
+2. **Manual shape: one scrolling section on Home** with a sticky contents list (no separate Guide view).
+3. **Illustrations: drawn inline SVG diagrams** (token colours, light/dark, no screenshots).
+4. **Page entries: one short worked example per page**, using the bundled sample project (`sample-express-api`).
+   Each example is a few lines ("open Flows, pick POST /api/orders, you see…") and is checked against the real app.
 
 ## M11: AI Q&A (BYO key) + AI-enhanced summaries
 
